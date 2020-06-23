@@ -81,15 +81,3 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
     print(region_score_df)
 
     # XXX Add randomisation testing here to get p-value
-
-
-
-def main():
-    df = pd.read_csv('ActonMay4.csv')
-    df = convert_dates(df)
-#    r1 = infer_global_region(df)
-
-    EBP(df, 1)
-
-if __name__ == "__main__":
-    main()
