@@ -37,7 +37,7 @@ def region_event_count(S: Type[Region], data: pd.DataFrame) -> float:
 
     """Function to calculate the number of count (vehicles) within a given
     space-time region S. Can be used to calculate both the baseline count variable
-    B and actual count variable C in the likelihood ratio.
+    B and poisson count variable C in the likelihood ratio.
     Args:
         S: Space-Time Region to count events in
         data: Usual format SCOOT dataframe
