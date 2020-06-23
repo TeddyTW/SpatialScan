@@ -60,7 +60,7 @@ def region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
                   (data['measurement_end_utc'] <= S.t_max)
     S_df = data.loc[region_mask]
     if S_df.empty:
-        return [0, 0]
+        return 0
 #    return S_df['baseline_count'].sum(), S_df['actual_count'].sum()
     return S_df['n_vehicles_in_interval'].sum()
 
@@ -89,15 +89,26 @@ def make_grid(global_region: Type[Region], N: int) -> tuple:
 
     x = np.linspace(global_region.x_min, global_region.x_max, N+1)
     y = np.linspace(global_region.y_min, global_region.y_max, N+1)
+
     t = np.arange(0, global_region.num_hours(), step=1)
+    t = pd.date_range(start=global_region.t_min, end=global_region.t_max, freq='H')
 
     return x, y, t
 
 
+def main():
+    df = pd.read_csv('ActonMay4.csv')
+    df = convert_dates(df)
+    r1 = infer_global_region(df)
+    print(r1)
+    print(r1.num_days())
+    b = region_event_count(r1, df)
+    print(b)
 
+    x, y, t = make_grid(r1, 10)
+    print(x)
+    print(y)
+    print(t)
 
-
-
-
-
-
+if __name__ == "__main__":
+    main()
