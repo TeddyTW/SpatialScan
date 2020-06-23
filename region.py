@@ -1,7 +1,6 @@
 """Module to contain all region and grid-based construction code."""
 
 from typing import Type
-import numpy as np
 import pandas as pd
 from datetime import datetime
 

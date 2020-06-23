@@ -4,10 +4,7 @@ ratio is computed for all space-time regions; if significantly larger than
 expected, randomisation testing is used to infer the statistical signifiance
 of the event"""
 
-from typing import Type
 import numpy as np
-import pandas as pd
-from datetime import datetime
 
 def likelihood_ratio(B: float, C: float) -> float:
     """Simple Expression for the likelihood ratio
