@@ -16,13 +16,12 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
     paper by D. Neill.
 
     Args:
-#        global_region: Whole space-time region to perform the search over.
         forecast_data: dataframe consisting of the detectors which lie in
                        global_region, their locations and both their
                        baseline and actual accounts for the past W days.
         grid_partition: Split each spatial axis into this many partitions.
     Returns:
-        Dataframe summarising each grid square's F(S) score, and if appropiate, 
+        Dataframe summarising each grid square's F(S) score, and if appropiate,
         it's statistical significance (p-value) found by randomisation testing.
     """
 
@@ -77,3 +76,6 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
     region_score_df = region_score_df.sort_values('likelihood_score')
 
     # XXX Add randomisation testing here to get p-value
+
+
+    return None
