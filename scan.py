@@ -73,11 +73,7 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
                                        }, ignore_index=True)
     # At this point, we have a dataframe populated with likelihood statistic
     # scores for each search region.
-    print(region_score_df)
-
     # Sort it so that highest F(S) score is at the top.
     region_score_df = region_score_df.sort_values('likelihood_score')
-
-    print(region_score_df)
 
     # XXX Add randomisation testing here to get p-value
