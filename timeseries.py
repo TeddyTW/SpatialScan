@@ -85,14 +85,34 @@ def holt_winters(df, detectors, days_in_past, days_in_future, alpha=0.1, beta=0.
         df2 = pd.DataFrame({"detector_id" : detector, "lon" : df[df["detector_id"]==detector]["lon"].iloc[0], "lat" : df[df["detector_id"]==detector]["lat"].iloc[0], 'measurement_start_utc': starttime, 'measurement_end_utc':endtime, "n_vehicles_in_interval": baseline})
         framelist.append(df2)
     DF=pd.concat(framelist)
-    print(I)
     
     if(display):
-            df_plot=DF.set_index('measurement_end_utc')
-            for detector in detectors:
-                df_plot[df_plot["detector_id"]==detector]["n_vehicles_in_interval"].plot()
+        df_plot=DF.set_index('measurement_end_utc')
+        for detector in detectors:
+            df_plot[df_plot["detector_id"]==detector]["n_vehicles_in_interval"].plot()
 
     return DF
 
-    
-    
+def count_baseline(df, detectors, days_in_past, days_in_future, method ="HW"):
+
+    prediction_start = df["measurement_end_utc"].iloc[-1] - np.timedelta64(days_in_future*24, 'h')
+
+    train_data=df[df["measurement_end_utc"]<=prediction_start]
+    test_data=df[df["measurement_end_utc"]>prediction_start]
+
+    if(method=="HW"):
+        y=holt_winters(train_data, detectors, days_in_past, days_in_future, alpha=0.05, beta=0.05, gamma=0.2)
+    if(method=="MALD"):
+        y=forecast(train_data, detectors, days_in_past, days_in_future)
+    sd=[]
+
+    for detector in detectors:
+
+        sd.append(test_data[test_data['detector_id']==detector])
+
+    sample_test_data=pd.concat(sd)
+
+    Y=y.merge(sample_test_data, on=["lon", "lat","measurement_end_utc", "detector_id", "measurement_start_utc"], how='left')
+    Y=Y.rename(columns={"n_vehicles_in_interval_x": "baseline", "n_vehicles_in_interval_y": "count"})
+
+    return Y
