@@ -2,7 +2,6 @@
 
 import pandas as pd
 import numpy as np
-import logging
 from region import (
     Region,
     region_event_count,
@@ -49,8 +48,6 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
         "p_value",
     ]
     region_score_df = pd.DataFrame(columns=columns)
-
-    logging.info("Performing Loop")
 
     # Loop over all possible prisms in the space
     for i, _ in enumerate(x_ticks):
@@ -102,8 +99,6 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
     if not find_signifiance:
         return region_score_df
 
-    logging.info("Randomisation Testing Enabled. Performing {} simulations.".format(n_sims))
-
     # Perform Randomisation Testing here - very intensive.
     # Loop over all possible prisms in the space
     best_likelihood_scores = []
@@ -112,8 +107,8 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
         for i, _ in enumerate(x_ticks):
             for j in range(i + 1, len(x_ticks)):
                 for k, _ in enumerate(y_ticks):
-                   for l in range(k + 1, len(y_ticks)):
-                       for t in range(1, len(t_ticks)):
+                    for l in range(k + 1, len(y_ticks)):
+                        for t in range(1, len(t_ticks)):
 
                             # At each iteration, create the space_time region
                             test_region = Region(

@@ -17,5 +17,5 @@ def likelihood_ratio(B: float, C: float) -> float:
     """
 
     if C > B:
-        return (C / B) * np.exp(B - C)
+        return np.power((C / B), C) * np.exp(B - C)
     return 1.0

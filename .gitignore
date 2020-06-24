@@ -2,3 +2,4 @@
 .vscode*
 __pycache__/*
 .ipynb*
+region_event_try.py

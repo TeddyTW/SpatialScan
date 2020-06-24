@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Type
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sbn
 
 
 class Region:
@@ -74,7 +76,7 @@ def region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
     S_df = data.loc[region_mask]
     if S_df.empty:
         return 0, 0
-    return S_df['baseline'].sum(), S_df['count'].sum()
+    return S_df['baseline'].sum()/1e6, S_df['count'].sum() / 1e6
 
 
 def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
@@ -102,7 +104,7 @@ def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
         return 0, 0
     S_df['simulated'] = np.random.poisson(S_df['baseline'])
 
-    return S_df["simulated"].sum(), S_df["actual"].sum()
+    return S_df["simulated"].sum() / 1e6, S_df["actual"].sum() / 1e6
 
 def infer_global_region(data: pd.DataFrame) -> Type[Region]:
     x_min = data["lon"].min()
@@ -134,3 +136,19 @@ def make_grid(global_region: Type[Region], N: int) -> tuple:
     t = pd.date_range(start=global_region.t_min, end=global_region.t_max, freq="H")
 
     return x, y, t
+
+def plot_region_grid(forecast_data: pd.DataFrame, time_slice: datetime, grid_partition: int) -> None:
+    global_region = infer_global_region(forecast_data)
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+    forecast_data = forecast_data[forecast_data['measurement_end_utc'] == time_slice]
+    
+    sbn.scatterplot(data=forecast_data, x='lon', y='lat', size='baseline', legend=False)
+  
+    
+    for _, x in enumerate(x_ticks[1:-1]):
+        plt.axvline(x=x, alpha=0.4, c='k')
+    for _, y in enumerate(y_ticks[1:-1]):
+        plt.axhline(y=y, alpha=0.4, c='k')
+    plt.xlim([global_region.x_min, global_region.x_max])
+    plt.ylim([global_region.y_min, global_region.y_max])
+    return None
