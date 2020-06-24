@@ -8,6 +8,7 @@ from typing import Any, List, Type
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib
 from datetime import datetime
+import matplotlib.colors as colors
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -242,9 +243,7 @@ def count_baseline(
             detectors=detectors,
         )
     if method == "MALD":
-        y = MALDforecast(
-            train_data, days_in_past, days_in_future, detectors=detectors
-        )
+        y = MALDforecast(train_data, days_in_past, days_in_future, detectors=detectors)
     sd = []
 
     for detector in detectors:
@@ -272,3 +271,37 @@ def count_baseline(
     )
 
     return Y
+
+
+def CB_plot(df: pd.DataFrame):
+
+    """Function that plots Counts/Baseline as a 3D plot  with detector locations. Counts are 
+        shown by size of point, and C/B is shown using a colourmap
+        
+        Args:
+            Dataframe with Time, Count and Baseline columns"""
+
+    df_format = df
+    df_format["C/B"] = df_format["count"] / df_format["baseline"]
+    df_format["hour_from_start"] = (
+        df_format["measurement_end_utc"] - df_format["measurement_end_utc"].min()
+    )
+    df_format["hour_from_start"] = df_format["hour_from_start"].astype(
+        dtype="timedelta64[h]"
+    )
+    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
+    fig = plt.figure(figsize=(20, 10))
+    ax = fig.add_subplot(111, projection="3d")
+    p = ax.scatter(
+        df_format["lon"],
+        df_format["lat"],
+        df_format["hour_from_start"],
+        c=df_format["C/B"],
+        s=df_format["count"] * 0.1,
+        norm=offset,
+        cmap="coolwarm",
+    )
+    ax.set_xlabel("lon")
+    ax.set_ylabel("lat")
+    fig.colorbar(p)
+    plt.show()
