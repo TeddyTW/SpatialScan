@@ -135,24 +135,3 @@ def make_grid(global_region: Type[Region], N: int) -> tuple:
     t = pd.date_range(start=global_region.t_min, end=global_region.t_max, freq="H")
 
     return x, y, t
-
-
-def main():
-    df = pd.read_csv("ActonMay4.csv")
-    df = convert_dates(df)
-    r1 = infer_global_region(df)
-    print(r1)
-    print(r1.num_days())
-    b = region_event_count(r1, df)
-    print(b)
-
-    x, y, t = make_grid(r1, 10)
-    print(x)
-    print(y)
-    print(t)
-    c = simulate_region_event_count(r1, df)
-    print(c)
-
-
-if __name__ == "__main__":
-    main()
