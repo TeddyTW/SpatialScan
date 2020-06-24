@@ -43,6 +43,8 @@ class Region:
 
 def convert_dates(df: pd.DataFrame) -> pd.DataFrame:
     # Check columns are in here.
+    assert set(['measurement_start_utc', 'measurement_end_utc']) <= set(df.columns)
+
     copy_df = df
     copy_df["measurement_start_utc"] = pd.to_datetime(df["measurement_start_utc"])
     copy_df["measurement_end_utc"] = pd.to_datetime(df["measurement_end_utc"])
@@ -61,7 +63,7 @@ def region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
     """
 
     # Check for columns existence.
-    #    assert set(['baseline_count', 'actual_count']) <= set(data.columns)
+    assert set(['lon', 'lat', 'measurement_end_utc', 'count', 'baseline']) <= set(data.columns)
 
     region_mask = (
         (data["lon"].between(S.x_min, S.x_max))
@@ -71,9 +73,8 @@ def region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
     )
     S_df = data.loc[region_mask]
     if S_df.empty:
-        return 0
-    #    return S_df['baseline_count'].sum(), S_df['actual_count'].sum()
-    return S_df["n_vehicles_in_interval"].sum()
+        return 0, 0
+    return S_df['baseline'].sum(), S_df['count'].sum()
 
 
 def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
@@ -88,7 +89,7 @@ def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
     """
 
     # Check for columns existence.
-    #    assert set(['baseline_count', 'actual_count']) <= set(data.columns)
+    assert set(['lon', 'lat', 'measurement_end_utc', 'count', 'baseline']) <= set(data.columns)
 
     region_mask = (
         (data["lon"].between(S.x_min, S.x_max))
@@ -98,12 +99,10 @@ def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
     )
     S_df = data.loc[region_mask]
     if S_df.empty:
-        return 0
-    # S_df['poisson'] = np.random.poisson(S_df['baseline_count'])
-    S_df["simulated_count"] = np.random.poisson(S_df["n_vehicles_in_interval"])
+        return 0, 0
+    S_df['simulated'] = np.random.poisson(S_df['baseline'])
 
-    return S_df["simulated_count"].sum()
-
+    return S_df["simulated"].sum(), S_df["actual"].sum()
 
 def infer_global_region(data: pd.DataFrame) -> Type[Region]:
     x_min = data["lon"].min()
