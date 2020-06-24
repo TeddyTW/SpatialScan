@@ -1,7 +1,6 @@
 """Module containing Time Series Forecast functionality"""
 import numpy as np
 import pandas as pd
-<<<<<<< HEAD
 import scipy as sp
 import seaborn as sbn
 from typing import Any, List, Type
@@ -9,8 +8,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib
 from datetime import datetime
 import matplotlib.colors as colors
-=======
->>>>>>> f9347404a484db1ec633604f0c2ff9b56e14ea91
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
