@@ -201,6 +201,9 @@ def count_baseline(
     days_in_future: int,
     method: str = "HW",
     detectors: list = None,
+    alpha=0.06,
+    beta=0.02,
+    gamma=0.6,
 ):
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -233,14 +236,14 @@ def count_baseline(
             train_data,
             days_in_past,
             days_in_future,
-            alpha=0.06,
-            beta=0.02,
-            gamma=0.6,
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
             detectors=detectors,
         )
     if method == "MALD":
         y = MALDforecast(
-            train_data, detectors, days_in_past, days_in_future, detectors=detectors
+            train_data, days_in_past, days_in_future, detectors=detectors
         )
     sd = []
 
