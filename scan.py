@@ -38,9 +38,6 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
     # Create the Grid
     x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
 
-    # Shorten t_ticks to one day of data for simplicity
-    t_ticks = t_ticks[:24]
-
     columns = [
         "x_min",
         "x_max",
@@ -74,11 +71,12 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
 
                         # Note: This will search through whole data-frame each
                         # iteration. XXX - improve this first.
-                        B = region_event_count(test_region, forecast_data)
-                        C = 0
-
+                        B, C = region_event_count(test_region, forecast_data)
+                        
                         # Calculate the Likelihood ratio for this region
                         if B == 0 and C == 0:
+                            # Space-Time Regions with no detectors are of no 
+                            # interest
                             l_score = np.nan
                         else:
                             l_score = likelihood_ratio(B, C)

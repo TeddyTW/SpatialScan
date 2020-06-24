@@ -1,13 +1,6 @@
-from __future__ import annotations
-import matplotlib.pyplot as plt
+"""Module containing Time Series Forecast functionality"""
 import numpy as np
 import pandas as pd
-import scipy as sp
-import seaborn as sbn
-from typing import Any, List, Type
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib
-from datetime import datetime
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -206,12 +199,12 @@ def count_baseline(
     """Produces a DataFrame where the count and baseline can be compared for use
         in scan statistics
 
-    Args: 
+    Args:
         df: Dataframe of SCOOT data
-        detectors: List of detectors to look at
         days_in_past: Integer past days to train forecast one
         days_in_future: Days in future produce a baseline too and record count for
         method: Forecast method to use for baseline, default is "HW" for Holt-Winters, option for MLAD
+        detectors: List of detectors to look at
 
     Returns:
         Dataframe of counts and baseline along with detector data
