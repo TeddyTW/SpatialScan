@@ -5,7 +5,7 @@ import scipy as sp
 import seaborn as sbn
 from typing import Any, List, Type
 from mpl_toolkits.mplot3d import Axes3D
-import matplotlib
+import matplotlib.pyplot as plt
 from datetime import datetime
 import matplotlib.colors as colors
 
