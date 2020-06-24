@@ -6,6 +6,7 @@ of the event"""
 
 import numpy as np
 
+
 def likelihood_ratio(B: float, C: float) -> float:
     """Simple Expression for the likelihood ratio
     Args:
@@ -18,6 +19,3 @@ def likelihood_ratio(B: float, C: float) -> float:
     if C > B:
         return (C / B) * np.exp(B - C)
     return 1.0
-
-def randomisation_test(n_sims=1000):
-    return None
