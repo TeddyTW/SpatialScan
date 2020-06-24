@@ -76,7 +76,7 @@ def region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
     return S_df["n_vehicles_in_interval"].sum()
 
 
-def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
+def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> float:
 
     """Function to simulate the count (vehicles) within a given
     space-time region S assuming a Poisson Distribution with mean given by the
