@@ -303,5 +303,6 @@ def CB_plot(df: pd.DataFrame):
     )
     ax.set_xlabel("lon")
     ax.set_ylabel("lat")
+    ax.set_zlabel("Hours")
     fig.colorbar(p)
     plt.show()
