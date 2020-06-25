@@ -150,6 +150,9 @@ def plot_region_grid(
     plot_type="count",
 ) -> None:
 
+    """Functionality to plot the computational grid on a region of interest.
+    To be mainly used as a visualisation tool."""
+
     global_region = infer_global_region(forecast_data)
     x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
     forecast_data["cb_ratio"] = forecast_data["count"] / forecast_data["baseline"]
@@ -174,3 +177,66 @@ def plot_region_grid(
     plt.ylim([global_region.y_min, global_region.y_max])
 
     return None
+
+def make_region_from_res(res_df: pd.DataFrame, whole_prediction_period: bool = True,
+                         rank: int = 1) -> Type[Region]:
+    """The output of the main spatial scan loop is a dataframe named `res_df`.
+    This function enables us to create a `Region` object from that resulting
+    dataframe. The default is set to `rank=1`, meaning that the function will
+    default to create a space-time region corresponding to the highest scoring
+    likelihood ratio from the scan.
+
+    Args:
+        res_df: Resulting dataframe from the spatial scan
+        whole_prediction_period: (Boolean) res_df will contain data spanning the
+                                 the whole prediction period t= 0, 1, ... W. If
+                                 set to true, the resulting region will span over
+                                 all of these time steps. Otherwise, it will just
+                                 return the highest scoring space-time region.
+        rank: Determines which space-time region to create according to their
+              likelihood ratio scores as determined by the loop.
+    Returns:
+        Space-Time region spanning the spatial region of interest. Time period
+        either spans the whole prediction period, or just the highest scoring
+        slice as explained above.
+    """
+
+    x_min = res_df.iloc[rank].x_min
+    x_max = res_df.iloc[rank].x_max
+    y_min = res_df.iloc[rank].y_min
+    y_max = res_df.iloc[rank].y_max
+    if whole_prediction_period:
+        t_min = res_df['t_min'].min()
+        t_max = res_df['t_max'].max()
+    else:
+        t_min = res_df.iloc[rank].t_min
+        t_max = res_df.iloc[rank].t_max
+    return Region(x_min, x_max, y_min, y_max, t_min, t_max)
+
+
+# Plot the time series of all detectors within a region of interest
+def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame) -> None:
+    """Plots all the time series associated with a space-time region. To be used
+    in conjunction with `make_region_from_res` as follows:
+        1. Find Highest scoring regions from the main scan loop
+        2. Convert ones of interest (high-rank) to regions using
+           `make_region_from_res`
+        3. Plot the individual time series within that region using this function.
+    Args:
+        region: Space-Time Region of interest
+        forecast_df: dataframe containing all prediction data from timeseries module.
+    """
+
+    region_mask = (
+        (forecast_df["lon"].between(region.x_min, region.x_max))
+        & (forecast_df["lat"].between(region.y_min, region.y_max))
+        & (forecast_df["measurement_end_utc"] > region.t_min)
+        & (forecast_df["measurement_end_utc"] <= region.t_max)
+    )
+    df = forecast_df.loc[region_mask]
+    
+    fig, ax = plt.subplots(figsize=(15, 6))
+    sbn.lineplot(data=df, x="measurement_end_utc", y="count", hue='detector_id', ax=ax)
+    fig.suptitle("Actual Counts")
+    return None
+    
