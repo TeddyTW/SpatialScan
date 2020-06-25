@@ -137,18 +137,24 @@ def make_grid(global_region: Type[Region], N: int) -> tuple:
 
     return x, y, t
 
-def plot_region_grid(forecast_data: pd.DataFrame, time_slice: datetime, grid_partition: int) -> None:
+def plot_region_grid(forecast_data: pd.DataFrame, time_slice: datetime, grid_partition: int, plot_type="count") -> None:
+    
     global_region = infer_global_region(forecast_data)
     x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+    forecast_data['cb_ratio'] = forecast_data['count'] / forecast_data['baseline']
     forecast_data = forecast_data[forecast_data['measurement_end_utc'] == time_slice]
-    
-    sbn.scatterplot(data=forecast_data, x='lon', y='lat', size='baseline', legend=False)
-  
-    
+
+    sbn.scatterplot(data=forecast_data, x='lon', y='lat', size=plot_type, legend='brief', hue=plot_type)
+ 
+
     for _, x in enumerate(x_ticks[1:-1]):
         plt.axvline(x=x, alpha=0.4, c='k')
     for _, y in enumerate(y_ticks[1:-1]):
         plt.axhline(y=y, alpha=0.4, c='k')
+
+
+    plt.title("Plot Type: {}".format(plot_type))
     plt.xlim([global_region.x_min, global_region.x_max])
     plt.ylim([global_region.y_min, global_region.y_max])
+
     return None

@@ -69,14 +69,8 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
                         # Note: This will search through whole data-frame each
                         # iteration. XXX - improve this first.
                         B, C = region_event_count(test_region, forecast_data)
-                        
-                        # Calculate the Likelihood ratio for this region
-                        if B == 0 and C == 0:
-                            # Space-Time Regions with no detectors are of no 
-                            # interest
-                            l_score = np.nan
-                        else:
-                            l_score = likelihood_ratio(B, C)
+
+                        l_score = likelihood_ratio(B, C)
 
                         region_score_df = region_score_df.append(
                             {
@@ -91,39 +85,12 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,
                             },
                             ignore_index=True,
                         )
+        # Print Progress
+        print("{}% complete.".format(i * 100 / len(x_ticks)), end="\r")
+
     # At this point, we have a dataframe populated with likelihood statistic
     # scores for each search region.
     # Sort it so that highest F(S) score is at the top.
     region_score_df = region_score_df.sort_values("likelihood_score", ascending=False)
-
-    if not find_signifiance:
-        return region_score_df
-
-    # Perform Randomisation Testing here - very intensive.
-    # Loop over all possible prisms in the space
-    best_likelihood_scores = []
-    for _ in range(n_sims):
-        max_likelihood_score = 0
-        for i, _ in enumerate(x_ticks):
-            for j in range(i + 1, len(x_ticks)):
-                for k, _ in enumerate(y_ticks):
-                    for l in range(k + 1, len(y_ticks)):
-                        for t in range(1, len(t_ticks)):
-
-                            # At each iteration, create the space_time region
-                            test_region = Region(
-                                x_ticks[i],
-                                x_ticks[j],
-                                y_ticks[k],
-                                y_ticks[l],
-                                t_ticks[0],
-                                t_ticks[t],
-                            )
-                            sim_count, actual_count = simulate_region_event_count(test_region, forecast_data)
-                            l_score = likelihood_ratio(sim_count, actual_count)
-
-                            if l_score > max_likelihood_score:
-                                max_likelihood_score = l_score
-        best_likelihood_scores.append(max_likelihood_score)
 
     return region_score_df
