@@ -178,8 +178,10 @@ def plot_region_grid(
 
     return None
 
-def make_region_from_res(res_df: pd.DataFrame, whole_prediction_period: bool = True,
-                         rank: int = 1) -> Type[Region]:
+
+def make_region_from_res(
+    res_df: pd.DataFrame, whole_prediction_period: bool = True, rank: int = 1
+) -> Type[Region]:
     """The output of the main spatial scan loop is a dataframe named `res_df`.
     This function enables us to create a `Region` object from that resulting
     dataframe. The default is set to `rank=1`, meaning that the function will
@@ -206,8 +208,8 @@ def make_region_from_res(res_df: pd.DataFrame, whole_prediction_period: bool = T
     y_min = res_df.iloc[rank].y_min
     y_max = res_df.iloc[rank].y_max
     if whole_prediction_period:
-        t_min = res_df['t_min'].min()
-        t_max = res_df['t_max'].max()
+        t_min = res_df["t_min"].min()
+        t_max = res_df["t_max"].max()
     else:
         t_min = res_df.iloc[rank].t_min
         t_max = res_df.iloc[rank].t_max
@@ -234,9 +236,8 @@ def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame) -> 
         & (forecast_df["measurement_end_utc"] <= region.t_max)
     )
     df = forecast_df.loc[region_mask]
-    
+
     fig, ax = plt.subplots(figsize=(15, 6))
-    sbn.lineplot(data=df, x="measurement_end_utc", y="count", hue='detector_id', ax=ax)
+    sbn.lineplot(data=df, x="measurement_end_utc", y="count", hue="detector_id", ax=ax)
     fig.suptitle("Actual Counts")
     return None
-    
