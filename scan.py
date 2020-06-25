@@ -10,6 +10,8 @@ from region import (
 )
 from likelihood import likelihood_ratio
 import time
+import seaborn as sbn
+import matplotlib.pyplot as plt
 
 
 def EBP(forecast_data: pd.DataFrame, grid_partition: int,) -> pd.DataFrame:
@@ -109,3 +111,54 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,) -> pd.DataFrame:
     print("\n%d space-time regions searched in %.2f seconds" % (num_regions, t2 - t1))
 
     return region_score_df
+
+
+def plot_results(res_df, time_slice, grid_partition):
+    """Functionality to plot the results from the the main scan. The resulting
+    surface shown is the average likelihood score of that particular sub-grid.
+
+    Args:
+        res_df: pd.DataFrame from the main EBP function.
+        time_slice: By convention, the 'measurement_end_utc' slice to plot from.
+                    Note that this will slice the df in a way that includes all
+                    events from `t_min` up to `time_slice`. XXX - Improve
+        grid_parition: Number of partitions used in the main scan. XXX Clunky
+                       as an argument. To be set as global variable at top of
+                       script.
+    Returns:
+        tuple containing information for heatmap plotting
+    """
+
+    res_df = res_df[res_df['t_max'] == time_slice]
+  
+    x_min = res_df["x_min"].min()
+    x_max = res_df["x_max"].max()
+    y_min = res_df["y_min"].min()
+    y_max = res_df["y_max"].max()
+        
+    x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
+    y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+    
+    x_labels = ["{0:.3f}".format((x_ticks[i] + x_ticks[i+1])/2) for i in range(len(x_ticks) - 1)]
+    y_labels = ["{0:.3f}".format((y_ticks[i] + y_ticks[i+1])/2) for i in reversed(range(len(y_ticks) - 1))]
+    
+    region_scores = []
+    for j in range(len(y_ticks) - 1):
+        region_col_scores = []
+        for i in range(len(x_ticks) - 1):
+        
+            sub_df = res_df[(res_df["x_min"] <= x_ticks[i]) &
+                            (res_df["x_max"] >= x_ticks[i + 1]) & 
+                            (res_df["y_min"] <= y_ticks[j])&
+                            (res_df["y_max"] >= y_ticks[j + 1])
+                           ]
+            region_score = sub_df["likelihood_score"].sum() / len(sub_df["likelihood_score"])
+            region_col_scores.append(region_score)
+        region_scores.insert(0, region_col_scores)
+        
+    sbn.heatmap(region_scores, xticklabels=x_labels, yticklabels=y_labels, fmt=".5f", cbar=True, vmin=1, vmax=1.0005)
+    plt.xlabel("Lon")
+    plt.ylabel("Lat")
+    plt.title("Spatial Scan of Grid Size {} x {} at {}".format(grid_partition, grid_partition, time_slice))
+    return region_scores, x_labels, y_labels
+ 
