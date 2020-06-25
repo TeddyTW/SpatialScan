@@ -7,13 +7,14 @@ from region import (
     region_event_count,
     infer_global_region,
     make_grid,
-    simulate_region_event_count,
 )
 from likelihood import likelihood_ratio
 
 
-def EBP(forecast_data: pd.DataFrame, grid_partition: int,
-        find_signifiance: bool = False, n_sims: int = 100) -> pd.DataFrame:
+def EBP(
+    forecast_data: pd.DataFrame,
+    grid_partition: int,
+) -> pd.DataFrame:
 
     """Main function for looping through the sub-space-time regions (S) of
     global_region. Searching for regions with the highest score according to the
