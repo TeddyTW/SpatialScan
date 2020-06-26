@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.1" />
+<title>SpatialScan.region API documentation</title>
+<meta name="description" content="Module to contain all region and grid-based construction code." />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>SpatialScan.region</code></h1>
+</header>
+<section id="section-intro">
+<p>Module to contain all region and grid-based construction code.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Module to contain all region and grid-based construction code.&#34;&#34;&#34;
+
+from datetime import datetime
+from typing import Type
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sbn
+
+
+class Region:
+    &#34;&#34;&#34;Class to represent space-time region&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+        t_min: datetime,
+        t_max: datetime,
+    ) -&gt; None:
+        self.x_min = x_min
+        self.x_max = x_max
+        self.y_min = y_min
+        self.y_max = y_max
+        self.t_min = t_min
+        self.t_max = t_max
+        self.label = None
+
+    def __str__(self):
+        return &#34;({}, {}) x ({}, {}) x ({}, {})&#34;.format(
+            self.x_min, self.x_max, self.y_min, self.y_max, self.t_min, self.t_max
+        )
+
+    def add_label(self, label):
+        self.label = label
+
+    def num_days(self):
+        return (self.t_max - self.t_min).days
+
+    def num_hours(self):
+        return (self.t_max - self.t_min).days * 24
+
+
+def convert_dates(df: pd.DataFrame) -&gt; pd.DataFrame:
+    # Check columns are in here.
+    assert set([&#34;measurement_start_utc&#34;, &#34;measurement_end_utc&#34;]) &lt;= set(df.columns)
+
+    copy_df = df
+    copy_df[&#34;measurement_start_utc&#34;] = pd.to_datetime(df[&#34;measurement_start_utc&#34;])
+    copy_df[&#34;measurement_end_utc&#34;] = pd.to_datetime(df[&#34;measurement_end_utc&#34;])
+    return copy_df
+
+
+def region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
+
+    &#34;&#34;&#34;Function to calculate both the expected (B) and actual (C) count
+    (vehicles) within a given space-time region S. Used in the likelihood ratio
+    statistic.
+    Args:
+        S: Space-Time Region to count events in
+        data: Usual format SCOOT dataframe
+    Returns: (Tuple of floats) both types of event counts within region S.
+    &#34;&#34;&#34;
+
+    # Check for columns existence.
+    assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
+        data.columns
+    )
+
+    region_mask = (
+        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
+        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
+        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
+        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
+    )
+    S_df = data.loc[region_mask]
+    if S_df.empty:
+        return 0, 0
+    return S_df[&#34;baseline&#34;].sum() / 1e6, S_df[&#34;count&#34;].sum() / 1e6
+
+
+def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
+
+    &#34;&#34;&#34;Function to simulate the count (vehicles) within a given
+    space-time region S assuming a Poisson Distribution with mean given by the
+    baseline forecast. Used in randomisation testing.
+    Args:
+        S: Space-Time Region to count events in
+        data: Usual format SCOOT dataframe
+    Returns: (Tuple of floats) both types of event counts within region S.
+    &#34;&#34;&#34;
+
+    # Check for columns existence.
+    assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
+        data.columns
+    )
+
+    region_mask = (
+        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
+        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
+        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
+        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
+    )
+    S_df = data.loc[region_mask]
+    if S_df.empty:
+        return 0, 0
+    S_df[&#34;simulated&#34;] = np.random.poisson(S_df[&#34;baseline&#34;])
+
+    return S_df[&#34;simulated&#34;].sum() / 1e6, S_df[&#34;actual&#34;].sum() / 1e6
+
+
+def infer_global_region(data: pd.DataFrame) -&gt; Type[Region]:
+    x_min = data[&#34;lon&#34;].min()
+    x_max = data[&#34;lon&#34;].max()
+    y_min = data[&#34;lat&#34;].min()
+    y_max = data[&#34;lat&#34;].max()
+    t_min = data[&#34;measurement_start_utc&#34;].min()
+    t_max = data[&#34;measurement_end_utc&#34;].max()
+
+    return Region(x_min, x_max, y_min, y_max, t_min, t_max)
+
+
+def make_grid(global_region: Type[Region], N: int) -&gt; tuple:
+    &#34;&#34;&#34;Function to create grid arrays to iterate over in the main loop. Divides
+    the global region `global_region` into an N x N grid. Looping over the main
+    grid is O(N^4 * W).
+    Args:
+        global_region: The whole domain of which the scan is performed over.
+        N: Number of partitions per spatial axis.
+    Returns:
+        x: np.array of equally spaced values on the x axis of global_domain
+        y: np.array of equally spaced values on the y axis of global_domain
+        t: np.array of equally spaced values on the t axis of global_domain
+    &#34;&#34;&#34;
+
+    x = np.linspace(global_region.x_min, global_region.x_max, N + 1)
+    y = np.linspace(global_region.y_min, global_region.y_max, N + 1)
+
+    t = pd.date_range(start=global_region.t_min, end=global_region.t_max, freq=&#34;H&#34;)
+
+    return x, y, t
+
+
+def plot_region_grid(
+    forecast_data: pd.DataFrame,
+    time_slice: datetime,
+    grid_partition: int,
+    plot_type=&#34;count&#34;,
+) -&gt; None:
+
+    &#34;&#34;&#34;Functionality to plot the computational grid on a region of interest.
+    To be mainly used as a visualisation tool.&#34;&#34;&#34;
+
+    global_region = infer_global_region(forecast_data)
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+    forecast_data[&#34;cb_ratio&#34;] = forecast_data[&#34;count&#34;] / forecast_data[&#34;baseline&#34;]
+    forecast_data = forecast_data[forecast_data[&#34;measurement_end_utc&#34;] == time_slice]
+
+    sbn.scatterplot(
+        data=forecast_data,
+        x=&#34;lon&#34;,
+        y=&#34;lat&#34;,
+        size=plot_type,
+        legend=&#34;brief&#34;,
+        hue=plot_type,
+    )
+
+    for _, x in enumerate(x_ticks[1:-1]):
+        plt.axvline(x=x, alpha=0.4, c=&#34;k&#34;)
+    for _, y in enumerate(y_ticks[1:-1]):
+        plt.axhline(y=y, alpha=0.4, c=&#34;k&#34;)
+
+    plt.title(&#34;Plot Type: {}&#34;.format(plot_type))
+    plt.xlim([global_region.x_min, global_region.x_max])
+    plt.ylim([global_region.y_min, global_region.y_max])
+
+    return None
+
+
+def make_region_from_res(
+    res_df: pd.DataFrame, whole_prediction_period: bool = True, rank: int = 1
+) -&gt; Type[Region]:
+    &#34;&#34;&#34;The output of the main spatial scan loop is a dataframe named `res_df`.
+    This function enables us to create a `Region` object from that resulting
+    dataframe. The default is set to `rank=1`, meaning that the function will
+    default to create a space-time region corresponding to the highest scoring
+    likelihood ratio from the scan.
+
+    Args:
+        res_df: Resulting dataframe from the spatial scan
+        whole_prediction_period: (Boolean) res_df will contain data spanning the
+                                 the whole prediction period t= 0, 1, ... W. If
+                                 set to true, the resulting region will span over
+                                 all of these time steps. Otherwise, it will just
+                                 return the highest scoring space-time region.
+        rank: Determines which space-time region to create according to their
+              likelihood ratio scores as determined by the loop.
+    Returns:
+        Space-Time region spanning the spatial region of interest. Time period
+        either spans the whole prediction period, or just the highest scoring
+        slice as explained above.
+    &#34;&#34;&#34;
+
+    x_min = res_df.iloc[rank].x_min
+    x_max = res_df.iloc[rank].x_max
+    y_min = res_df.iloc[rank].y_min
+    y_max = res_df.iloc[rank].y_max
+    if whole_prediction_period:
+        t_min = res_df[&#34;t_min&#34;].min()
+        t_max = res_df[&#34;t_max&#34;].max()
+    else:
+        t_min = res_df.iloc[rank].t_min
+        t_max = res_df.iloc[rank].t_max
+    return Region(x_min, x_max, y_min, y_max, t_min, t_max)
+
+
+# Plot the time series of all detectors within a region of interest
+def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame) -&gt; None:
+    &#34;&#34;&#34;Plots all the time series associated with a space-time region. To be used
+    in conjunction with `make_region_from_res` as follows:
+        1. Find Highest scoring regions from the main scan loop
+        2. Convert ones of interest (high-rank) to regions using
+           `make_region_from_res`
+        3. Plot the individual time series within that region using this function.
+    Args:
+        region: Space-Time Region of interest
+        forecast_df: dataframe containing all prediction data from timeseries module.
+    &#34;&#34;&#34;
+
+    region_mask = (
+        (forecast_df[&#34;lon&#34;].between(region.x_min, region.x_max))
+        &amp; (forecast_df[&#34;lat&#34;].between(region.y_min, region.y_max))
+        &amp; (forecast_df[&#34;measurement_end_utc&#34;] &gt; region.t_min)
+        &amp; (forecast_df[&#34;measurement_end_utc&#34;] &lt;= region.t_max)
+    )
+    df = forecast_df.loc[region_mask]
+
+    fig, ax = plt.subplots(figsize=(15, 6))
+    sbn.lineplot(data=df, x=&#34;measurement_end_utc&#34;, y=&#34;count&#34;, hue=&#34;detector_id&#34;, ax=ax, legend=&#39;brief&#39;)
+    fig.suptitle(&#34;Actual Counts&#34;)
+    return None</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="SpatialScan.region.convert_dates"><code class="name flex">
+<span>def <span class="ident">convert_dates</span></span>(<span>df: pandas.core.frame.DataFrame) -> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def convert_dates(df: pd.DataFrame) -&gt; pd.DataFrame:
+    # Check columns are in here.
+    assert set([&#34;measurement_start_utc&#34;, &#34;measurement_end_utc&#34;]) &lt;= set(df.columns)
+
+    copy_df = df
+    copy_df[&#34;measurement_start_utc&#34;] = pd.to_datetime(df[&#34;measurement_start_utc&#34;])
+    copy_df[&#34;measurement_end_utc&#34;] = pd.to_datetime(df[&#34;measurement_end_utc&#34;])
+    return copy_df</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.infer_global_region"><code class="name flex">
+<span>def <span class="ident">infer_global_region</span></span>(<span>data: pandas.core.frame.DataFrame) -> Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def infer_global_region(data: pd.DataFrame) -&gt; Type[Region]:
+    x_min = data[&#34;lon&#34;].min()
+    x_max = data[&#34;lon&#34;].max()
+    y_min = data[&#34;lat&#34;].min()
+    y_max = data[&#34;lat&#34;].max()
+    t_min = data[&#34;measurement_start_utc&#34;].min()
+    t_max = data[&#34;measurement_end_utc&#34;].max()
+
+    return Region(x_min, x_max, y_min, y_max, t_min, t_max)</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.make_grid"><code class="name flex">
+<span>def <span class="ident">make_grid</span></span>(<span>global_region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], N: int) -> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Function to create grid arrays to iterate over in the main loop. Divides
+the global region <code>global_region</code> into an N x N grid. Looping over the main
+grid is O(N^4 * W).</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>global_region</code></strong></dt>
+<dd>The whole domain of which the scan is performed over.</dd>
+<dt><strong><code>N</code></strong></dt>
+<dd>Number of partitions per spatial axis.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>x</code></dt>
+<dd>np.array of equally spaced values on the x axis of global_domain</dd>
+<dt><code>y</code></dt>
+<dd>np.array of equally spaced values on the y axis of global_domain</dd>
+<dt><code>t</code></dt>
+<dd>np.array of equally spaced values on the t axis of global_domain</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_grid(global_region: Type[Region], N: int) -&gt; tuple:
+    &#34;&#34;&#34;Function to create grid arrays to iterate over in the main loop. Divides
+    the global region `global_region` into an N x N grid. Looping over the main
+    grid is O(N^4 * W).
+    Args:
+        global_region: The whole domain of which the scan is performed over.
+        N: Number of partitions per spatial axis.
+    Returns:
+        x: np.array of equally spaced values on the x axis of global_domain
+        y: np.array of equally spaced values on the y axis of global_domain
+        t: np.array of equally spaced values on the t axis of global_domain
+    &#34;&#34;&#34;
+
+    x = np.linspace(global_region.x_min, global_region.x_max, N + 1)
+    y = np.linspace(global_region.y_min, global_region.y_max, N + 1)
+
+    t = pd.date_range(start=global_region.t_min, end=global_region.t_max, freq=&#34;H&#34;)
+
+    return x, y, t</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.make_region_from_res"><code class="name flex">
+<span>def <span class="ident">make_region_from_res</span></span>(<span>res_df: pandas.core.frame.DataFrame, whole_prediction_period: bool = True, rank: int = 1) -> Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The output of the main spatial scan loop is a dataframe named <code>res_df</code>.
+This function enables us to create a <code><a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a></code> object from that resulting
+dataframe. The default is set to <code>rank=1</code>, meaning that the function will
+default to create a space-time region corresponding to the highest scoring
+likelihood ratio from the scan.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>res_df</code></strong></dt>
+<dd>Resulting dataframe from the spatial scan</dd>
+<dt><strong><code>whole_prediction_period</code></strong></dt>
+<dd>(Boolean) res_df will contain data spanning the
+the whole prediction period t= 0, 1, &hellip; W. If
+set to true, the resulting region will span over
+all of these time steps. Otherwise, it will just
+return the highest scoring space-time region.</dd>
+<dt><strong><code>rank</code></strong></dt>
+<dd>Determines which space-time region to create according to their
+likelihood ratio scores as determined by the loop.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Space-Time region spanning the spatial region</code> of <code>interest. Time period</code></dt>
+<dd>&nbsp;</dd>
+<dt><code>either spans the whole prediction period,</code> or <code>just the highest scoring</code></dt>
+<dd>&nbsp;</dd>
+</dl>
+<p>slice as explained above.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_region_from_res(
+    res_df: pd.DataFrame, whole_prediction_period: bool = True, rank: int = 1
+) -&gt; Type[Region]:
+    &#34;&#34;&#34;The output of the main spatial scan loop is a dataframe named `res_df`.
+    This function enables us to create a `Region` object from that resulting
+    dataframe. The default is set to `rank=1`, meaning that the function will
+    default to create a space-time region corresponding to the highest scoring
+    likelihood ratio from the scan.
+
+    Args:
+        res_df: Resulting dataframe from the spatial scan
+        whole_prediction_period: (Boolean) res_df will contain data spanning the
+                                 the whole prediction period t= 0, 1, ... W. If
+                                 set to true, the resulting region will span over
+                                 all of these time steps. Otherwise, it will just
+                                 return the highest scoring space-time region.
+        rank: Determines which space-time region to create according to their
+              likelihood ratio scores as determined by the loop.
+    Returns:
+        Space-Time region spanning the spatial region of interest. Time period
+        either spans the whole prediction period, or just the highest scoring
+        slice as explained above.
+    &#34;&#34;&#34;
+
+    x_min = res_df.iloc[rank].x_min
+    x_max = res_df.iloc[rank].x_max
+    y_min = res_df.iloc[rank].y_min
+    y_max = res_df.iloc[rank].y_max
+    if whole_prediction_period:
+        t_min = res_df[&#34;t_min&#34;].min()
+        t_max = res_df[&#34;t_max&#34;].max()
+    else:
+        t_min = res_df.iloc[rank].t_min
+        t_max = res_df.iloc[rank].t_max
+    return Region(x_min, x_max, y_min, y_max, t_min, t_max)</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.plot_region_grid"><code class="name flex">
+<span>def <span class="ident">plot_region_grid</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, time_slice: datetime.datetime, grid_partition: int, plot_type='count') -> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Functionality to plot the computational grid on a region of interest.
+To be mainly used as a visualisation tool.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_region_grid(
+    forecast_data: pd.DataFrame,
+    time_slice: datetime,
+    grid_partition: int,
+    plot_type=&#34;count&#34;,
+) -&gt; None:
+
+    &#34;&#34;&#34;Functionality to plot the computational grid on a region of interest.
+    To be mainly used as a visualisation tool.&#34;&#34;&#34;
+
+    global_region = infer_global_region(forecast_data)
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+    forecast_data[&#34;cb_ratio&#34;] = forecast_data[&#34;count&#34;] / forecast_data[&#34;baseline&#34;]
+    forecast_data = forecast_data[forecast_data[&#34;measurement_end_utc&#34;] == time_slice]
+
+    sbn.scatterplot(
+        data=forecast_data,
+        x=&#34;lon&#34;,
+        y=&#34;lat&#34;,
+        size=plot_type,
+        legend=&#34;brief&#34;,
+        hue=plot_type,
+    )
+
+    for _, x in enumerate(x_ticks[1:-1]):
+        plt.axvline(x=x, alpha=0.4, c=&#34;k&#34;)
+    for _, y in enumerate(y_ticks[1:-1]):
+        plt.axhline(y=y, alpha=0.4, c=&#34;k&#34;)
+
+    plt.title(&#34;Plot Type: {}&#34;.format(plot_type))
+    plt.xlim([global_region.x_min, global_region.x_max])
+    plt.ylim([global_region.y_min, global_region.y_max])
+
+    return None</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.plot_region_time_series"><code class="name flex">
+<span>def <span class="ident">plot_region_time_series</span></span>(<span>region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_df: pandas.core.frame.DataFrame) -> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plots all the time series associated with a space-time region. To be used
+in conjunction with <code><a title="SpatialScan.region.make_region_from_res" href="#SpatialScan.region.make_region_from_res">make_region_from_res()</a></code> as follows:
+1. Find Highest scoring regions from the main scan loop
+2. Convert ones of interest (high-rank) to regions using
+<code><a title="SpatialScan.region.make_region_from_res" href="#SpatialScan.region.make_region_from_res">make_region_from_res()</a></code>
+3. Plot the individual time series within that region using this function.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>region</code></strong></dt>
+<dd>Space-Time Region of interest</dd>
+<dt><strong><code>forecast_df</code></strong></dt>
+<dd>dataframe containing all prediction data from timeseries module.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame) -&gt; None:
+    &#34;&#34;&#34;Plots all the time series associated with a space-time region. To be used
+    in conjunction with `make_region_from_res` as follows:
+        1. Find Highest scoring regions from the main scan loop
+        2. Convert ones of interest (high-rank) to regions using
+           `make_region_from_res`
+        3. Plot the individual time series within that region using this function.
+    Args:
+        region: Space-Time Region of interest
+        forecast_df: dataframe containing all prediction data from timeseries module.
+    &#34;&#34;&#34;
+
+    region_mask = (
+        (forecast_df[&#34;lon&#34;].between(region.x_min, region.x_max))
+        &amp; (forecast_df[&#34;lat&#34;].between(region.y_min, region.y_max))
+        &amp; (forecast_df[&#34;measurement_end_utc&#34;] &gt; region.t_min)
+        &amp; (forecast_df[&#34;measurement_end_utc&#34;] &lt;= region.t_max)
+    )
+    df = forecast_df.loc[region_mask]
+
+    fig, ax = plt.subplots(figsize=(15, 6))
+    sbn.lineplot(data=df, x=&#34;measurement_end_utc&#34;, y=&#34;count&#34;, hue=&#34;detector_id&#34;, ax=ax, legend=&#39;brief&#39;)
+    fig.suptitle(&#34;Actual Counts&#34;)
+    return None</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.region_event_count"><code class="name flex">
+<span>def <span class="ident">region_event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], data: pandas.core.frame.DataFrame) -> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Function to calculate both the expected (B) and actual (C) count
+(vehicles) within a given space-time region S. Used in the likelihood ratio
+statistic.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>S</code></strong></dt>
+<dd>Space-Time Region to count events in</dd>
+<dt><strong><code>data</code></strong></dt>
+<dd>Usual format SCOOT dataframe</dd>
+</dl>
+<p>Returns: (Tuple of floats) both types of event counts within region S.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
+
+    &#34;&#34;&#34;Function to calculate both the expected (B) and actual (C) count
+    (vehicles) within a given space-time region S. Used in the likelihood ratio
+    statistic.
+    Args:
+        S: Space-Time Region to count events in
+        data: Usual format SCOOT dataframe
+    Returns: (Tuple of floats) both types of event counts within region S.
+    &#34;&#34;&#34;
+
+    # Check for columns existence.
+    assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
+        data.columns
+    )
+
+    region_mask = (
+        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
+        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
+        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
+        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
+    )
+    S_df = data.loc[region_mask]
+    if S_df.empty:
+        return 0, 0
+    return S_df[&#34;baseline&#34;].sum() / 1e6, S_df[&#34;count&#34;].sum() / 1e6</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.simulate_region_event_count"><code class="name flex">
+<span>def <span class="ident">simulate_region_event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], data: pandas.core.frame.DataFrame) -> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Function to simulate the count (vehicles) within a given
+space-time region S assuming a Poisson Distribution with mean given by the
+baseline forecast. Used in randomisation testing.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>S</code></strong></dt>
+<dd>Space-Time Region to count events in</dd>
+<dt><strong><code>data</code></strong></dt>
+<dd>Usual format SCOOT dataframe</dd>
+</dl>
+<p>Returns: (Tuple of floats) both types of event counts within region S.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
+
+    &#34;&#34;&#34;Function to simulate the count (vehicles) within a given
+    space-time region S assuming a Poisson Distribution with mean given by the
+    baseline forecast. Used in randomisation testing.
+    Args:
+        S: Space-Time Region to count events in
+        data: Usual format SCOOT dataframe
+    Returns: (Tuple of floats) both types of event counts within region S.
+    &#34;&#34;&#34;
+
+    # Check for columns existence.
+    assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
+        data.columns
+    )
+
+    region_mask = (
+        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
+        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
+        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
+        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
+    )
+    S_df = data.loc[region_mask]
+    if S_df.empty:
+        return 0, 0
+    S_df[&#34;simulated&#34;] = np.random.poisson(S_df[&#34;baseline&#34;])
+
+    return S_df[&#34;simulated&#34;].sum() / 1e6, S_df[&#34;actual&#34;].sum() / 1e6</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="SpatialScan.region.Region"><code class="flex name class">
+<span>class <span class="ident">Region</span></span>
+<span>(</span><span>x_min: float, x_max: float, y_min: float, y_max: float, t_min: datetime.datetime, t_max: datetime.datetime)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Class to represent space-time region</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Region:
+    &#34;&#34;&#34;Class to represent space-time region&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+        t_min: datetime,
+        t_max: datetime,
+    ) -&gt; None:
+        self.x_min = x_min
+        self.x_max = x_max
+        self.y_min = y_min
+        self.y_max = y_max
+        self.t_min = t_min
+        self.t_max = t_max
+        self.label = None
+
+    def __str__(self):
+        return &#34;({}, {}) x ({}, {}) x ({}, {})&#34;.format(
+            self.x_min, self.x_max, self.y_min, self.y_max, self.t_min, self.t_max
+        )
+
+    def add_label(self, label):
+        self.label = label
+
+    def num_days(self):
+        return (self.t_max - self.t_min).days
+
+    def num_hours(self):
+        return (self.t_max - self.t_min).days * 24</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="SpatialScan.region.Region.add_label"><code class="name flex">
+<span>def <span class="ident">add_label</span></span>(<span>self, label)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_label(self, label):
+    self.label = label</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.Region.num_days"><code class="name flex">
+<span>def <span class="ident">num_days</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def num_days(self):
+    return (self.t_max - self.t_min).days</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.Region.num_hours"><code class="name flex">
+<span>def <span class="ident">num_hours</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def num_hours(self):
+    return (self.t_max - self.t_min).days * 24</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="SpatialScan" href="index.html">SpatialScan</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="SpatialScan.region.convert_dates" href="#SpatialScan.region.convert_dates">convert_dates</a></code></li>
+<li><code><a title="SpatialScan.region.infer_global_region" href="#SpatialScan.region.infer_global_region">infer_global_region</a></code></li>
+<li><code><a title="SpatialScan.region.make_grid" href="#SpatialScan.region.make_grid">make_grid</a></code></li>
+<li><code><a title="SpatialScan.region.make_region_from_res" href="#SpatialScan.region.make_region_from_res">make_region_from_res</a></code></li>
+<li><code><a title="SpatialScan.region.plot_region_grid" href="#SpatialScan.region.plot_region_grid">plot_region_grid</a></code></li>
+<li><code><a title="SpatialScan.region.plot_region_time_series" href="#SpatialScan.region.plot_region_time_series">plot_region_time_series</a></code></li>
+<li><code><a title="SpatialScan.region.region_event_count" href="#SpatialScan.region.region_event_count">region_event_count</a></code></li>
+<li><code><a title="SpatialScan.region.simulate_region_event_count" href="#SpatialScan.region.simulate_region_event_count">simulate_region_event_count</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a></code></h4>
+<ul class="">
+<li><code><a title="SpatialScan.region.Region.add_label" href="#SpatialScan.region.Region.add_label">add_label</a></code></li>
+<li><code><a title="SpatialScan.region.Region.num_days" href="#SpatialScan.region.Region.num_days">num_days</a></code></li>
+<li><code><a title="SpatialScan.region.Region.num_hours" href="#SpatialScan.region.Region.num_hours">num_hours</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.1</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

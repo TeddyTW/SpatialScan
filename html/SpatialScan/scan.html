@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.1" />
+<title>SpatialScan.scan API documentation</title>
+<meta name="description" content="Module to contain the main Spatio-Temporal Scan Loop" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>SpatialScan.scan</code></h1>
+</header>
+<section id="section-intro">
+<p>Module to contain the main Spatio-Temporal Scan Loop</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Module to contain the main Spatio-Temporal Scan Loop&#34;&#34;&#34;
+
+import pandas as pd
+import numpy as np
+from region import (
+    Region,
+    region_event_count,
+    infer_global_region,
+    make_grid,
+)
+from likelihood import likelihood_ratio
+import time
+import seaborn as sbn
+import matplotlib.pyplot as plt
+
+
+def EBP(forecast_data: pd.DataFrame, grid_partition: int,) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Main function for looping through the sub-space-time regions (S) of
+    global_region. Searching for regions with the highest score according to the
+    statistic:
+                F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
+    where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
+    paper by D. Neill.
+
+    Args:
+        forecast_data: dataframe consisting of the detectors which lie in
+                       global_region, their locations and both their
+                       baseline and actual counts for the past W days.
+        grid_partition: Split each spatial axis into this many partitions.
+    Returns:
+            Dataframe summarising each grid square&#39;s F(S) score.
+    &#34;&#34;&#34;
+
+    # Set Initial Timer
+    t1 = time.perf_counter()
+
+    # Find the global region on which the observations live
+    global_region = infer_global_region(forecast_data)
+
+    # Create the Grid
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+
+    columns = [
+        &#34;x_min&#34;,
+        &#34;x_max&#34;,
+        &#34;y_min&#34;,
+        &#34;y_max&#34;,
+        &#34;t_min&#34;,
+        &#34;t_max&#34;,
+        &#34;B&#34;,
+        &#34;C&#34;,
+        &#34;likelihood_score&#34;,
+        &#34;p_value&#34;,
+    ]
+    region_score_df = pd.DataFrame(columns=columns)
+
+    num_regions = 0
+    # Loop over all possible prisms in the space
+    for i, _ in enumerate(x_ticks):
+        for j in range(i + 1, len(x_ticks)):
+            for k, _ in enumerate(y_ticks):
+                for l in range(k + 1, len(y_ticks)):
+                    for t in range(1, len(t_ticks)):
+
+                        # Count Regions
+                        num_regions += 1
+
+                        # At each iteration, create the space_time region
+                        test_region = Region(
+                            x_ticks[i],
+                            x_ticks[j],
+                            y_ticks[k],
+                            y_ticks[l],
+                            t_ticks[0],
+                            t_ticks[t],
+                        )
+
+                        # Note: This will search through whole data-frame each
+                        # iteration. XXX - improve this first.
+                        B, C = region_event_count(test_region, forecast_data)
+
+                        l_score = likelihood_ratio(B, C)
+
+                        region_score_df = region_score_df.append(
+                            {
+                                &#34;x_min&#34;: x_ticks[i],
+                                &#34;x_max&#34;: x_ticks[j],
+                                &#34;y_min&#34;: y_ticks[k],
+                                &#34;y_max&#34;: y_ticks[l],
+                                &#34;t_min&#34;: t_ticks[0],
+                                &#34;t_max&#34;: t_ticks[t],
+                                &#34;B&#34;: B,
+                                &#34;C&#34;: C,
+                                &#34;likelihood_score&#34;: l_score,
+                                &#34;p_value&#34;: np.nan,
+                            },
+                            ignore_index=True,
+                        )
+        # Print Progress
+        print(&#34;{0:.2f}% complete.&#34;.format(i * 100 / len(x_ticks)), end=&#34;\r&#34;)
+    print(&#34;100.00% complete.&#34;, end=&#34;\r&#34;)
+
+    # At this point, we have a dataframe populated with likelihood statistic
+    # scores for each search region.
+    # Sort it so that highest F(S) score is at the top.
+    region_score_df = region_score_df.sort_values(&#34;likelihood_score&#34;, ascending=False)
+
+    t2 = time.perf_counter()
+
+    print(&#34;\n%d space-time regions searched in %.2f seconds&#34; % (num_regions, t2 - t1))
+
+    return region_score_df
+
+
+def plot_results(res_df, time_slice, grid_partition, display=True, v_max=1.0005):
+    &#34;&#34;&#34;Functionality to plot the results from the the main scan. The resulting
+    surface shown is the average likelihood score of that particular sub-grid.
+
+    Args:
+        res_df: pd.DataFrame from the main EBP function.
+        time_slice: By convention, the &#39;measurement_end_utc&#39; slice to plot from.
+                    Note that this will slice the df in a way that includes all
+                    events from `t_min` up to `time_slice`. XXX - Improve
+        grid_parition: Number of partitions used in the main scan. XXX Clunky
+                       as an argument. To be set as global variable at top of
+                       script.
+    Returns:
+        tuple containing information for heatmap plotting
+    &#34;&#34;&#34;
+
+    res_df = res_df[res_df[&#34;t_max&#34;] == time_slice]
+
+    x_min = res_df[&#34;x_min&#34;].min()
+    x_max = res_df[&#34;x_max&#34;].max()
+    y_min = res_df[&#34;y_min&#34;].min()
+    y_max = res_df[&#34;y_max&#34;].max()
+
+    x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
+    y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+
+    x_labels = [
+        &#34;{0:.3f}&#34;.format((x_ticks[i] + x_ticks[i + 1]) / 2)
+        for i in range(len(x_ticks) - 1)
+    ]
+    y_labels = [
+        &#34;{0:.3f}&#34;.format((y_ticks[i] + y_ticks[i + 1]) / 2)
+        for i in reversed(range(len(y_ticks) - 1))
+    ]
+
+    region_scores = []
+    for j in range(len(y_ticks) - 1):
+        region_col_scores = []
+        for i in range(len(x_ticks) - 1):
+
+            sub_df = res_df[
+                (res_df[&#34;x_min&#34;] &lt;= x_ticks[i])
+                &amp; (res_df[&#34;x_max&#34;] &gt;= x_ticks[i + 1])
+                &amp; (res_df[&#34;y_min&#34;] &lt;= y_ticks[j])
+                &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
+            ]
+            region_score = sub_df[&#34;likelihood_score&#34;].sum() / len(
+                sub_df[&#34;likelihood_score&#34;]
+            )
+            region_col_scores.append(region_score)
+        region_scores.insert(0, region_col_scores)
+
+    if display:
+        sbn.heatmap(
+            region_scores,
+            xticklabels=x_labels,
+             yticklabels=y_labels,
+            fmt=&#34;.5f&#34;,
+            cbar=True,
+            vmin=1,
+            vmax=v_max,
+        )
+        plt.xlabel(&#34;Lon&#34;)
+        plt.ylabel(&#34;Lat&#34;)
+        plt.title(
+            &#34;Spatial Scan of Grid Size {} x {} at {}&#34;.format(
+                grid_partition, grid_partition, time_slice
+            )
+        )
+    return region_scores, x_labels, y_labels</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="SpatialScan.scan.EBP"><code class="name flex">
+<span>def <span class="ident">EBP</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, grid_partition: int) -> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Main function for looping through the sub-space-time regions (S) of
+global_region. Searching for regions with the highest score according to the
+statistic:
+F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
+where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
+paper by D. Neill.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>forecast_data</code></strong></dt>
+<dd>dataframe consisting of the detectors which lie in
+global_region, their locations and both their
+baseline and actual counts for the past W days.</dd>
+<dt><strong><code>grid_partition</code></strong></dt>
+<dd>Split each spatial axis into this many partitions.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Dataframe summarising each grid square's F(S) score.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def EBP(forecast_data: pd.DataFrame, grid_partition: int,) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Main function for looping through the sub-space-time regions (S) of
+    global_region. Searching for regions with the highest score according to the
+    statistic:
+                F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
+    where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
+    paper by D. Neill.
+
+    Args:
+        forecast_data: dataframe consisting of the detectors which lie in
+                       global_region, their locations and both their
+                       baseline and actual counts for the past W days.
+        grid_partition: Split each spatial axis into this many partitions.
+    Returns:
+            Dataframe summarising each grid square&#39;s F(S) score.
+    &#34;&#34;&#34;
+
+    # Set Initial Timer
+    t1 = time.perf_counter()
+
+    # Find the global region on which the observations live
+    global_region = infer_global_region(forecast_data)
+
+    # Create the Grid
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+
+    columns = [
+        &#34;x_min&#34;,
+        &#34;x_max&#34;,
+        &#34;y_min&#34;,
+        &#34;y_max&#34;,
+        &#34;t_min&#34;,
+        &#34;t_max&#34;,
+        &#34;B&#34;,
+        &#34;C&#34;,
+        &#34;likelihood_score&#34;,
+        &#34;p_value&#34;,
+    ]
+    region_score_df = pd.DataFrame(columns=columns)
+
+    num_regions = 0
+    # Loop over all possible prisms in the space
+    for i, _ in enumerate(x_ticks):
+        for j in range(i + 1, len(x_ticks)):
+            for k, _ in enumerate(y_ticks):
+                for l in range(k + 1, len(y_ticks)):
+                    for t in range(1, len(t_ticks)):
+
+                        # Count Regions
+                        num_regions += 1
+
+                        # At each iteration, create the space_time region
+                        test_region = Region(
+                            x_ticks[i],
+                            x_ticks[j],
+                            y_ticks[k],
+                            y_ticks[l],
+                            t_ticks[0],
+                            t_ticks[t],
+                        )
+
+                        # Note: This will search through whole data-frame each
+                        # iteration. XXX - improve this first.
+                        B, C = region_event_count(test_region, forecast_data)
+
+                        l_score = likelihood_ratio(B, C)
+
+                        region_score_df = region_score_df.append(
+                            {
+                                &#34;x_min&#34;: x_ticks[i],
+                                &#34;x_max&#34;: x_ticks[j],
+                                &#34;y_min&#34;: y_ticks[k],
+                                &#34;y_max&#34;: y_ticks[l],
+                                &#34;t_min&#34;: t_ticks[0],
+                                &#34;t_max&#34;: t_ticks[t],
+                                &#34;B&#34;: B,
+                                &#34;C&#34;: C,
+                                &#34;likelihood_score&#34;: l_score,
+                                &#34;p_value&#34;: np.nan,
+                            },
+                            ignore_index=True,
+                        )
+        # Print Progress
+        print(&#34;{0:.2f}% complete.&#34;.format(i * 100 / len(x_ticks)), end=&#34;\r&#34;)
+    print(&#34;100.00% complete.&#34;, end=&#34;\r&#34;)
+
+    # At this point, we have a dataframe populated with likelihood statistic
+    # scores for each search region.
+    # Sort it so that highest F(S) score is at the top.
+    region_score_df = region_score_df.sort_values(&#34;likelihood_score&#34;, ascending=False)
+
+    t2 = time.perf_counter()
+
+    print(&#34;\n%d space-time regions searched in %.2f seconds&#34; % (num_regions, t2 - t1))
+
+    return region_score_df</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.scan.plot_results"><code class="name flex">
+<span>def <span class="ident">plot_results</span></span>(<span>res_df, time_slice, grid_partition, display=True, v_max=1.0005)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Functionality to plot the results from the the main scan. The resulting
+surface shown is the average likelihood score of that particular sub-grid.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>res_df</code></strong></dt>
+<dd>pd.DataFrame from the main EBP function.</dd>
+<dt><strong><code>time_slice</code></strong></dt>
+<dd>By convention, the 'measurement_end_utc' slice to plot from.
+Note that this will slice the df in a way that includes all
+events from <code>t_min</code> up to <code>time_slice</code>. XXX - Improve</dd>
+<dt><strong><code>grid_parition</code></strong></dt>
+<dd>Number of partitions used in the main scan. XXX Clunky
+as an argument. To be set as global variable at top of
+script.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>tuple containing information for heatmap plotting</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_results(res_df, time_slice, grid_partition, display=True, v_max=1.0005):
+    &#34;&#34;&#34;Functionality to plot the results from the the main scan. The resulting
+    surface shown is the average likelihood score of that particular sub-grid.
+
+    Args:
+        res_df: pd.DataFrame from the main EBP function.
+        time_slice: By convention, the &#39;measurement_end_utc&#39; slice to plot from.
+                    Note that this will slice the df in a way that includes all
+                    events from `t_min` up to `time_slice`. XXX - Improve
+        grid_parition: Number of partitions used in the main scan. XXX Clunky
+                       as an argument. To be set as global variable at top of
+                       script.
+    Returns:
+        tuple containing information for heatmap plotting
+    &#34;&#34;&#34;
+
+    res_df = res_df[res_df[&#34;t_max&#34;] == time_slice]
+
+    x_min = res_df[&#34;x_min&#34;].min()
+    x_max = res_df[&#34;x_max&#34;].max()
+    y_min = res_df[&#34;y_min&#34;].min()
+    y_max = res_df[&#34;y_max&#34;].max()
+
+    x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
+    y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+
+    x_labels = [
+        &#34;{0:.3f}&#34;.format((x_ticks[i] + x_ticks[i + 1]) / 2)
+        for i in range(len(x_ticks) - 1)
+    ]
+    y_labels = [
+        &#34;{0:.3f}&#34;.format((y_ticks[i] + y_ticks[i + 1]) / 2)
+        for i in reversed(range(len(y_ticks) - 1))
+    ]
+
+    region_scores = []
+    for j in range(len(y_ticks) - 1):
+        region_col_scores = []
+        for i in range(len(x_ticks) - 1):
+
+            sub_df = res_df[
+                (res_df[&#34;x_min&#34;] &lt;= x_ticks[i])
+                &amp; (res_df[&#34;x_max&#34;] &gt;= x_ticks[i + 1])
+                &amp; (res_df[&#34;y_min&#34;] &lt;= y_ticks[j])
+                &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
+            ]
+            region_score = sub_df[&#34;likelihood_score&#34;].sum() / len(
+                sub_df[&#34;likelihood_score&#34;]
+            )
+            region_col_scores.append(region_score)
+        region_scores.insert(0, region_col_scores)
+
+    if display:
+        sbn.heatmap(
+            region_scores,
+            xticklabels=x_labels,
+             yticklabels=y_labels,
+            fmt=&#34;.5f&#34;,
+            cbar=True,
+            vmin=1,
+            vmax=v_max,
+        )
+        plt.xlabel(&#34;Lon&#34;)
+        plt.ylabel(&#34;Lat&#34;)
+        plt.title(
+            &#34;Spatial Scan of Grid Size {} x {} at {}&#34;.format(
+                grid_partition, grid_partition, time_slice
+            )
+        )
+    return region_scores, x_labels, y_labels</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="SpatialScan" href="index.html">SpatialScan</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="SpatialScan.scan.EBP" href="#SpatialScan.scan.EBP">EBP</a></code></li>
+<li><code><a title="SpatialScan.scan.plot_results" href="#SpatialScan.scan.plot_results">plot_results</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.1</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
