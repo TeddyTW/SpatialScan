@@ -113,7 +113,7 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int,) -> pd.DataFrame:
     return region_score_df
 
 
-def plot_results(res_df, time_slice, grid_partition):
+def plot_results(res_df, time_slice, grid_partition, display=True, v_max=1.0005):
     """Functionality to plot the results from the the main scan. The resulting
     surface shown is the average likelihood score of that particular sub-grid.
 
@@ -165,20 +165,21 @@ def plot_results(res_df, time_slice, grid_partition):
             region_col_scores.append(region_score)
         region_scores.insert(0, region_col_scores)
 
-    sbn.heatmap(
-        region_scores,
-        xticklabels=x_labels,
-        yticklabels=y_labels,
-        fmt=".5f",
-        cbar=True,
-        vmin=1,
-        vmax=1.0005,
-    )
-    plt.xlabel("Lon")
-    plt.ylabel("Lat")
-    plt.title(
-        "Spatial Scan of Grid Size {} x {} at {}".format(
-            grid_partition, grid_partition, time_slice
+    if display:
+        sbn.heatmap(
+            region_scores,
+            xticklabels=x_labels,
+             yticklabels=y_labels,
+            fmt=".5f",
+            cbar=True,
+            vmin=1,
+            vmax=v_max,
         )
-    )
+        plt.xlabel("Lon")
+        plt.ylabel("Lat")
+        plt.title(
+            "Spatial Scan of Grid Size {} x {} at {}".format(
+                grid_partition, grid_partition, time_slice
+            )
+        )
     return region_scores, x_labels, y_labels
