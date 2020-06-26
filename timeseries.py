@@ -8,6 +8,14 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from datetime import datetime
 import matplotlib.colors as colors
+import math
+from keras.backend import clear_session
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+import keras as K
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -305,3 +313,84 @@ def CB_plot(df: pd.DataFrame):
     ax.set_zlabel("Hours")
     fig.colorbar(p)
     plt.show()
+
+# convert an array of values into a dataset matrix
+def create_dataset(dataset, look_back=24, look_forward=24):
+    dataX, dataY = [], []
+    for i in range(0, len(dataset)-look_back-look_forward + 1, look_forward):
+        a = dataset[i:(i+look_back), 0]
+        dataX.append(a)
+        b = dataset[(i+look_back):(i+look_back+look_forward), 0]
+        dataY.append(b)
+    return np.array(dataX), np.array(dataY)
+
+def LSTM_forecast(
+    df: pd.DataFrame,
+    days_in_past: int = 2,
+    days_in_future: int =1,
+    detectors: list = None,
+):
+    
+    
+    if detectors is None:
+        detectors = df["detector_id"].drop_duplicates().to_numpy()
+
+    framelist = []
+    i=0
+    for detector in detectors:
+        i+=1
+        dataset=df[df["detector_id"]==detector]
+
+        dataset.index=dataset["measurement_end_utc"]
+        T=pd.date_range(start=df["measurement_end_utc"].min(), end=df["measurement_end_utc"].max(), freq='H')
+        dataset = dataset.reindex(T)
+        dataset["n_vehicles_in_interval"]=dataset["n_vehicles_in_interval"].interpolate(method='linear', limit_direction='forward', axis=0)
+        dataset["detector_id"]=dataset["detector_id"].interpolate(method='pad', limit_direction='forward', axis=0)
+        dataset["measurement_end_utc"]=dataset.index
+
+
+        prediction_start = df["measurement_end_utc"].iloc[-1] - np.timedelta64(
+                (days_in_future + days_in_past)* 24, "h"
+            )
+        dataset_train = dataset[dataset["measurement_end_utc"] <= prediction_start]
+        dataset_test = dataset[dataset["measurement_end_utc"] > prediction_start]
+
+        train=dataset_train["n_vehicles_in_interval"].to_numpy()
+        test=dataset_test["n_vehicles_in_interval"].to_numpy()
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        train = scaler.fit_transform(train.reshape(-1, 1))
+        test = scaler.fit_transform(test.reshape(-1, 1))
+
+
+        X_train, Y_train = create_dataset(train, look_back=days_in_past*24, look_forward=24*days_in_future)
+        X_test, Y_test = create_dataset(test, look_back=days_in_past*24, look_forward=24*days_in_future)
+        
+        #print(X_train.shape)
+        
+        X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+        X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+        
+
+        
+        
+        model = Sequential()
+
+
+        model.add(LSTM(8, input_shape=(1, 24*days_in_past)))
+        model.add(Dense(24*days_in_future))
+        model.compile(loss='mean_squared_error', optimizer='adam')
+
+        model.fit(X_train, Y_train, epochs=50, batch_size=1, verbose=0)
+        
+        trainPredict = model.predict(X_train)
+        testPredict = model.predict(X_test)
+        
+        print(i, "/", len(detectors), end="\r")
+
+        plt.plot(testPredict.flatten())
+
+        plt.plot(Y_test.flatten())
+
+        plt.show()
+
+        clear_session()
