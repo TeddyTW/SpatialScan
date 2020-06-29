@@ -331,3 +331,45 @@ def plot_region_by_rank(
     plt.title("{}s between {} and {}. Rank: {}".format(plot_type, t_min, t_max, rank))
 
     plt.show()
+
+def cleanse_forecast_data(forecast_df: pd.DataFrame) -> pd.DataFrame:
+    
+    """Utility function to ensure that the forecast_df from `count_baseline()`
+    is in the correct format to move forward with processing. Removes NaNs, assigns
+    zero to any negative baseline values, and converts dated into datetime format
+    if required.
+    Args:
+        forecast_df: Data frame from `count_baseline()`
+    Returns
+        pd.DataFrame: Cleansed dataframe
+    """
+
+    test_date = forecast_df["measurement_start_utc"].iloc[0]
+
+    # First check that dates are in the right format
+    if isinstance(test_date, datetime):
+        print("Dates in datetime format. Moving to next stage.")
+    else:
+        print("Dates are not in datetime format. Attempting to convert...")
+        forecast_df = convert_dates(forecast_df)
+        test_date = forecast_df["measurement_start_utc"].iloc[0]
+        print("Dates converted successfully: {}".format(isinstance(test_date, datetime)))
+   
+    # Remove Count NaN's
+    total_rows = len(forecast_df['count'])
+    count_nans = forecast_df['count'].isnull().sum(axis=0)
+    print("{}/{} NaN values found in 'count' column. Dropping these from the dataframe.".format(count_nans, total_rows))
+    forecast_df.dropna(inplace=True)
+         
+    # Make Baseline Values Non-Negative
+    negative = len(forecast_df[forecast_df['baseline'] < 0]['baseline'])
+    if negative > 0:
+        print("{} negative baseline values found. Setting these to zero.".format(negative))
+        forecast_df['baseline'] = forecast_df['baseline'].apply(lambda x : np.max([0, x]))
+    else:
+        print("All baseline predictions >= 0.")
+        
+    print("Data cleansing complete. {} rows removed from dataframe.".format(count_nans))
+    
+    copy_df = forecast_df
+    return copy_df
