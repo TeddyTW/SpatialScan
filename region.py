@@ -40,7 +40,7 @@ class Region:
         return (self.t_max - self.t_min).days
 
     def num_hours(self):
-        return (self.t_max - self.t_min).seconds / 3600
+        return (self.t_max - self.t_min).days * 24
 
 
 def convert_dates(
@@ -167,6 +167,7 @@ def plot_global_region(
     overlay_grid: bool = True,
     grid_partition: int = 1,
     plot_type="count",
+    add_legend: bool = True,
 ) -> None:
 
     """Functionality to plot the computational grid on a region of interest.
@@ -180,9 +181,12 @@ def plot_global_region(
         plot_type: counts, baselines or cb_ratio
     """
 
+    legend = "brief" if add_legend else False
+
     global_region = infer_global_region(forecast_data)
     x_ticks, y_ticks, _ = make_grid(global_region, grid_partition)
     forecast_data["cb_ratio"] = forecast_data["count"] / forecast_data["baseline"]
+    forecast_data.loc[~np.isfinite(forecast_data['cb_ratio']), 'cb_ratio'] = np.nan
     forecast_data = forecast_data[forecast_data["measurement_end_utc"] == time_slice]
 
     sbn.scatterplot(
@@ -190,7 +194,7 @@ def plot_global_region(
         x="lon",
         y="lat",
         size=plot_type,
-        legend="brief",
+        legend=legend,
         hue=plot_type,
     )
 
@@ -246,7 +250,7 @@ def make_region_from_res(
 
 # Plot the time series of all detectors within a region of interest
 def plot_region_time_series(
-    region: Type[Region], forecast_df: pd.DataFrame, plot_type: str = "count"
+    region: Type[Region], forecast_df: pd.DataFrame, plot_type: str = "count", add_legend: bool = False,
 ) -> None:
     """Plots all the time series associated with a space-time region. To be used
     in conjunction with `make_region_from_res` as follows:
@@ -258,6 +262,8 @@ def plot_region_time_series(
         region: Space-Time Region of interest
         forecast_df: dataframe containing all prediction data from timeseries module.
     """
+
+    legend = "brief" if add_legend else False
 
     # Check for columns existence.
     assert set(["lon", "lat", "measurement_end_utc", plot_type]) <= set(
@@ -279,14 +285,14 @@ def plot_region_time_series(
         y=plot_type,
         hue="detector_id",
         ax=ax,
-        legend="brief",
+        legend=legend,
     )
     fig.suptitle("{}s between {} and {}".format(plot_type, region.t_min, region.t_max))
     return None
 
 
 def plot_region_by_rank(
-    rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFrame, plot_type="count"
+    rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFrame, plot_type="count", add_legend: bool = False,
 ) -> None:
 
     """Functionality to plot the 'rank'ed region form the results dataframe
@@ -297,6 +303,9 @@ def plot_region_by_rank(
         forecast_df: Resulting dataframe from `count_baseline()`
         plot_type: Size of dots represent actual counts, baseline or c/b ratio
     """
+
+    legend = "brief" if add_legend else False
+
     # Infer grid partition from the resulting dataframe
     grid_partition = len(res_df["x_min"].unique())
 
@@ -313,6 +322,7 @@ def plot_region_by_rank(
         res_df["t_max"].iloc[rank],
         grid_partition=grid_partition,
         plot_type=plot_type,
+        add_legend=legend,
     )
     plt.hlines(y_min, x_min, x_max)
     plt.hlines(y_max, x_min, x_max)
