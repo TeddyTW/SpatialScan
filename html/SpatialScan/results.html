@@ -76,14 +76,16 @@ def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
 
     # Find array of ordered dates over prediction period and format pretty for
     # plot.
-    res_df = res_df.sort_values(by=&#39;t_max&#39;)
-    res_df[&#34;datetime_nice&#34;] = res_df[&#34;t_max&#34;].apply(lambda x: x.strftime(&#34;%I%p, %d %b %y&#34;))
-    dates = res_df[&#39;t_max&#39;].unique()
+    res_df = res_df.sort_values(by=&#34;t_max&#34;)
+    res_df[&#34;datetime_nice&#34;] = res_df[&#34;t_max&#34;].apply(
+        lambda x: x.strftime(&#34;%I%p, %d %b %y&#34;)
+    )
+    dates = res_df[&#34;t_max&#34;].unique()
     t_labels = res_df[&#34;datetime_nice&#34;].unique()
 
     scores_array = []
     global_max = 0
-    for _, date in enumerate(dates):        
+    for _, date in enumerate(dates):
         x_array = []
         for j in range(len(y_ticks) - 1):
             y_array = []
@@ -96,12 +98,12 @@ def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
                     &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
                     &amp; (res_df[&#34;t_max&#34;] == date)
                 ]
-                
+
                 l_score = sub_df[&#34;likelihood_score&#34;].mean()
-                
+
                 if l_score &gt; global_max:
                     global_max = l_score
-                
+
                 y_array.append(l_score)
             x_array.insert(0, y_array)
         scores_array.append(x_array)
@@ -109,7 +111,14 @@ def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
     return np.array(scores_array), x_labels, y_labels, t_labels, global_max
 
 
-def visualise_results(scores_array: np.ndarray, x_labels:np.ndarray, y_labels:np.ndarray, t_labels:np.ndarray, global_max: float, smooth: bool = False):
+def visualise_results(
+    scores_array: np.ndarray,
+    x_labels: np.ndarray,
+    y_labels: np.ndarray,
+    t_labels: np.ndarray,
+    global_max: float,
+    smooth: bool = False,
+):
     &#34;&#34;&#34;Functionality which plots the animated results of the Spatial Scan. To
     be used in conjunction with `average_likelihood`.
 
@@ -124,35 +133,56 @@ def visualise_results(scores_array: np.ndarray, x_labels:np.ndarray, y_labels:np
         smooth: Boolean which decides whether to smooth the spatial region in
                 the animation or not.
     &#34;&#34;&#34;
-    
+
     zsmooth = &#34;best&#34; if smooth else None
-        
+
     fig = go.Figure(
-        data=[go.Heatmap(z=scores_array[0], x=x_labels, y=y_labels, zmin=1, zmax=global_max, zsmooth=zsmooth, colorbar={&#34;title&#34;: &#34;Average Likelihood Ratio Score&#34;})],
-        layout=go.Layout(title=t_labels[0],
-                         width=800,
-                         height=500,
-                        updatemenus=[dict(
-                        type=&#34;buttons&#34;,
-                        buttons=[dict(label=&#34;Play&#34;,
-                                      method=&#34;animate&#34;,
-                                      args=[None]),
-                                 dict(label=&#34;Pause&#34;,
-                                      method=&#34;animate&#34;,
-                                      args=[None,
-                                            {&#34;frame&#34;: {&#34;duration&#34;: 0, &#34;redraw&#34;: False},
-                                              &#34;mode&#34;: &#34;immediate&#34;,
-                                        &#34;transition&#34;: {&#34;duration&#34;: 0}}])
-                                ]
-                        )]),
-        frames=[go.Frame(data=[go.Heatmap(z=scores_array[i])],
-                layout=go.Layout(title=t_labels[i]))
-                for i in range(1, len(t_labels)) 
-               ]
+        data=[
+            go.Heatmap(
+                z=scores_array[0],
+                x=x_labels,
+                y=y_labels,
+                zmin=1,
+                zmax=global_max,
+                zsmooth=zsmooth,
+                colorbar={&#34;title&#34;: &#34;Average Likelihood Ratio Score&#34;},
+            )
+        ],
+        layout=go.Layout(
+            title=t_labels[0],
+            width=800,
+            height=500,
+            updatemenus=[
+                dict(
+                    type=&#34;buttons&#34;,
+                    buttons=[
+                        dict(label=&#34;Play&#34;, method=&#34;animate&#34;, args=[None]),
+                        dict(
+                            label=&#34;Pause&#34;,
+                            method=&#34;animate&#34;,
+                            args=[
+                                None,
+                                {
+                                    &#34;frame&#34;: {&#34;duration&#34;: 0, &#34;redraw&#34;: False},
+                                    &#34;mode&#34;: &#34;immediate&#34;,
+                                    &#34;transition&#34;: {&#34;duration&#34;: 0},
+                                },
+                            ],
+                        ),
+                    ],
+                )
+            ],
+        ),
+        frames=[
+            go.Frame(
+                data=[go.Heatmap(z=scores_array[i])],
+                layout=go.Layout(title=t_labels[i]),
+            )
+            for i in range(1, len(t_labels))
+        ],
     )
     fig.update_layout(
-    xaxis_title=&#34;Longitude&#34;,
-    yaxis_title=&#34;Latitude&#34;,
+        xaxis_title=&#34;Longitude&#34;, yaxis_title=&#34;Latitude&#34;,
     )
     fig.show()</code></pre>
 </details>
@@ -236,14 +266,16 @@ to calibrate the color bar when plotting.</dd>
 
     # Find array of ordered dates over prediction period and format pretty for
     # plot.
-    res_df = res_df.sort_values(by=&#39;t_max&#39;)
-    res_df[&#34;datetime_nice&#34;] = res_df[&#34;t_max&#34;].apply(lambda x: x.strftime(&#34;%I%p, %d %b %y&#34;))
-    dates = res_df[&#39;t_max&#39;].unique()
+    res_df = res_df.sort_values(by=&#34;t_max&#34;)
+    res_df[&#34;datetime_nice&#34;] = res_df[&#34;t_max&#34;].apply(
+        lambda x: x.strftime(&#34;%I%p, %d %b %y&#34;)
+    )
+    dates = res_df[&#34;t_max&#34;].unique()
     t_labels = res_df[&#34;datetime_nice&#34;].unique()
 
     scores_array = []
     global_max = 0
-    for _, date in enumerate(dates):        
+    for _, date in enumerate(dates):
         x_array = []
         for j in range(len(y_ticks) - 1):
             y_array = []
@@ -256,12 +288,12 @@ to calibrate the color bar when plotting.</dd>
                     &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
                     &amp; (res_df[&#34;t_max&#34;] == date)
                 ]
-                
+
                 l_score = sub_df[&#34;likelihood_score&#34;].mean()
-                
+
                 if l_score &gt; global_max:
                     global_max = l_score
-                
+
                 y_array.append(l_score)
             x_array.insert(0, y_array)
         scores_array.append(x_array)
@@ -297,7 +329,14 @@ the animation or not.</dd>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def visualise_results(scores_array: np.ndarray, x_labels:np.ndarray, y_labels:np.ndarray, t_labels:np.ndarray, global_max: float, smooth: bool = False):
+<pre><code class="python">def visualise_results(
+    scores_array: np.ndarray,
+    x_labels: np.ndarray,
+    y_labels: np.ndarray,
+    t_labels: np.ndarray,
+    global_max: float,
+    smooth: bool = False,
+):
     &#34;&#34;&#34;Functionality which plots the animated results of the Spatial Scan. To
     be used in conjunction with `average_likelihood`.
 
@@ -312,35 +351,56 @@ the animation or not.</dd>
         smooth: Boolean which decides whether to smooth the spatial region in
                 the animation or not.
     &#34;&#34;&#34;
-    
+
     zsmooth = &#34;best&#34; if smooth else None
-        
+
     fig = go.Figure(
-        data=[go.Heatmap(z=scores_array[0], x=x_labels, y=y_labels, zmin=1, zmax=global_max, zsmooth=zsmooth, colorbar={&#34;title&#34;: &#34;Average Likelihood Ratio Score&#34;})],
-        layout=go.Layout(title=t_labels[0],
-                         width=800,
-                         height=500,
-                        updatemenus=[dict(
-                        type=&#34;buttons&#34;,
-                        buttons=[dict(label=&#34;Play&#34;,
-                                      method=&#34;animate&#34;,
-                                      args=[None]),
-                                 dict(label=&#34;Pause&#34;,
-                                      method=&#34;animate&#34;,
-                                      args=[None,
-                                            {&#34;frame&#34;: {&#34;duration&#34;: 0, &#34;redraw&#34;: False},
-                                              &#34;mode&#34;: &#34;immediate&#34;,
-                                        &#34;transition&#34;: {&#34;duration&#34;: 0}}])
-                                ]
-                        )]),
-        frames=[go.Frame(data=[go.Heatmap(z=scores_array[i])],
-                layout=go.Layout(title=t_labels[i]))
-                for i in range(1, len(t_labels)) 
-               ]
+        data=[
+            go.Heatmap(
+                z=scores_array[0],
+                x=x_labels,
+                y=y_labels,
+                zmin=1,
+                zmax=global_max,
+                zsmooth=zsmooth,
+                colorbar={&#34;title&#34;: &#34;Average Likelihood Ratio Score&#34;},
+            )
+        ],
+        layout=go.Layout(
+            title=t_labels[0],
+            width=800,
+            height=500,
+            updatemenus=[
+                dict(
+                    type=&#34;buttons&#34;,
+                    buttons=[
+                        dict(label=&#34;Play&#34;, method=&#34;animate&#34;, args=[None]),
+                        dict(
+                            label=&#34;Pause&#34;,
+                            method=&#34;animate&#34;,
+                            args=[
+                                None,
+                                {
+                                    &#34;frame&#34;: {&#34;duration&#34;: 0, &#34;redraw&#34;: False},
+                                    &#34;mode&#34;: &#34;immediate&#34;,
+                                    &#34;transition&#34;: {&#34;duration&#34;: 0},
+                                },
+                            ],
+                        ),
+                    ],
+                )
+            ],
+        ),
+        frames=[
+            go.Frame(
+                data=[go.Heatmap(z=scores_array[i])],
+                layout=go.Layout(title=t_labels[i]),
+            )
+            for i in range(1, len(t_labels))
+        ],
     )
     fig.update_layout(
-    xaxis_title=&#34;Longitude&#34;,
-    yaxis_title=&#34;Latitude&#34;,
+        xaxis_title=&#34;Longitude&#34;, yaxis_title=&#34;Latitude&#34;,
     )
     fig.show()</code></pre>
 </details>
