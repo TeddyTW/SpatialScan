@@ -3,15 +3,14 @@
 import time
 import pandas as pd
 import numpy as np
-from region import (
+from SpatialScan.region import (
     Region,
     region_event_count,
     infer_global_region,
     make_grid,
     simulate_region_event_count,
 )
-from likelihood import likelihood_ratio
-
+from SpatialScan.likelihood import likelihood_ratio
 
 def EBP(forecast_data: pd.DataFrame, grid_partition: int,) -> pd.DataFrame:
 
