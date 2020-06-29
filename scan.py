@@ -108,12 +108,12 @@ def randomisation_test(
 
     """Functionality to perform Kulldorf-inspired randomisation testing on the
     results achieved from the main scan function `EBP()`. For each simulation, 
-    instead of using the predicted baseline counts, this method models the baseline
-    count as a Poisson Random Variable with mean equal to the expected counts.
+    this method models the actual count as a Poisson Random Variable with mean
+    equal to the expected counts.
     i.e. Forecasting in `timeseries.py` has found baseline counts b_i^t for each
     spatial location at each tim step of interest. The above `EBP()` method compares
     these with the actual counts c_i^t of a given space-time region S. Here, 
-    we compare c_i^t and Po(b_i^t) instead. Simulating `n_sims` times, 
+    we compare b_i^t and Po(b_i^t) instead. Simulating `n_sims` times, 
     allows us to build a a distribution of F(S) scores, and hence estimate
     a p-value for the obtained score in the main scan.
 
