@@ -238,6 +238,13 @@ def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame) -> 
     df = forecast_df.loc[region_mask]
 
     fig, ax = plt.subplots(figsize=(15, 6))
-    sbn.lineplot(data=df, x="measurement_end_utc", y="count", hue="detector_id", ax=ax, legend='brief')
+    sbn.lineplot(
+        data=df,
+        x="measurement_end_utc",
+        y="count",
+        hue="detector_id",
+        ax=ax,
+        legend="brief",
+    )
     fig.suptitle("Actual Counts")
     return None
