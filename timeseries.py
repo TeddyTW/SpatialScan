@@ -1,21 +1,16 @@
 """Module containing Time Series Forecast functionality"""
 import numpy as np
 import pandas as pd
-import scipy as sp
-import seaborn as sbn
-from typing import Any, List, Type
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from datetime import datetime
 import matplotlib.colors as colors
-import math
 from keras.backend import clear_session
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error
-import keras as K
+import plotly.express as px
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -209,10 +204,10 @@ def count_baseline(
     days_in_future: int,
     method: str = "HW",
     detectors: list = None,
-    alpha=0.06,
-    beta=0.02,
-    gamma=0.6,
-):
+    alpha: float = 0.06,
+    beta: float = 0.02,
+    gamma: float = 0.6,
+) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
         in scan statistics
@@ -324,12 +319,17 @@ def CB_plot(df: pd.DataFrame):
     plt.show()
 
 
-# convert an array of values into a dataset matrix
-def create_dataset(dataset, look_back=24, look_forward=24):
+# convert an array of values into a datset of X values to use for predictions (made
+# up of sets of day's in the past), and Y values to prediction (sets of days in the
+# future)
+def create_dataset(dataset: pd.DataFrame, look_back: int = 24, look_forward: int = 24):
     dataX, dataY = [], []
     for i in range(0, len(dataset) - look_back - look_forward + 1, look_forward):
+        # a will be one set of X data to be used as inputs to the NN
         a = dataset[i : (i + look_back), 0]
         dataX.append(a)
+        # by will be one set of Y data, to be predicted by the NN and then
+        # compared to for means of training
         b = dataset[(i + look_back) : (i + look_back + look_forward), 0]
         dataY.append(b)
     return np.array(dataX), np.array(dataY)
@@ -340,22 +340,42 @@ def LSTM_forecast(
     days_in_past: int = 2,
     days_in_future: int = 1,
     detectors: list = None,
-):
+) -> pd.DataFrame:
 
+    """Forecast using LSTM Neural Network 
+
+    Args: 
+        df: Dataframe of SCOOT data
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+        detectors: List of detectors to look at
+
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        """
+
+    # extract numpy array of detector ID's
     if detectors is None:
         detectors = df["detector_id"].drop_duplicates().to_numpy()
-
     framelist = []
 
+    i = 0
     for detector in detectors:
+        i += 1
+
         dataset = df[df["detector_id"] == detector]
         dataset.index = dataset["measurement_end_utc"]
+
+        # get full temporal range, to be intepolated over for missing vlaues
         T = pd.date_range(
             start=df["measurement_end_utc"].min(),
             end=df["measurement_end_utc"].max(),
             freq="H",
         )
 
+        # fill in missing hours with interpolation
         dataset = dataset.reindex(T)
         dataset["n_vehicles_in_interval"] = dataset[
             "n_vehicles_in_interval"
@@ -365,18 +385,25 @@ def LSTM_forecast(
         )
         dataset["measurement_end_utc"] = dataset.index
 
+        # split up dataset into train and test. The test dataset is the final
+        # days in future + days in the past (days in past to feed into the inputs
+        # to make predictions on days in the future). the training days are used to
+        # train the weights of the NN
         prediction_start = df["measurement_end_utc"].max() - np.timedelta64(
             (days_in_future + days_in_past) * 24, "h"
         )
         dataset_train = dataset[dataset["measurement_end_utc"] <= prediction_start]
         dataset_test = dataset[dataset["measurement_end_utc"] > prediction_start]
 
+        # datasets converted to arrays then rescaled with a MinMax scaler
         train = dataset_train["n_vehicles_in_interval"].to_numpy()
         test = dataset_test["n_vehicles_in_interval"].to_numpy()
         scaler = MinMaxScaler(feature_range=(0, 1))
         train = scaler.fit_transform(train.reshape(-1, 1))
         test = scaler.fit_transform(test.reshape(-1, 1))
 
+        # use create to reshape the data into sucessive sets of X and Y features and
+        # labels that can be fed into the LSTM NN
         X_train, Y_train = create_dataset(
             train, look_back=days_in_past * 24, look_forward=24 * days_in_future
         )
@@ -384,35 +411,39 @@ def LSTM_forecast(
             test, look_back=days_in_past * 24, look_forward=24 * days_in_future
         )
 
-        # print(X_train.shape)
-
         X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
         X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
 
+        # initialise neural network, LSTM with day in the past inputs and
+        # days in the future outputs
         model = Sequential()
-
         model.add(LSTM(8, input_shape=(1, 24 * days_in_past)))
         model.add(Dense(24 * days_in_future))
         model.compile(loss="mean_squared_error", optimizer="adam")
 
+        # train LSTM with our training data!
         model.fit(X_train, Y_train, epochs=50, batch_size=1, verbose=0)
 
+        # use our testing data to make predictions on Y_test
         trainPredict = model.predict(X_train)
         testPredict = model.predict(X_test)
 
-        # print("please wait: ", i, "/", len(detectors), end="\r")
+        print("please wait: ", i, "/", len(detectors), end="\r")
 
+        # reverse min_max scaler
         testPredict = scaler.inverse_transform(testPredict)
 
+        # find the time period for our testPredictions
         prediction_start = dataset_test["measurement_end_utc"].max() - np.timedelta64(
             days_in_future * 24, "h"
         )
-
         t = pd.date_range(
             start=prediction_start,
             end=prediction_start + np.timedelta64(24 * days_in_future - 1, "h"),
             freq="H",
         )
+
+        # organise data into dataframe similar to the SCOOT outputs
         df2 = pd.DataFrame(
             {
                 "detector_id": detector,
@@ -425,8 +456,8 @@ def LSTM_forecast(
         )
 
         framelist.append(df2)
+
+        # clear our Keras session
         clear_session()
 
-    DF = pd.concat(framelist)
-
-    return DF
+    return pd.concat(framelist)
