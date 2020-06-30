@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import matplotlib.colors as colors
 from tensorflow.keras.backend import clear_session
-from tensorflow.keras.models import Sequentialgit
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
