@@ -186,7 +186,7 @@ def plot_global_region(
     global_region = infer_global_region(forecast_data)
     x_ticks, y_ticks, _ = make_grid(global_region, grid_partition)
     forecast_data["cb_ratio"] = forecast_data["count"] / forecast_data["baseline"]
-    forecast_data.loc[~np.isfinite(forecast_data['cb_ratio']), 'cb_ratio'] = np.nan
+    forecast_data.loc[~np.isfinite(forecast_data["cb_ratio"]), "cb_ratio"] = np.nan
     forecast_data = forecast_data[forecast_data["measurement_end_utc"] == time_slice]
 
     sbn.scatterplot(
@@ -250,7 +250,10 @@ def make_region_from_res(
 
 # Plot the time series of all detectors within a region of interest
 def plot_region_time_series(
-    region: Type[Region], forecast_df: pd.DataFrame, plot_type: str = "count", add_legend: bool = False,
+    region: Type[Region],
+    forecast_df: pd.DataFrame,
+    plot_type: str = "count",
+    add_legend: bool = False,
 ) -> None:
     """Plots all the time series associated with a space-time region. To be used
     in conjunction with `make_region_from_res` as follows:
@@ -292,7 +295,11 @@ def plot_region_time_series(
 
 
 def plot_region_by_rank(
-    rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFrame, plot_type="count", add_legend: bool = False,
+    rank: int,
+    res_df: pd.DataFrame,
+    forecast_df: pd.DataFrame,
+    plot_type="count",
+    add_legend: bool = False,
 ) -> None:
 
     """Functionality to plot the 'rank'ed region form the results dataframe
@@ -331,3 +338,71 @@ def plot_region_by_rank(
     plt.title("{}s between {} and {}. Rank: {}".format(plot_type, t_min, t_max, rank))
 
     plt.show()
+
+
+def cleanse_forecast_data(forecast_df: pd.DataFrame) -> pd.DataFrame:
+
+    """Utility function to ensure that the forecast_df from `count_baseline()`
+    is in the correct format to move forward with processing. Removes NaNs, assigns
+    zero to any negative baseline values, and converts dated into datetime format
+    if required.
+    Args:
+        forecast_df: Data frame from `count_baseline()`
+    Returns
+        pd.DataFrame: Cleansed dataframe
+    """
+
+    init_length = len(forecast_df["count"])
+    test_date = forecast_df["measurement_start_utc"].iloc[0]
+
+    # First check that dates are in the right format
+    if isinstance(test_date, datetime):
+        print("Dates in datetime format. Moving to next stage.\n")
+    else:
+        print("Dates are not in datetime format. Attempting to convert...")
+        forecast_df = convert_dates(forecast_df)
+        test_date = forecast_df["measurement_start_utc"].iloc[0]
+        print(
+            "Dates converted successfully: {}.\n".format(
+                isinstance(test_date, datetime)
+            )
+        )
+
+    # Remove Count NaN's
+    count_nans = forecast_df["count"].isnull().sum(axis=0)
+    baseline_nans = forecast_df["baseline"].isnull().sum(axis=0)
+    print(
+        "{} NaN values found in 'count' column. Dropping these from the dataframe.".format(
+            count_nans
+        )
+    )
+    print(
+        "{} NaN values found in 'baseline' column. Dropping these from the dataframe.\n".format(
+            baseline_nans
+        )
+    )
+    forecast_df.dropna(inplace=True)
+
+    # Make Baseline Values Non-Negative
+    negative = len(forecast_df[forecast_df["baseline"] < 0]["baseline"])
+    if negative > 0:
+        print(
+            "{} negative baseline values found. Setting these to zero.\n".format(
+                negative
+            )
+        )
+        forecast_df["baseline"] = forecast_df["baseline"].apply(
+            lambda x: np.max([0, x])
+        )
+    else:
+        print("All baseline predictions >= 0.\n")
+
+    final_length = len(forecast_df["count"])
+    print(
+        "Data cleansing complete. {} rows removed from dataframe.".format(
+            init_length - final_length
+        )
+    )
+
+    copy_df = forecast_df
+    return copy_df
