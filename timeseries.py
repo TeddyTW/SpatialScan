@@ -5,10 +5,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from datetime import datetime
 import matplotlib.colors as colors
-from keras.backend import clear_session
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import LSTM
+from tensorflow.keras.backend import clear_session
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 import plotly.express as px
 
@@ -300,7 +300,7 @@ def CB_plot(df: pd.DataFrame):
     df_format["hour_from_start"] = df_format["hour_from_start"].astype(
         dtype="timedelta64[h]"
     )
-    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection="3d")
     p = ax.scatter(
@@ -343,7 +343,6 @@ def LSTM_forecast(
 ) -> pd.DataFrame:
 
     """Forecast using LSTM Neural Network 
-
     Args: 
         df: Dataframe of SCOOT data
         days_in_past: Integer number of previous days to use for forecast
