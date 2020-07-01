@@ -35,14 +35,21 @@ def interpolator(df: pd.DataFrame, percentage_missing: float = 20) -> pd.DataFra
     for detector in detectors:
         dataset = df[df["detector_id"] == detector]
 
-        dataset["hour"]=dataset["measurement_start_utc"].dt.hour.to_numpy()
+        dataset["hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
 
-        threshold=(dataset.groupby("hour").mean()["n_vehicles_in_interval"]+4*dataset.groupby("hour").std()["n_vehicles_in_interval"])
-
+        threshold = (
+            dataset.groupby("hour").mean()["n_vehicles_in_interval"]
+            + 4 * dataset.groupby("hour").std()["n_vehicles_in_interval"]
+        )
 
         for j in range(0, len(dataset)):
-            if(dataset.iloc[j]["n_vehicles_in_interval"]>threshold[dataset.iloc[j]["hour"]]):
-                dataset.iloc[j, dataset.columns.get_loc("n_vehicles_in_interval")]=float("NaN")
+            if (
+                dataset.iloc[j]["n_vehicles_in_interval"]
+                > threshold[dataset.iloc[j]["hour"]]
+            ):
+                dataset.iloc[
+                    j, dataset.columns.get_loc("n_vehicles_in_interval")
+                ] = float("NaN")
 
         dataset.index = dataset["measurement_end_utc"]
 
