@@ -18,11 +18,11 @@ def interpolator(df: pd.DataFrame, percentage_missing: float = 20) -> pd.DataFra
 
     """Function takes a SCOOT dataframe, interpolates any missing values, and returns
     a dataframe with missing values interpolated. Any detectors missing more than 
-    1/factor datapoints will be dropped for having to few values.
+    percentage_missing datapoints will be dropped for having to few values.
 
     Args:
         df: Dataframe of SCOOT data
-        factor: float percentage of missing values, above which drop detector
+        percentage_missing: float percentage of missing values, above which drop detector
 
     Returns:
         Dataframe of interpolated values with detectors dropped for too many missing values.
@@ -34,6 +34,16 @@ def interpolator(df: pd.DataFrame, percentage_missing: float = 20) -> pd.DataFra
     detectors_removed = []
     for detector in detectors:
         dataset = df[df["detector_id"] == detector]
+
+        dataset["hour"]=dataset["measurement_start_utc"].dt.hour.to_numpy()
+
+        threshold=(dataset.groupby("hour").mean()["n_vehicles_in_interval"]+4*dataset.groupby("hour").std()["n_vehicles_in_interval"])
+
+
+        for j in range(0, len(dataset)):
+            if(dataset.iloc[j]["n_vehicles_in_interval"]>threshold[dataset.iloc[j]["hour"]]):
+                dataset.iloc[j, dataset.columns.get_loc("n_vehicles_in_interval")]=float("NaN")
+
         dataset.index = dataset["measurement_end_utc"]
 
         T = pd.date_range(
@@ -46,6 +56,8 @@ def interpolator(df: pd.DataFrame, percentage_missing: float = 20) -> pd.DataFra
         if num_nan > (len(dataset) * percentage_missing) / 100:
             detectors_removed.append(detector)
             continue
+
+        dataset["n_vehicles_in_interval"].to_numpy()
 
         dataset["n_vehicles_in_interval"] = dataset[
             "n_vehicles_in_interval"
