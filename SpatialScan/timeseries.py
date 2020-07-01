@@ -38,8 +38,8 @@ def interpolator(df: pd.DataFrame, percentage_missing: float = 20) -> pd.DataFra
         dataset["hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
 
         threshold = (
-            dataset.groupby("hour").mean()["n_vehicles_in_interval"]
-            + 4 * dataset.groupby("hour").std()["n_vehicles_in_interval"]
+            dataset.groupby("hour").median()["n_vehicles_in_interval"]
+            + 3* dataset.groupby("hour").std()["n_vehicles_in_interval"]
         )
 
         for j in range(0, len(dataset)):
