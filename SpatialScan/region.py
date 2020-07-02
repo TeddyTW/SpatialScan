@@ -70,6 +70,57 @@ def convert_dates(
     return copy_df
 
 
+def aggregate_event_data(
+    forecast_data: pd.DataFrame,
+    x_ticks: np.ndarray,
+    y_ticks: np.ndarray,
+    t_ticks: np.ndarray,
+) -> pd.DataFrame:
+    """Functionality to aggregate data in forecast_data (each row represents
+    an event) to a data frame consisting N^2 * W rows (each row containing the
+    aggregated count in the grid cell it represents).
+    Clearly needs to be called after the grid is made.
+    Args:
+        forecast_data: Data from `count_baseline()`
+    """
+
+    agg_dict = {}
+    num_cells = 0
+    for i in range(len(x_ticks) - 1):
+        for j in range(len(y_ticks) - 1):
+            for s in range(len(t_ticks) - 1):
+                x_min = x_ticks[i]
+                x_max = x_ticks[i + 1]
+                y_min = y_ticks[j]
+                y_max = y_ticks[j + 1]
+                t_min = t_ticks[s]
+                t_max = t_ticks[s + 1]
+
+                sub_df = forecast_data[
+                    (forecast_data["lon"].between(x_min, x_max))
+                    & (forecast_data["lat"].between(y_min, y_max))
+                    & (forecast_data["measurement_start_utc"] == t_min)
+                    & (forecast_data["measurement_end_utc"] == t_max)
+                ]
+
+                b_count = sub_df["baseline"].sum()
+                c_count = sub_df["count"].sum()
+
+                agg_dict[num_cells] = {
+                    "x_min": x_min,
+                    "x_max": x_max,
+                    "y_min": y_min,
+                    "y_max": y_max,
+                    "t_min": t_min,
+                    "t_max": t_max,
+                    "baseline_agg": b_count,
+                    "count_agg": c_count,
+                }
+                num_cells += 1
+
+    return pd.DataFrame.from_dict(agg_dict, "index")
+
+
 def region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
 
     """Function to calculate both the expected (B) and actual (C) count
