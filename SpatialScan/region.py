@@ -82,6 +82,11 @@ def aggregate_event_data(
     Clearly needs to be called after the grid is made.
     Args:
         forecast_data: Data from `count_baseline()`
+        x_ticks: x axis grid
+        y_ticks: y axis grid
+        t_ticks: t_axis grid
+    Returns:
+        Aggregated Dataframe on Grid Cell Level.
     """
 
     agg_dict = {}
