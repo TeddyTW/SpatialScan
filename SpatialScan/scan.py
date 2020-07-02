@@ -26,8 +26,9 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
     Spatial Clusters" paper by the same author. It is a generalisation of Kulldorf's
     statistic that checks C and B counts inside AND outside the region of interest.
 
-    Note that in particular, t_min is fixed here. Varyint t_min functionality
-    may be added later.
+    Note that in particular, t_min is fixed here. Varying t_min functionality
+    can be found by calling `EBP_exhaustive()`, with downside of extra computation
+    time.
 
     Args:
         forecast_data: dataframe consisting of the detectors which lie in
@@ -37,7 +38,7 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
     Returns:
             Dataframe summarising each space-time region's scores for 6 metrics.
             The first is the basic summary stat described above. The other 5
-            are Kulldof's generalised statistic with epsilon = 0.0, 0.25, 0.5, 0.75, 1.00.
+            are Kulldorf's generalised statistic with epsilon = 0.0, 0.25, 0.5, 0.75, 1.00.
     """
 
     # Set Initial Timer
@@ -147,18 +148,8 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
 
 def EBP_exhaustive(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
 
-    """Main function for looping through the sub-space-time regions (S) of
-    global_region represented by data in forecast_data. We search for regions
-    with the highest score according to two different metrics. The basic one is
-    given by:
-                F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
-    where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
-    paper by D. Neill. The second is given in the "Detecting Significant Multidimensional
-    Spatial Clusters" paper by the same author. It is a generalisation of Kulldorf's
-    statistic that checks C and B counts inside AND outside the region of interest.
-
-    Note that in particular, t_min is fixed here. Varyint t_min functionality
-    may be added later.
+    """Identical to `EBP()` with the difference of searching through all possible
+    values of t_min. Allows us to narrow down clusters better in the temporal domain.
 
     Args:
         forecast_data: dataframe consisting of the detectors which lie in
@@ -168,7 +159,7 @@ def EBP_exhaustive(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataF
     Returns:
             Dataframe summarising each space-time region's scores for 6 metrics.
             The first is the basic summary stat described above. The other 5
-            are Kulldof's generalised statistic with epsilon = 0.0, 0.25, 0.5, 0.75, 1.00.
+            are Kulldorf's generalised statistic with epsilon = 0.0, 0.25, 0.5, 0.75, 1.00.
     """
 
     # Set Initial Timer
