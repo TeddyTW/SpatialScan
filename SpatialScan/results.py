@@ -6,7 +6,13 @@ import pandas as pd
 import numpy as np
 
 
-def visualise_results(res_df, metric: str = "l_score_basic", smooth: bool = False, c_min: float = None, c_max: float = None) -> None:
+def visualise_results(
+    res_df,
+    metric: str = "l_score_basic",
+    smooth: bool = False,
+    c_min: float = None,
+    c_max: float = None,
+) -> None:
     """Functionality which plots the animated results of the Spatial Scan.
 
     Args:
@@ -17,9 +23,9 @@ def visualise_results(res_df, metric: str = "l_score_basic", smooth: bool = Fals
         c_min: Minimum value to set the color bar
         c_max: Maximum value to set the color bar.
     """
-    assert(set([metric])) <= set(res_df.columns)
-    
-        # Infer grid partition form the resulting dataframe
+    assert (set([metric])) <= set(res_df.columns)
+
+    # Infer grid partition form the resulting dataframe
     grid_partition = len(res_df["x_min"].unique())
 
     # Infer Spatial Grid extent from resulting dataframe
@@ -47,7 +53,6 @@ def visualise_results(res_df, metric: str = "l_score_basic", smooth: bool = Fals
 
     t_labels = [x.strftime("%I%p, %d %b %y") for x in t_ticks]
 
-    
     # Find array of ordered dates over prediction period and format pretty for
     # plot.
     res_df = res_df.sort_values(by=["t_max"])
@@ -80,8 +85,7 @@ def visualise_results(res_df, metric: str = "l_score_basic", smooth: bool = Fals
                 y_array.append(l_score)
             x_array.insert(0, y_array)
         scores_array.append(x_array)
-    
-    
+
     zsmooth = "best" if smooth else None
     c_min = global_min if c_min is None else c_min
     c_max = global_max if c_max is None else c_max
@@ -179,32 +183,33 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     & (res_df["t_max"] == t_ticks[t + 1])
                 ]
 
-              
                 B, C = sub_df[["B_in", "C_in"]].sum()
-            
-                means = sub_df[["l_score_basic",
-                                "l_score_000",
-                                "l_score_025",
-                                "l_score_050",
-                                "l_score_075",
-                                "l_score_100",
-                               ]].mean()
-              
+
+                means = sub_df[
+                    [
+                        "l_score_basic",
+                        "l_score_000",
+                        "l_score_025",
+                        "l_score_050",
+                        "l_score_075",
+                        "l_score_100",
+                    ]
+                ].mean()
+
                 return_dict[num_regions] = {
-                    
                     "start_time_utc": t_ticks[0],
                     "end_time_utc": t_ticks[t + 1],
                     "point_id": num_spatial_regions,
                     "observed_count": C,
                     "forecasted_count": B,
-                    "lhd_score_basic_av": means['l_score_basic'],
-                    "lhd_score_eps_000_av": means['l_score_000'],
-                    "lhd_score_eps_025_av": means['l_score_025'],
-                    "lhd_score_eps_050_av": means['l_score_050'],
-                    "lhd_score_eps_075_av": means['l_score_075'],
-                    "lhd_score_eps_100_av": means['l_score_100'],
+                    "lhd_score_basic_av": means["l_score_basic"],
+                    "lhd_score_eps_000_av": means["l_score_000"],
+                    "lhd_score_eps_025_av": means["l_score_025"],
+                    "lhd_score_eps_050_av": means["l_score_050"],
+                    "lhd_score_eps_075_av": means["l_score_075"],
+                    "lhd_score_eps_100_av": means["l_score_100"],
                 }
-                
+
                 num_spatial_regions += 1
                 num_regions += 1
     return pd.DataFrame.from_dict(return_dict, "index")

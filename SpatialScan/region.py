@@ -138,17 +138,28 @@ def event_count(S: Type[Region], agg_data: pd.DataFrame) -> tuple:
     """
 
     # Check for columns existence.
-    assert set(["x_min", "x_max", "y_min", "y_max", "t_min", "t_max", "count_agg", "baseline_agg"]) <= set(
-        agg_data.columns
+    assert set(
+        [
+            "x_min",
+            "x_max",
+            "y_min",
+            "y_max",
+            "t_min",
+            "t_max",
+            "count_agg",
+            "baseline_agg",
+        ]
+    ) <= set(agg_data.columns)
+
+    region_mask = (
+        (agg_data["x_min"] >= S.x_min)
+        & (agg_data["x_max"] <= S.x_max)
+        & (agg_data["y_min"] >= S.y_min)
+        & (agg_data["y_max"] <= S.y_max)
+        & (agg_data["t_min"] >= S.t_min)
+        & (agg_data["t_max"] <= S.t_max)
     )
 
-    region_mask = (agg_data["x_min"] >= S.x_min)\
-                & (agg_data["x_max"] <= S.x_max)\
-                & (agg_data["y_min"] >= S.y_min)\
-                & (agg_data["y_max"] <= S.y_max)\
-                & (agg_data["t_min"] >= S.t_min)\
-                & (agg_data["t_max"] <= S.t_max)
-                
     S_df = agg_data.loc[region_mask]
     if S_df.empty:
         return 0, 0

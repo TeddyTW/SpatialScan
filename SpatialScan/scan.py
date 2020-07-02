@@ -53,13 +53,12 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
     # Aggregate the Data to cell level
     agg_df = aggregate_event_data(forecast_data, x_ticks, y_ticks, t_ticks)
 
-
-    B_tot = agg_df['baseline_agg'].sum() / 1e6
-    C_tot = agg_df['count_agg'].sum() / 1e6
+    B_tot = agg_df["baseline_agg"].sum() / 1e6
+    C_tot = agg_df["count_agg"].sum() / 1e6
 
     # Set Intermediate Timer
     t2 = time.perf_counter()
-    
+
     print("Beginning Scan. Setup Time: {0:.2f} seconds".format(t2 - t1))
     num_regions = 0
     scores_dict = {}
@@ -71,25 +70,29 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
             ):
                 for k, _ in enumerate(y_ticks):
                     for l in range(
-                        k + 1, np.min([k + (int(grid_partition / 2)), grid_partition]) + 1
+                        k + 1,
+                        np.min([k + (int(grid_partition / 2)), grid_partition]) + 1,
                     ):
-                    
+
                         # At each iteration, create the space_time region
                         test_region = Region(
                             x_ticks[i],
                             x_ticks[j],
                             y_ticks[k],
                             y_ticks[l],
-                            t_ticks[0], # t_min fixed here
+                            t_ticks[0],  # t_min fixed here
                             t_ticks[t],
                         )
 
                         # Count the events within the region
                         B, C = event_count(test_region, agg_df)
-        
+
                         # Compute Metrics
                         basic_l_score = likelihood_ratio(B, C)
-                        general_l_scores = [likelihood_ratio_kulgen(B, C, B_tot, C_tot, eps) for eps in [0.0, 0.25, 0.50, 0.75, 1.00]]
+                        general_l_scores = [
+                            likelihood_ratio_kulgen(B, C, B_tot, C_tot, eps)
+                            for eps in [0.0, 0.25, 0.50, 0.75, 1.00]
+                        ]
 
                         # Append results
                         scores_dict[num_regions] = {
@@ -104,7 +107,9 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
                             "B_out": B_tot - B,
                             "C_out": C_tot - C,
                             "C/B_in": (C / B) if B != 0 else np.inf,
-                            "C/B_out": (C_tot - C) / (B_tot - B) if B_tot != B else np.inf,
+                            "C/B_out": (C_tot - C) / (B_tot - B)
+                            if B_tot != B
+                            else np.inf,
                             "l_score_basic": basic_l_score,
                             "p_value_basic": np.nan,
                             "l_score_000": general_l_scores[0],
@@ -118,12 +123,12 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
                             "l_score_100": general_l_scores[4],
                             "p_value_100": np.nan,
                         }
-                        
+
                         # Count Regions
                         num_regions += 1
 
         # Print Progress
-        print("{0:.2f}% complete.".format((t+1) * 100 / len(t_ticks)), end="\r")
+        print("{0:.2f}% complete.".format((t + 1) * 100 / len(t_ticks)), end="\r")
 
     region_score_df = pd.DataFrame.from_dict(scores_dict, "index")
 
