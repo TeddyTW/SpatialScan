@@ -6,6 +6,23 @@ import pandas as pd
 import numpy as np
 
 
+def title_generator(scan_type: str, i: int, t_labels: np.ndarray) -> str:
+    """Quick utility function to create labels based on the tye of search.
+    Accounts for the varying/non-varying t_min in both regimes.
+    Args:
+        scan_type: "Normal" or "Exhaustive"
+        i: loop iteration
+        t_labels: Array of t_tick labels for plotting
+    Returns:
+        String representing the appropiate label for graph.
+    """
+    if scan_type == "normal":
+        return "{} to {}".format(t_labels[0], t_labels[i + 1])
+    elif scan_type == "exhaustive":
+        return "{} to {}".format(t_labels[i], t_labels[i + 1])
+    return None
+
+
 def visualise_results(
     res_df,
     metric: str = "l_score_basic",
@@ -24,6 +41,16 @@ def visualise_results(
         c_max: Maximum value to set the color bar.
     """
     assert (set([metric])) <= set(res_df.columns)
+
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unuique t_mins in res_df
+    num_t_mins = len(res_df["t_min"].unique())
+
+    # If more than one t_min, scan was exhaustive
+    if num_t_mins > 1:
+        scan_type = "exhaustive"
+    else:
+        scan_type = "normal"
 
     # Infer grid partition form the resulting dataframe
     grid_partition = len(res_df["x_min"].unique())
@@ -71,7 +98,7 @@ def visualise_results(
                     & (res_df["x_max"] >= x_ticks[i + 1])
                     & (res_df["y_min"] <= y_ticks[j])
                     & (res_df["y_max"] >= y_ticks[j + 1])
-                    & (res_df["t_min"] == t_ticks[0])
+                    & (res_df["t_min"] == t_ticks[0 if scan_type == "normal" else t])
                     & (res_df["t_max"] == t_ticks[t + 1])
                 ]
 
@@ -130,26 +157,40 @@ def visualise_results(
         frames=[
             go.Frame(
                 data=[go.Heatmap(z=scores_array[i], zmin=c_min, zmax=c_max)],
-                layout=go.Layout(title="{} to {}".format(t_labels[0], t_labels[i])),
+                layout=go.Layout(title=title_generator(scan_type, i, t_labels)),
             )
-            for i in range(1, len(t_labels) - 1)
+            for i in range(0, len(t_labels) - 1)
         ],
     )
     fig.update_layout(
         xaxis_title="Longitude", yaxis_title="Latitude",
     )
     fig.show()
+    return {"max": c_max, "min": c_min}
 
 
 def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
-    """Functionality to produce a dataframe in the correct format for storage 
+    """Functionality to produce a dataframe in the correct format for storage
     in the database. It may not be what we want perfectly atm, but template
-    functionality is in place.
+    functionality is in place. Calculates the average likelihood per grid cell.
+    Beware: this means different things depending on which function (`EBP()` or
+    `EBP_exhaustive()`) was called.
+
     Args:
-        res_df: Resulting dataframe from `EBP()`
+        res_df: Resulting dataframe from `EBP()` OR `EBP_exhaustive()`
     Returns:
         pd.DataFrame in format for storage.
     """
+
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unuique t_mins in res_df
+    num_t_mins = len(res_df["t_min"].unique())
+
+    # If more than one t_min, scan was exhaustive
+    if num_t_mins > 1:
+        scan_type = "exhaustive"
+    else:
+        scan_type = "normal"
 
     # Infer grid partition form the resulting dataframe
     grid_partition = len(res_df["x_min"].unique())
@@ -179,7 +220,7 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     & (res_df["x_max"] >= x_ticks[i + 1])
                     & (res_df["y_min"] <= y_ticks[j])
                     & (res_df["y_max"] >= y_ticks[j + 1])
-                    & (res_df["t_min"] == t_ticks[0])
+                    & (res_df["t_min"] == t_ticks[0 if scan_type == "normal" else t])
                     & (res_df["t_max"] == t_ticks[t + 1])
                 ]
 
@@ -197,17 +238,17 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                 ].mean()
 
                 return_dict[num_regions] = {
-                    "start_time_utc": t_ticks[0],
+                    "start_time_utc": t_ticks[0 if scan_type == "normal" else t],
                     "end_time_utc": t_ticks[t + 1],
                     "point_id": num_spatial_regions,
                     "observed_count": C,
                     "forecasted_count": B,
-                    "lhd_score_basic_av": means["l_score_basic"],
-                    "lhd_score_eps_000_av": means["l_score_000"],
-                    "lhd_score_eps_025_av": means["l_score_025"],
-                    "lhd_score_eps_050_av": means["l_score_050"],
-                    "lhd_score_eps_075_av": means["l_score_075"],
-                    "lhd_score_eps_100_av": means["l_score_100"],
+                    "av_lhd_score_basic": means["l_score_basic"],
+                    "av_lhd_score_eps_000": means["l_score_000"],
+                    "av_lhd_score_eps_025": means["l_score_025"],
+                    "av_lhd_score_eps_050": means["l_score_050"],
+                    "av_lhd_score_eps_075": means["l_score_075"],
+                    "av_lhd_score_eps_100": means["l_score_100"],
                 }
 
                 num_spatial_regions += 1
