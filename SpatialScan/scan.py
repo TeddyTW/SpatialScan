@@ -12,7 +12,8 @@ from SpatialScan.region import (
 )
 from SpatialScan.likelihood import likelihood_ratio
 
-def EBP(forecast_data: pd.DataFrame, grid_partition: int,) -> pd.DataFrame:
+
+def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
 
     """Main function for looping through the sub-space-time regions (S) of
     global_region. Searching for regions with the highest score according to the
