@@ -10,7 +10,86 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
 import plotly.express as px
+
+
+def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3) -> pd.DataFrame:
+
+    """Function takes a SCOOT dataframe, interpolates any missing values, and returns
+    a dataframe with missing values interpolated. Any detectors missing more than 
+    percentage_missing datapoints will be dropped for having to few values.
+
+    Args:
+        df: Dataframe of SCOOT data
+        percentage_missing: float percentage of missing values, above which drop detector
+
+    Returns:
+        Dataframe of interpolated values with detectors dropped for too many missing values.
+
+        """
+    detectors = df["detector_id"].drop_duplicates().to_numpy()
+    df_list = []
+    i = 0
+    detectors_removed = []
+    for detector in detectors:
+        dataset = df[df["detector_id"] == detector]
+
+        dataset["hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
+
+        threshold = (
+            dataset.groupby("hour").median()["n_vehicles_in_interval"]
+            + sigma* dataset.groupby("hour").std()["n_vehicles_in_interval"]
+        )
+
+        for j in range(0, len(dataset)):
+            if (
+                dataset.iloc[j]["n_vehicles_in_interval"]
+                > threshold[dataset.iloc[j]["hour"]]
+            ):
+                dataset.iloc[
+                    j, dataset.columns.get_loc("n_vehicles_in_interval")
+                ] = float("NaN")
+
+        dataset.index = dataset["measurement_end_utc"]
+
+        T = pd.date_range(
+            start=df["measurement_end_utc"].min(),
+            end=df["measurement_end_utc"].max(),
+            freq="H",
+        )
+        dataset = dataset.reindex(T)
+        num_nan = dataset["n_vehicles_in_interval"].isna().sum()
+        if num_nan > (len(dataset) * percentage_missing) / 100:
+            detectors_removed.append(detector)
+            continue
+
+        dataset["n_vehicles_in_interval"].to_numpy()
+
+        dataset["n_vehicles_in_interval"] = dataset[
+            "n_vehicles_in_interval"
+        ].interpolate(method="linear", limit_direction="forward", axis=0)
+        dataset["detector_id"] = dataset["detector_id"].interpolate(
+            method="pad", limit_direction="forward", axis=0
+        )
+        dataset["lon"] = dataset["lon"].interpolate(
+            method="pad", limit_direction="forward", axis=0
+        )
+        dataset["lat"] = dataset["lat"].interpolate(
+            method="pad", limit_direction="forward", axis=0
+        )
+        dataset["measurement_end_utc"] = dataset.index
+        dataset["measurement_start_utc"] = dataset[
+            "measurement_end_utc"
+        ] - np.timedelta64(1, "h")
+
+        df_list.append(dataset)
+        i += 1
+        print("please wait: ", i, "/", len(detectors), "detectors", end="\r")
+    print("detectors dropped: ", detectors_removed)
+    DF = pd.concat(df_list)
+
+    return DF.reset_index(drop=True)
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -376,6 +455,10 @@ def LSTM_forecast(
 
         # fill in missing hours with interpolation
         dataset = dataset.reindex(T)
+        num_nan = dataset["n_vehicles_in_interval"].isna().sum()
+        if num_nan > int(len(dataset) / 6):
+            print(detector)
+            continue
         dataset["n_vehicles_in_interval"] = dataset[
             "n_vehicles_in_interval"
         ].interpolate(method="linear", limit_direction="forward", axis=0)
