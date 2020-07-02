@@ -46,9 +46,7 @@ def likelihood_ratio_kulgen(B: float, C: float, B_tot: float, C_tot: float, eps:
 
     sign = 1 if condition else -1
 
-    if B == 0 and C > 0:
-        return np.inf
-    if B == 0 and C == 0:
+    if B == 0:
         return np.nan
     return sign * (
         C * np.log(C / ((1 + eps) * B))
