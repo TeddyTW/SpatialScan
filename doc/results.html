@@ -34,22 +34,52 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
-def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
-    &#34;&#34;&#34;Functionality to calculate the average likelihood values used to plot
-    results from the main scan. 
+
+def title_generator(scan_type: str, i: int, t_labels: np.ndarray) -&gt; str:
+    &#34;&#34;&#34;Quick utility function to create labels based on the tye of search.
+    Accounts for the varying/non-varying t_min in both regimes.
+    Args:
+        scan_type: &#34;Normal&#34; or &#34;Exhaustive&#34;
+        i: loop iteration
+        t_labels: Array of t_tick labels for plotting
+    Returns:
+        String representing the appropiate label for graph.
+    &#34;&#34;&#34;
+    if scan_type == &#34;normal&#34;:
+        return &#34;{} to {}&#34;.format(t_labels[0], t_labels[i + 1])
+    elif scan_type == &#34;exhaustive&#34;:
+        return &#34;{} to {}&#34;.format(t_labels[i], t_labels[i + 1])
+    return None
+
+
+def visualise_results(
+    res_df,
+    metric: str = &#34;l_score_basic&#34;,
+    smooth: bool = False,
+    c_min: float = None,
+    c_max: float = None,
+) -&gt; None:
+    &#34;&#34;&#34;Functionality which plots the animated results of the Spatial Scan.
 
     Args:
-        res_df: pd.DataFrame from the main EBP function.
-
-    Returns:
-        scores_array: np.ndarray of shape (W x N x N) - i.e. containing 2D grid
-                      information for each forecasted timestep
-        x_ticks: Labels for x array values (longitude)
-        y_ticks: Labels for y array values (Latitude)
-        t_ticks: Labels for dates (Time)
-        v_max: Maximum average likelihood Score from whole search region. USe this
-               to calibrate the color bar when plotting.
+        res_df: resulting dataframe from `EBP()`
+        metric: Which metric to plot from res_df
+        smooth: Boolean which decides whether to smooth the spatial region in
+                the animation or not.
+        c_min: Minimum value to set the color bar
+        c_max: Maximum value to set the color bar.
     &#34;&#34;&#34;
+    assert (set([metric])) &lt;= set(res_df.columns)
+
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unuique t_mins in res_df
+    num_t_mins = len(res_df[&#34;t_min&#34;].unique())
+
+    # If more than one t_min, scan was exhaustive
+    if num_t_mins &gt; 1:
+        scan_type = &#34;exhaustive&#34;
+    else:
+        scan_type = &#34;normal&#34;
 
     # Infer grid partition form the resulting dataframe
     grid_partition = len(res_df[&#34;x_min&#34;].unique())
@@ -59,10 +89,13 @@ def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
     x_max = res_df[&#34;x_max&#34;].max()
     y_min = res_df[&#34;y_min&#34;].min()
     y_max = res_df[&#34;y_max&#34;].max()
+    t_min = res_df[&#34;t_min&#34;].min()
+    t_max = res_df[&#34;t_max&#34;].max()
 
     # Re-create the grid used
     x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
     y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+    t_ticks = pd.date_range(start=t_min, end=t_max, freq=&#34;H&#34;)
 
     # Use these to explicitly return labels
     x_labels = [
@@ -74,18 +107,16 @@ def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
         for i in reversed(range(len(y_ticks) - 1))
     ]
 
+    t_labels = [x.strftime(&#34;%I%p, %d %b %y&#34;) for x in t_ticks]
+
     # Find array of ordered dates over prediction period and format pretty for
     # plot.
-    res_df = res_df.sort_values(by=&#34;t_max&#34;)
-    res_df[&#34;datetime_nice&#34;] = res_df[&#34;t_max&#34;].apply(
-        lambda x: x.strftime(&#34;%I%p, %d %b %y&#34;)
-    )
-    dates = res_df[&#34;t_max&#34;].unique()
-    t_labels = res_df[&#34;datetime_nice&#34;].unique()
+    res_df = res_df.sort_values(by=[&#34;t_max&#34;])
 
     scores_array = []
-    global_max = 0
-    for _, date in enumerate(dates):
+    global_max = -np.inf
+    global_min = np.inf
+    for t in range(len(t_ticks) - 1):
         x_array = []
         for j in range(len(y_ticks) - 1):
             y_array = []
@@ -96,45 +127,24 @@ def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
                     &amp; (res_df[&#34;x_max&#34;] &gt;= x_ticks[i + 1])
                     &amp; (res_df[&#34;y_min&#34;] &lt;= y_ticks[j])
                     &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
-                    &amp; (res_df[&#34;t_max&#34;] == date)
+                    &amp; (res_df[&#34;t_min&#34;] == t_ticks[0 if scan_type == &#34;normal&#34; else t])
+                    &amp; (res_df[&#34;t_max&#34;] == t_ticks[t + 1])
                 ]
 
-                l_score = sub_df[&#34;likelihood_score&#34;].mean()
+                l_score = sub_df[metric].mean()
 
                 if l_score &gt; global_max:
                     global_max = l_score
+                if l_score &lt; global_min:
+                    global_min = l_score
 
                 y_array.append(l_score)
             x_array.insert(0, y_array)
         scores_array.append(x_array)
 
-    return np.array(scores_array), x_labels, y_labels, t_labels, global_max
-
-
-def visualise_results(
-    scores_array: np.ndarray,
-    x_labels: np.ndarray,
-    y_labels: np.ndarray,
-    t_labels: np.ndarray,
-    global_max: float,
-    smooth: bool = False,
-):
-    &#34;&#34;&#34;Functionality which plots the animated results of the Spatial Scan. To
-    be used in conjunction with `average_likelihood`.
-
-    Args:
-        scores_array: np.ndarray of shape (W x N x N) - i.e. containing 2D grid
-                      information for each forecasted timestep
-        x_labels: Labels for x array values (longitude)
-        y_labels: Labels for y array values (Latitude)
-        t_labels: Labels for dates (Time)
-        global_max: Maximum average likelihood Score from whole search region.
-                    Used to calibrate the color bar when plotting. 
-        smooth: Boolean which decides whether to smooth the spatial region in
-                the animation or not.
-    &#34;&#34;&#34;
-
     zsmooth = &#34;best&#34; if smooth else None
+    c_min = global_min if c_min is None else c_min
+    c_max = global_max if c_max is None else c_max
 
     fig = go.Figure(
         data=[
@@ -142,14 +152,14 @@ def visualise_results(
                 z=scores_array[0],
                 x=x_labels,
                 y=y_labels,
-                zmin=1,
-                zmax=global_max,
+                zmin=c_min,
+                zmax=c_max,
                 zsmooth=zsmooth,
                 colorbar={&#34;title&#34;: &#34;Average Likelihood Ratio Score&#34;},
             )
         ],
         layout=go.Layout(
-            title=t_labels[0],
+            title=&#34;{} to {}&#34;.format(t_labels[0], t_labels[1]),
             width=800,
             height=500,
             updatemenus=[
@@ -175,16 +185,104 @@ def visualise_results(
         ),
         frames=[
             go.Frame(
-                data=[go.Heatmap(z=scores_array[i])],
-                layout=go.Layout(title=t_labels[i]),
+                data=[go.Heatmap(z=scores_array[i], zmin=c_min, zmax=c_max)],
+                layout=go.Layout(title=title_generator(scan_type, i, t_labels)),
             )
-            for i in range(1, len(t_labels))
+            for i in range(0, len(t_labels) - 1)
         ],
     )
     fig.update_layout(
         xaxis_title=&#34;Longitude&#34;, yaxis_title=&#34;Latitude&#34;,
     )
-    fig.show()</code></pre>
+    fig.show()
+    return {&#34;max&#34;: c_max, &#34;min&#34;: c_min}
+
+
+def database_results(res_df: pd.DataFrame) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Functionality to produce a dataframe in the correct format for storage
+    in the database. It may not be what we want perfectly atm, but template
+    functionality is in place. Calculates the average likelihood per grid cell.
+    Beware: this means different things depending on which function (`EBP()` or
+    `EBP_exhaustive()`) was called.
+
+    Args:
+        res_df: Resulting dataframe from `EBP()` OR `EBP_exhaustive()`
+    Returns:
+        pd.DataFrame in format for storage.
+    &#34;&#34;&#34;
+
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unuique t_mins in res_df
+    num_t_mins = len(res_df[&#34;t_min&#34;].unique())
+
+    # If more than one t_min, scan was exhaustive
+    if num_t_mins &gt; 1:
+        scan_type = &#34;exhaustive&#34;
+    else:
+        scan_type = &#34;normal&#34;
+
+    # Infer grid partition form the resulting dataframe
+    grid_partition = len(res_df[&#34;x_min&#34;].unique())
+
+    # Infer Spatial Grid extent from resulting dataframe
+    x_min = res_df[&#34;x_min&#34;].min()
+    x_max = res_df[&#34;x_max&#34;].max()
+    y_min = res_df[&#34;y_min&#34;].min()
+    y_max = res_df[&#34;y_max&#34;].max()
+    t_min = res_df[&#34;t_min&#34;].min()
+    t_max = res_df[&#34;t_max&#34;].max()
+
+    # Re-create the grid used
+    x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
+    y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+    t_ticks = pd.date_range(start=t_min, end=t_max, freq=&#34;H&#34;)
+
+    return_dict = {}
+    num_regions = 0
+    for t in range(len(t_ticks) - 1):
+        num_spatial_regions = 0
+        for j in range(len(y_ticks) - 1):
+            for i in range(len(x_ticks) - 1):
+
+                sub_df = res_df[
+                    (res_df[&#34;x_min&#34;] &lt;= x_ticks[i])
+                    &amp; (res_df[&#34;x_max&#34;] &gt;= x_ticks[i + 1])
+                    &amp; (res_df[&#34;y_min&#34;] &lt;= y_ticks[j])
+                    &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
+                    &amp; (res_df[&#34;t_min&#34;] == t_ticks[0 if scan_type == &#34;normal&#34; else t])
+                    &amp; (res_df[&#34;t_max&#34;] == t_ticks[t + 1])
+                ]
+
+                B, C = sub_df[[&#34;B_in&#34;, &#34;C_in&#34;]].sum()
+
+                means = sub_df[
+                    [
+                        &#34;l_score_basic&#34;,
+                        &#34;l_score_000&#34;,
+                        &#34;l_score_025&#34;,
+                        &#34;l_score_050&#34;,
+                        &#34;l_score_075&#34;,
+                        &#34;l_score_100&#34;,
+                    ]
+                ].mean()
+
+                return_dict[num_regions] = {
+                    &#34;start_time_utc&#34;: t_ticks[0 if scan_type == &#34;normal&#34; else t],
+                    &#34;end_time_utc&#34;: t_ticks[t + 1],
+                    &#34;point_id&#34;: num_spatial_regions,
+                    &#34;observed_count&#34;: C,
+                    &#34;forecasted_count&#34;: B,
+                    &#34;av_lhd_score_basic&#34;: means[&#34;l_score_basic&#34;],
+                    &#34;av_lhd_score_eps_000&#34;: means[&#34;l_score_000&#34;],
+                    &#34;av_lhd_score_eps_025&#34;: means[&#34;l_score_025&#34;],
+                    &#34;av_lhd_score_eps_050&#34;: means[&#34;l_score_050&#34;],
+                    &#34;av_lhd_score_eps_075&#34;: means[&#34;l_score_075&#34;],
+                    &#34;av_lhd_score_eps_100&#34;: means[&#34;l_score_100&#34;],
+                }
+
+                num_spatial_regions += 1
+                num_regions += 1
+    return pd.DataFrame.from_dict(return_dict, &#34;index&#34;)</code></pre>
 </details>
 </section>
 <section>
@@ -194,52 +292,48 @@ def visualise_results(
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="SpatialScan.results.average_likelihood"><code class="name flex">
-<span>def <span class="ident">average_likelihood</span></span>(<span>res_df: pandas.core.frame.DataFrame) -> tuple</span>
+<dt id="SpatialScan.results.database_results"><code class="name flex">
+<span>def <span class="ident">database_results</span></span>(<span>res_df: pandas.core.frame.DataFrame) -> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Functionality to calculate the average likelihood values used to plot
-results from the main scan. </p>
+<div class="desc"><p>Functionality to produce a dataframe in the correct format for storage
+in the database. It may not be what we want perfectly atm, but template
+functionality is in place. Calculates the average likelihood per grid cell.
+Beware: this means different things depending on which function (<code>EBP()</code> or
+<code>EBP_exhaustive()</code>) was called.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>res_df</code></strong></dt>
-<dd>pd.DataFrame from the main EBP function.</dd>
+<dd>Resulting dataframe from <code>EBP()</code> OR <code>EBP_exhaustive()</code></dd>
 </dl>
 <h2 id="returns">Returns</h2>
-<dl>
-<dt><code>scores_array</code></dt>
-<dd>np.ndarray of shape (W x N x N) - i.e. containing 2D grid
-information for each forecasted timestep</dd>
-<dt><code>x_ticks</code></dt>
-<dd>Labels for x array values (longitude)</dd>
-<dt><code>y_ticks</code></dt>
-<dd>Labels for y array values (Latitude)</dd>
-<dt><code>t_ticks</code></dt>
-<dd>Labels for dates (Time)</dd>
-<dt><code>v_max</code></dt>
-<dd>Maximum average likelihood Score from whole search region. USe this
-to calibrate the color bar when plotting.</dd>
-</dl></div>
+<p>pd.DataFrame in format for storage.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def average_likelihood(res_df: pd.DataFrame) -&gt; tuple:
-    &#34;&#34;&#34;Functionality to calculate the average likelihood values used to plot
-    results from the main scan. 
+<pre><code class="python">def database_results(res_df: pd.DataFrame) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Functionality to produce a dataframe in the correct format for storage
+    in the database. It may not be what we want perfectly atm, but template
+    functionality is in place. Calculates the average likelihood per grid cell.
+    Beware: this means different things depending on which function (`EBP()` or
+    `EBP_exhaustive()`) was called.
 
     Args:
-        res_df: pd.DataFrame from the main EBP function.
-
+        res_df: Resulting dataframe from `EBP()` OR `EBP_exhaustive()`
     Returns:
-        scores_array: np.ndarray of shape (W x N x N) - i.e. containing 2D grid
-                      information for each forecasted timestep
-        x_ticks: Labels for x array values (longitude)
-        y_ticks: Labels for y array values (Latitude)
-        t_ticks: Labels for dates (Time)
-        v_max: Maximum average likelihood Score from whole search region. USe this
-               to calibrate the color bar when plotting.
+        pd.DataFrame in format for storage.
     &#34;&#34;&#34;
+
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unuique t_mins in res_df
+    num_t_mins = len(res_df[&#34;t_min&#34;].unique())
+
+    # If more than one t_min, scan was exhaustive
+    if num_t_mins &gt; 1:
+        scan_type = &#34;exhaustive&#34;
+    else:
+        scan_type = &#34;normal&#34;
 
     # Infer grid partition form the resulting dataframe
     grid_partition = len(res_df[&#34;x_min&#34;].unique())
@@ -249,10 +343,167 @@ to calibrate the color bar when plotting.</dd>
     x_max = res_df[&#34;x_max&#34;].max()
     y_min = res_df[&#34;y_min&#34;].min()
     y_max = res_df[&#34;y_max&#34;].max()
+    t_min = res_df[&#34;t_min&#34;].min()
+    t_max = res_df[&#34;t_max&#34;].max()
 
     # Re-create the grid used
     x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
     y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+    t_ticks = pd.date_range(start=t_min, end=t_max, freq=&#34;H&#34;)
+
+    return_dict = {}
+    num_regions = 0
+    for t in range(len(t_ticks) - 1):
+        num_spatial_regions = 0
+        for j in range(len(y_ticks) - 1):
+            for i in range(len(x_ticks) - 1):
+
+                sub_df = res_df[
+                    (res_df[&#34;x_min&#34;] &lt;= x_ticks[i])
+                    &amp; (res_df[&#34;x_max&#34;] &gt;= x_ticks[i + 1])
+                    &amp; (res_df[&#34;y_min&#34;] &lt;= y_ticks[j])
+                    &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
+                    &amp; (res_df[&#34;t_min&#34;] == t_ticks[0 if scan_type == &#34;normal&#34; else t])
+                    &amp; (res_df[&#34;t_max&#34;] == t_ticks[t + 1])
+                ]
+
+                B, C = sub_df[[&#34;B_in&#34;, &#34;C_in&#34;]].sum()
+
+                means = sub_df[
+                    [
+                        &#34;l_score_basic&#34;,
+                        &#34;l_score_000&#34;,
+                        &#34;l_score_025&#34;,
+                        &#34;l_score_050&#34;,
+                        &#34;l_score_075&#34;,
+                        &#34;l_score_100&#34;,
+                    ]
+                ].mean()
+
+                return_dict[num_regions] = {
+                    &#34;start_time_utc&#34;: t_ticks[0 if scan_type == &#34;normal&#34; else t],
+                    &#34;end_time_utc&#34;: t_ticks[t + 1],
+                    &#34;point_id&#34;: num_spatial_regions,
+                    &#34;observed_count&#34;: C,
+                    &#34;forecasted_count&#34;: B,
+                    &#34;av_lhd_score_basic&#34;: means[&#34;l_score_basic&#34;],
+                    &#34;av_lhd_score_eps_000&#34;: means[&#34;l_score_000&#34;],
+                    &#34;av_lhd_score_eps_025&#34;: means[&#34;l_score_025&#34;],
+                    &#34;av_lhd_score_eps_050&#34;: means[&#34;l_score_050&#34;],
+                    &#34;av_lhd_score_eps_075&#34;: means[&#34;l_score_075&#34;],
+                    &#34;av_lhd_score_eps_100&#34;: means[&#34;l_score_100&#34;],
+                }
+
+                num_spatial_regions += 1
+                num_regions += 1
+    return pd.DataFrame.from_dict(return_dict, &#34;index&#34;)</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.results.title_generator"><code class="name flex">
+<span>def <span class="ident">title_generator</span></span>(<span>scan_type: str, i: int, t_labels: numpy.ndarray) -> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Quick utility function to create labels based on the tye of search.
+Accounts for the varying/non-varying t_min in both regimes.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>scan_type</code></strong></dt>
+<dd>"Normal" or "Exhaustive"</dd>
+<dt><strong><code>i</code></strong></dt>
+<dd>loop iteration</dd>
+<dt><strong><code>t_labels</code></strong></dt>
+<dd>Array of t_tick labels for plotting</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>String representing the appropiate label for graph.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def title_generator(scan_type: str, i: int, t_labels: np.ndarray) -&gt; str:
+    &#34;&#34;&#34;Quick utility function to create labels based on the tye of search.
+    Accounts for the varying/non-varying t_min in both regimes.
+    Args:
+        scan_type: &#34;Normal&#34; or &#34;Exhaustive&#34;
+        i: loop iteration
+        t_labels: Array of t_tick labels for plotting
+    Returns:
+        String representing the appropiate label for graph.
+    &#34;&#34;&#34;
+    if scan_type == &#34;normal&#34;:
+        return &#34;{} to {}&#34;.format(t_labels[0], t_labels[i + 1])
+    elif scan_type == &#34;exhaustive&#34;:
+        return &#34;{} to {}&#34;.format(t_labels[i], t_labels[i + 1])
+    return None</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.results.visualise_results"><code class="name flex">
+<span>def <span class="ident">visualise_results</span></span>(<span>res_df, metric: str = 'l_score_basic', smooth: bool = False, c_min: float = None, c_max: float = None) -> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Functionality which plots the animated results of the Spatial Scan.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>res_df</code></strong></dt>
+<dd>resulting dataframe from <code>EBP()</code></dd>
+<dt><strong><code>metric</code></strong></dt>
+<dd>Which metric to plot from res_df</dd>
+<dt><strong><code>smooth</code></strong></dt>
+<dd>Boolean which decides whether to smooth the spatial region in
+the animation or not.</dd>
+<dt><strong><code>c_min</code></strong></dt>
+<dd>Minimum value to set the color bar</dd>
+<dt><strong><code>c_max</code></strong></dt>
+<dd>Maximum value to set the color bar.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def visualise_results(
+    res_df,
+    metric: str = &#34;l_score_basic&#34;,
+    smooth: bool = False,
+    c_min: float = None,
+    c_max: float = None,
+) -&gt; None:
+    &#34;&#34;&#34;Functionality which plots the animated results of the Spatial Scan.
+
+    Args:
+        res_df: resulting dataframe from `EBP()`
+        metric: Which metric to plot from res_df
+        smooth: Boolean which decides whether to smooth the spatial region in
+                the animation or not.
+        c_min: Minimum value to set the color bar
+        c_max: Maximum value to set the color bar.
+    &#34;&#34;&#34;
+    assert (set([metric])) &lt;= set(res_df.columns)
+
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unuique t_mins in res_df
+    num_t_mins = len(res_df[&#34;t_min&#34;].unique())
+
+    # If more than one t_min, scan was exhaustive
+    if num_t_mins &gt; 1:
+        scan_type = &#34;exhaustive&#34;
+    else:
+        scan_type = &#34;normal&#34;
+
+    # Infer grid partition form the resulting dataframe
+    grid_partition = len(res_df[&#34;x_min&#34;].unique())
+
+    # Infer Spatial Grid extent from resulting dataframe
+    x_min = res_df[&#34;x_min&#34;].min()
+    x_max = res_df[&#34;x_max&#34;].max()
+    y_min = res_df[&#34;y_min&#34;].min()
+    y_max = res_df[&#34;y_max&#34;].max()
+    t_min = res_df[&#34;t_min&#34;].min()
+    t_max = res_df[&#34;t_max&#34;].max()
+
+    # Re-create the grid used
+    x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
+    y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+    t_ticks = pd.date_range(start=t_min, end=t_max, freq=&#34;H&#34;)
 
     # Use these to explicitly return labels
     x_labels = [
@@ -264,18 +515,16 @@ to calibrate the color bar when plotting.</dd>
         for i in reversed(range(len(y_ticks) - 1))
     ]
 
+    t_labels = [x.strftime(&#34;%I%p, %d %b %y&#34;) for x in t_ticks]
+
     # Find array of ordered dates over prediction period and format pretty for
     # plot.
-    res_df = res_df.sort_values(by=&#34;t_max&#34;)
-    res_df[&#34;datetime_nice&#34;] = res_df[&#34;t_max&#34;].apply(
-        lambda x: x.strftime(&#34;%I%p, %d %b %y&#34;)
-    )
-    dates = res_df[&#34;t_max&#34;].unique()
-    t_labels = res_df[&#34;datetime_nice&#34;].unique()
+    res_df = res_df.sort_values(by=[&#34;t_max&#34;])
 
     scores_array = []
-    global_max = 0
-    for _, date in enumerate(dates):
+    global_max = -np.inf
+    global_min = np.inf
+    for t in range(len(t_ticks) - 1):
         x_array = []
         for j in range(len(y_ticks) - 1):
             y_array = []
@@ -286,73 +535,24 @@ to calibrate the color bar when plotting.</dd>
                     &amp; (res_df[&#34;x_max&#34;] &gt;= x_ticks[i + 1])
                     &amp; (res_df[&#34;y_min&#34;] &lt;= y_ticks[j])
                     &amp; (res_df[&#34;y_max&#34;] &gt;= y_ticks[j + 1])
-                    &amp; (res_df[&#34;t_max&#34;] == date)
+                    &amp; (res_df[&#34;t_min&#34;] == t_ticks[0 if scan_type == &#34;normal&#34; else t])
+                    &amp; (res_df[&#34;t_max&#34;] == t_ticks[t + 1])
                 ]
 
-                l_score = sub_df[&#34;likelihood_score&#34;].mean()
+                l_score = sub_df[metric].mean()
 
                 if l_score &gt; global_max:
                     global_max = l_score
+                if l_score &lt; global_min:
+                    global_min = l_score
 
                 y_array.append(l_score)
             x_array.insert(0, y_array)
         scores_array.append(x_array)
 
-    return np.array(scores_array), x_labels, y_labels, t_labels, global_max</code></pre>
-</details>
-</dd>
-<dt id="SpatialScan.results.visualise_results"><code class="name flex">
-<span>def <span class="ident">visualise_results</span></span>(<span>scores_array: numpy.ndarray, x_labels: numpy.ndarray, y_labels: numpy.ndarray, t_labels: numpy.ndarray, global_max: float, smooth: bool = False)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Functionality which plots the animated results of the Spatial Scan. To
-be used in conjunction with <code><a title="SpatialScan.results.average_likelihood" href="#SpatialScan.results.average_likelihood">average_likelihood()</a></code>.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>scores_array</code></strong></dt>
-<dd>np.ndarray of shape (W x N x N) - i.e. containing 2D grid
-information for each forecasted timestep</dd>
-<dt><strong><code>x_labels</code></strong></dt>
-<dd>Labels for x array values (longitude)</dd>
-<dt><strong><code>y_labels</code></strong></dt>
-<dd>Labels for y array values (Latitude)</dd>
-<dt><strong><code>t_labels</code></strong></dt>
-<dd>Labels for dates (Time)</dd>
-<dt><strong><code>global_max</code></strong></dt>
-<dd>Maximum average likelihood Score from whole search region.
-Used to calibrate the color bar when plotting. </dd>
-<dt><strong><code>smooth</code></strong></dt>
-<dd>Boolean which decides whether to smooth the spatial region in
-the animation or not.</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def visualise_results(
-    scores_array: np.ndarray,
-    x_labels: np.ndarray,
-    y_labels: np.ndarray,
-    t_labels: np.ndarray,
-    global_max: float,
-    smooth: bool = False,
-):
-    &#34;&#34;&#34;Functionality which plots the animated results of the Spatial Scan. To
-    be used in conjunction with `average_likelihood`.
-
-    Args:
-        scores_array: np.ndarray of shape (W x N x N) - i.e. containing 2D grid
-                      information for each forecasted timestep
-        x_labels: Labels for x array values (longitude)
-        y_labels: Labels for y array values (Latitude)
-        t_labels: Labels for dates (Time)
-        global_max: Maximum average likelihood Score from whole search region.
-                    Used to calibrate the color bar when plotting. 
-        smooth: Boolean which decides whether to smooth the spatial region in
-                the animation or not.
-    &#34;&#34;&#34;
-
     zsmooth = &#34;best&#34; if smooth else None
+    c_min = global_min if c_min is None else c_min
+    c_max = global_max if c_max is None else c_max
 
     fig = go.Figure(
         data=[
@@ -360,14 +560,14 @@ the animation or not.</dd>
                 z=scores_array[0],
                 x=x_labels,
                 y=y_labels,
-                zmin=1,
-                zmax=global_max,
+                zmin=c_min,
+                zmax=c_max,
                 zsmooth=zsmooth,
                 colorbar={&#34;title&#34;: &#34;Average Likelihood Ratio Score&#34;},
             )
         ],
         layout=go.Layout(
-            title=t_labels[0],
+            title=&#34;{} to {}&#34;.format(t_labels[0], t_labels[1]),
             width=800,
             height=500,
             updatemenus=[
@@ -393,16 +593,17 @@ the animation or not.</dd>
         ),
         frames=[
             go.Frame(
-                data=[go.Heatmap(z=scores_array[i])],
-                layout=go.Layout(title=t_labels[i]),
+                data=[go.Heatmap(z=scores_array[i], zmin=c_min, zmax=c_max)],
+                layout=go.Layout(title=title_generator(scan_type, i, t_labels)),
             )
-            for i in range(1, len(t_labels))
+            for i in range(0, len(t_labels) - 1)
         ],
     )
     fig.update_layout(
         xaxis_title=&#34;Longitude&#34;, yaxis_title=&#34;Latitude&#34;,
     )
-    fig.show()</code></pre>
+    fig.show()
+    return {&#34;max&#34;: c_max, &#34;min&#34;: c_min}</code></pre>
 </details>
 </dd>
 </dl>
@@ -423,7 +624,8 @@ the animation or not.</dd>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="SpatialScan.results.average_likelihood" href="#SpatialScan.results.average_likelihood">average_likelihood</a></code></li>
+<li><code><a title="SpatialScan.results.database_results" href="#SpatialScan.results.database_results">database_results</a></code></li>
+<li><code><a title="SpatialScan.results.title_generator" href="#SpatialScan.results.title_generator">title_generator</a></code></li>
 <li><code><a title="SpatialScan.results.visualise_results" href="#SpatialScan.results.visualise_results">visualise_results</a></code></li>
 </ul>
 </li>
