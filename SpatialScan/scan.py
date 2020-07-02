@@ -145,6 +145,138 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
     return region_score_df
 
 
+def EBP_exhaustive(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
+
+    """Main function for looping through the sub-space-time regions (S) of
+    global_region represented by data in forecast_data. We search for regions
+    with the highest score according to two different metrics. The basic one is
+    given by:
+                F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
+    where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
+    paper by D. Neill. The second is given in the "Detecting Significant Multidimensional
+    Spatial Clusters" paper by the same author. It is a generalisation of Kulldorf's
+    statistic that checks C and B counts inside AND outside the region of interest.
+
+    Note that in particular, t_min is fixed here. Varyint t_min functionality
+    may be added later.
+
+    Args:
+        forecast_data: dataframe consisting of the detectors which lie in
+                       global_region, their locations and both their
+                       baseline and actual counts for the past W days.
+        grid_partition: Split each spatial axis into this many partitions.
+    Returns:
+            Dataframe summarising each space-time region's scores for 6 metrics.
+            The first is the basic summary stat described above. The other 5
+            are Kulldof's generalised statistic with epsilon = 0.0, 0.25, 0.5, 0.75, 1.00.
+    """
+
+    # Set Initial Timer
+    t1 = time.perf_counter()
+
+    # Find the global region on which the observations live
+    global_region = infer_global_region(forecast_data)
+
+    # Create the Grid
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+
+    print("Aggregating data from detector level to grid level.")
+    # Aggregate the Data to cell level
+    agg_df = aggregate_event_data(forecast_data, x_ticks, y_ticks, t_ticks)
+
+    B_tot = agg_df["baseline_agg"].sum() / 1e6
+    C_tot = agg_df["count_agg"].sum() / 1e6
+
+    # Set Intermediate Timer
+    t2 = time.perf_counter()
+
+    print("Beginning Scan. Setup Time: {0:.2f} seconds".format(t2 - t1))
+    num_regions = 0
+    scores_dict = {}
+    # Loop over all possible prisms of max size N/2 in the space
+    for s, _ in enumerate(t_ticks):
+        for t in range(s + 1, len(t_ticks)):
+            for i, _ in enumerate(x_ticks):
+                for j in range(
+                    i + 1, np.min([i + (int(grid_partition / 2)), grid_partition]) + 1
+                ):
+                    for k, _ in enumerate(y_ticks):
+                        for l in range(
+                            k + 1,
+                            np.min([k + (int(grid_partition / 2)), grid_partition]) + 1,
+                        ):
+
+                            # At each iteration, create the space_time region
+                            test_region = Region(
+                                x_ticks[i],
+                                x_ticks[j],
+                                y_ticks[k],
+                                y_ticks[l],
+                                t_ticks[s],  # t_min not fixed here
+                                t_ticks[t],
+                            )
+
+                            # Count the events within the region
+                            B, C = event_count(test_region, agg_df)
+
+                            # Compute Metrics
+                            basic_l_score = likelihood_ratio(B, C)
+                            general_l_scores = [
+                                likelihood_ratio_kulgen(B, C, B_tot, C_tot, eps)
+                                for eps in [0.0, 0.25, 0.50, 0.75, 1.00]
+                            ]
+
+                            # Append results
+                            scores_dict[num_regions] = {
+                                "x_min": x_ticks[i],
+                                "x_max": x_ticks[j],
+                                "y_min": y_ticks[k],
+                                "y_max": y_ticks[l],
+                                "t_min": t_ticks[s],
+                                "t_max": t_ticks[t],
+                                "B_in": B,
+                                "C_in": C,
+                                "B_out": B_tot - B,
+                                "C_out": C_tot - C,
+                                "C/B_in": (C / B) if B != 0 else np.inf,
+                                "C/B_out": (C_tot - C) / (B_tot - B)
+                                if B_tot != B
+                                else np.inf,
+                                "l_score_basic": basic_l_score,
+                                "p_value_basic": np.nan,
+                                "l_score_000": general_l_scores[0],
+                                "p_value_000": np.nan,
+                                "l_score_025": general_l_scores[1],
+                                "p_value_025": np.nan,
+                                "l_score_050": general_l_scores[2],
+                                "p_value_050": np.nan,
+                                "l_score_075": general_l_scores[3],
+                                "p_value_075": np.nan,
+                                "l_score_100": general_l_scores[4],
+                                "p_value_100": np.nan,
+                            }
+
+                            # Count Regions
+                            num_regions += 1
+
+        # Print Progress
+        print("{0:.2f}% complete.".format((s + 1) * 100 / len(t_ticks)), end="\r")
+
+    region_score_df = pd.DataFrame.from_dict(scores_dict, "index")
+
+    # At this point, we have a dataframe populated with likelihood statistic
+    # scores for each search region.
+    # Sort it so that highest F(S) score is at the top.
+    region_score_df = region_score_df.sort_values("l_score_basic", ascending=False)
+
+    t3 = time.perf_counter()
+
+    print("\n%d space-time regions searched in %.2f seconds" % (num_regions, t3 - t2))
+    print("Total run time: {0:.2f} seconds".format(t3 - t1))
+
+    return region_score_df
+
+
 # TODO - Change this to fast scan overlap-kd tree structure
 def randomisation_test(
     forecast_df: pd.DataFrame, res_df: pd.DataFrame, n_sims: int = 100
