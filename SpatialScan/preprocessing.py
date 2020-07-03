@@ -118,7 +118,7 @@ def data_preprocessor(
     for detector in detectors:
         dataset = df[df["detector_id"] == detector]
 
-        dataset["hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
+        dataset.loc[:,"hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
 
         for k in range(0, repeats):
 
