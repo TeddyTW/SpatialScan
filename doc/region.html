@@ -67,11 +67,14 @@ class Region:
         return (self.t_max - self.t_min).days
 
     def num_hours(self):
-        return (self.t_max - self.t_min).seconds / 3600
+        return (self.t_max - self.t_min).days * 24
 
 
-def convert_dates(df: pd.DataFrame, date_start_label=&#34;measurement_start_utc&#34;,
-                  date_end_label=&#34;measurement_end_utc&#34;) -&gt; pd.DataFrame:
+def convert_dates(
+    df: pd.DataFrame,
+    date_start_label=&#34;measurement_start_utc&#34;,
+    date_end_label=&#34;measurement_end_utc&#34;,
+) -&gt; pd.DataFrame:
 
     &#34;&#34;&#34; Utility functionality to convert dates in a dataframe from string to
     datetime. Useful when reading in df from csv.
@@ -90,63 +93,131 @@ def convert_dates(df: pd.DataFrame, date_start_label=&#34;measurement_start_utc&
 
     copy_df = df
     copy_df[date_start_label] = pd.to_datetime(df[date_start_label])
-    copy_df[date_end_label]= pd.to_datetime(df[date_end_label])
+    copy_df[date_end_label] = pd.to_datetime(df[date_end_label])
     return copy_df
 
 
-def region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
+def aggregate_event_data(
+    forecast_data: pd.DataFrame,
+    x_ticks: np.ndarray,
+    y_ticks: np.ndarray,
+    t_ticks: np.ndarray,
+) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Functionality to aggregate data in forecast_data (each row represents
+    an event) to a data frame consisting N^2 * W rows (each row containing the
+    aggregated count in the grid cell it represents).
+    Clearly needs to be called after the grid is made.
+    Args:
+        forecast_data: Data from `count_baseline()`
+        x_ticks: x axis grid
+        y_ticks: y axis grid
+        t_ticks: t_axis grid
+    Returns:
+        Aggregated Dataframe on Grid Cell Level.
+    &#34;&#34;&#34;
+
+    agg_dict = {}
+    num_cells = 0
+    for i in range(len(x_ticks) - 1):
+        for j in range(len(y_ticks) - 1):
+            for s in range(len(t_ticks) - 1):
+                x_min = x_ticks[i]
+                x_max = x_ticks[i + 1]
+                y_min = y_ticks[j]
+                y_max = y_ticks[j + 1]
+                t_min = t_ticks[s]
+                t_max = t_ticks[s + 1]
+
+                sub_df = forecast_data[
+                    (forecast_data[&#34;lon&#34;].between(x_min, x_max))
+                    &amp; (forecast_data[&#34;lat&#34;].between(y_min, y_max))
+                    &amp; (forecast_data[&#34;measurement_start_utc&#34;] == t_min)
+                    &amp; (forecast_data[&#34;measurement_end_utc&#34;] == t_max)
+                ]
+
+                b_count = sub_df[&#34;baseline&#34;].sum()
+                c_count = sub_df[&#34;count&#34;].sum()
+
+                agg_dict[num_cells] = {
+                    &#34;x_min&#34;: x_min,
+                    &#34;x_max&#34;: x_max,
+                    &#34;y_min&#34;: y_min,
+                    &#34;y_max&#34;: y_max,
+                    &#34;t_min&#34;: t_min,
+                    &#34;t_max&#34;: t_max,
+                    &#34;baseline_agg&#34;: b_count,
+                    &#34;count_agg&#34;: c_count,
+                }
+                num_cells += 1
+
+    return pd.DataFrame.from_dict(agg_dict, &#34;index&#34;)
+
+
+def event_count(S: Type[Region], agg_data: pd.DataFrame) -&gt; tuple:
 
     &#34;&#34;&#34;Function to calculate both the expected (B) and actual (C) count
-    (vehicles) within a given space-time region S. Used in the likelihood ratio
-    statistic.
+    (vehicles) within a given space-time region S from the grid-cell-level-aggregated.
+    Used in the likelihood ratio statistic.
     Args:
         S: Space-Time Region to count events in
-        data: Usual format SCOOT dataframe
+        agg_data: Event counts aggregated at grid level. eg. from `aggregate_event_data()`
     Returns: (Tuple of floats) both types of event counts within region S.
     &#34;&#34;&#34;
 
     # Check for columns existence.
-    assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
-        data.columns
-    )
+    assert set(
+        [
+            &#34;x_min&#34;,
+            &#34;x_max&#34;,
+            &#34;y_min&#34;,
+            &#34;y_max&#34;,
+            &#34;t_min&#34;,
+            &#34;t_max&#34;,
+            &#34;count_agg&#34;,
+            &#34;baseline_agg&#34;,
+        ]
+    ) &lt;= set(agg_data.columns)
 
     region_mask = (
-        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
-        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
-        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
-        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
+        (agg_data[&#34;x_min&#34;] &gt;= S.x_min)
+        &amp; (agg_data[&#34;x_max&#34;] &lt;= S.x_max)
+        &amp; (agg_data[&#34;y_min&#34;] &gt;= S.y_min)
+        &amp; (agg_data[&#34;y_max&#34;] &lt;= S.y_max)
+        &amp; (agg_data[&#34;t_min&#34;] &gt;= S.t_min)
+        &amp; (agg_data[&#34;t_max&#34;] &lt;= S.t_max)
     )
-    S_df = data.loc[region_mask]
+
+    S_df = agg_data.loc[region_mask]
     if S_df.empty:
         return 0, 0
-    return S_df[&#34;baseline&#34;].sum() / 1e6, S_df[&#34;count&#34;].sum() / 1e6
+    return S_df[&#34;baseline_agg&#34;].sum() / 1e6, S_df[&#34;count_agg&#34;].sum() / 1e6
 
 
-def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
+def simulate_event_count(S: Type[Region], forecast_data: pd.DataFrame) -&gt; tuple:
 
     &#34;&#34;&#34;Function to simulate the count (vehicles) within a given
     space-time region S assuming a Poisson Distribution with mean given by the
     baseline forecast. Used in randomisation testing.
     Args:
         S: Space-Time Region to count events in
-        data: Usual format SCOOT dataframe
+        data: Forecast data from `count_baseline()`
     Returns: (Tuple of floats) both types of event counts within region S.
     &#34;&#34;&#34;
 
     # Check for columns existence.
     assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
-        data.columns
+        forecast_data.columns
     )
 
-    data[&#34;simulated&#34;] = np.random.poisson(data[&#34;baseline&#34;])
+    forecast_data[&#34;simulated&#34;] = np.random.poisson(forecast_data[&#34;baseline&#34;])
 
     region_mask = (
-        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
-        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
-        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
-        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
+        (forecast_data[&#34;lon&#34;].between(S.x_min, S.x_max))
+        &amp; (forecast_data[&#34;lat&#34;].between(S.y_min, S.y_max))
+        &amp; (forecast_data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
+        &amp; (forecast_data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
     )
-    S_df = data.loc[region_mask]
+    S_df = forecast_data.loc[region_mask]
     if S_df.empty:
         return 0, 0
 
@@ -191,6 +262,7 @@ def plot_global_region(
     overlay_grid: bool = True,
     grid_partition: int = 1,
     plot_type=&#34;count&#34;,
+    add_legend: bool = True,
 ) -&gt; None:
 
     &#34;&#34;&#34;Functionality to plot the computational grid on a region of interest.
@@ -204,9 +276,12 @@ def plot_global_region(
         plot_type: counts, baselines or cb_ratio
     &#34;&#34;&#34;
 
+    legend = &#34;brief&#34; if add_legend else False
+
     global_region = infer_global_region(forecast_data)
     x_ticks, y_ticks, _ = make_grid(global_region, grid_partition)
     forecast_data[&#34;cb_ratio&#34;] = forecast_data[&#34;count&#34;] / forecast_data[&#34;baseline&#34;]
+    forecast_data.loc[~np.isfinite(forecast_data[&#34;cb_ratio&#34;]), &#34;cb_ratio&#34;] = np.nan
     forecast_data = forecast_data[forecast_data[&#34;measurement_end_utc&#34;] == time_slice]
 
     sbn.scatterplot(
@@ -214,7 +289,7 @@ def plot_global_region(
         x=&#34;lon&#34;,
         y=&#34;lat&#34;,
         size=plot_type,
-        legend=&#34;brief&#34;,
+        legend=legend,
         hue=plot_type,
     )
 
@@ -224,11 +299,12 @@ def plot_global_region(
         for _, y in enumerate(y_ticks[1:-1]):
             plt.axhline(y=y, alpha=0.4, c=&#34;k&#34;)
 
-    plt.title(&#34;Plot Type: {}&#34;.format(plot_type))
+    plt.title(&#34;Plot Type: {}, {}&#34;.format(plot_type, time_slice))
     plt.xlim([global_region.x_min, global_region.x_max])
     plt.ylim([global_region.y_min, global_region.y_max])
 
     return None
+
 
 def make_region_from_res(
     res_df: pd.DataFrame, whole_prediction_period: bool = True, rank: int = 0
@@ -268,7 +344,12 @@ def make_region_from_res(
 
 
 # Plot the time series of all detectors within a region of interest
-def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame, plot_type: str = &#34;count&#34;) -&gt; None:
+def plot_region_time_series(
+    region: Type[Region],
+    forecast_df: pd.DataFrame,
+    plot_type: str = &#34;count&#34;,
+    add_legend: bool = False,
+) -&gt; None:
     &#34;&#34;&#34;Plots all the time series associated with a space-time region. To be used
     in conjunction with `make_region_from_res` as follows:
         1. Find Highest scoring regions from the main scan loop
@@ -279,6 +360,8 @@ def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame, plo
         region: Space-Time Region of interest
         forecast_df: dataframe containing all prediction data from timeseries module.
     &#34;&#34;&#34;
+
+    legend = &#34;brief&#34; if add_legend else False
 
     # Check for columns existence.
     assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, plot_type]) &lt;= set(
@@ -300,12 +383,19 @@ def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame, plo
         y=plot_type,
         hue=&#34;detector_id&#34;,
         ax=ax,
-        legend=&#34;brief&#34;,
+        legend=legend,
     )
     fig.suptitle(&#34;{}s between {} and {}&#34;.format(plot_type, region.t_min, region.t_max))
     return None
 
-def plot_region_by_rank(rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFrame, plot_type=&#39;count&#39;) -&gt; None:
+
+def plot_region_by_rank(
+    rank: int,
+    res_df: pd.DataFrame,
+    forecast_df: pd.DataFrame,
+    plot_type=&#34;count&#34;,
+    add_legend: bool = False,
+) -&gt; None:
 
     &#34;&#34;&#34;Functionality to plot the &#39;rank&#39;ed region form the results dataframe
     superposed with the global grid.
@@ -315,6 +405,9 @@ def plot_region_by_rank(rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFra
         forecast_df: Resulting dataframe from `count_baseline()`
         plot_type: Size of dots represent actual counts, baseline or c/b ratio
     &#34;&#34;&#34;
+
+    legend = &#34;brief&#34; if add_legend else False
+
     # Infer grid partition from the resulting dataframe
     grid_partition = len(res_df[&#34;x_min&#34;].unique())
 
@@ -326,15 +419,88 @@ def plot_region_by_rank(rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFra
     t_min = res_df[&#34;t_min&#34;].iloc[rank]
     t_max = res_df[&#34;t_max&#34;].iloc[rank]
 
-
-    plot_global_region(forecast_df, res_df[&#34;t_max&#34;].iloc[rank], grid_partition=grid_partition, plot_type=plot_type)
+    plot_global_region(
+        forecast_df,
+        res_df[&#34;t_max&#34;].iloc[rank],
+        grid_partition=grid_partition,
+        plot_type=plot_type,
+        add_legend=legend,
+    )
     plt.hlines(y_min, x_min, x_max)
     plt.hlines(y_max, x_min, x_max)
     plt.vlines(x_min, y_min, y_max)
     plt.vlines(x_max, y_min, y_max)
     plt.title(&#34;{}s between {} and {}. Rank: {}&#34;.format(plot_type, t_min, t_max, rank))
 
-    plt.show()</code></pre>
+    plt.show()
+
+
+def cleanse_forecast_data(forecast_df: pd.DataFrame) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Utility function to ensure that the forecast_df from `count_baseline()`
+    is in the correct format to move forward with processing. Removes NaNs, assigns
+    zero to any negative baseline values, and converts dated into datetime format
+    if required.
+    Args:
+        forecast_df: Data frame from `count_baseline()`
+    Returns
+        pd.DataFrame: Cleansed dataframe
+    &#34;&#34;&#34;
+
+    init_length = len(forecast_df[&#34;count&#34;])
+    test_date = forecast_df[&#34;measurement_start_utc&#34;].iloc[0]
+
+    # First check that dates are in the right format
+    if isinstance(test_date, datetime):
+        print(&#34;Dates in datetime format. Moving to next stage.\n&#34;)
+    else:
+        print(&#34;Dates are not in datetime format. Attempting to convert...&#34;)
+        forecast_df = convert_dates(forecast_df)
+        test_date = forecast_df[&#34;measurement_start_utc&#34;].iloc[0]
+        print(
+            &#34;Dates converted successfully: {}.\n&#34;.format(
+                isinstance(test_date, datetime)
+            )
+        )
+
+    # Remove Count NaN&#39;s
+    count_nans = forecast_df[&#34;count&#34;].isnull().sum(axis=0)
+    baseline_nans = forecast_df[&#34;baseline&#34;].isnull().sum(axis=0)
+    print(
+        &#34;{} NaN values found in &#39;count&#39; column. Dropping these from the dataframe.&#34;.format(
+            count_nans
+        )
+    )
+    print(
+        &#34;{} NaN values found in &#39;baseline&#39; column. Dropping these from the dataframe.\n&#34;.format(
+            baseline_nans
+        )
+    )
+    forecast_df.dropna(inplace=True)
+
+    # Make Baseline Values Non-Negative
+    negative = len(forecast_df[forecast_df[&#34;baseline&#34;] &lt; 0][&#34;baseline&#34;])
+    if negative &gt; 0:
+        print(
+            &#34;{} negative baseline values found. Setting these to zero.\n&#34;.format(
+                negative
+            )
+        )
+        forecast_df[&#34;baseline&#34;] = forecast_df[&#34;baseline&#34;].apply(
+            lambda x: np.max([0, x])
+        )
+    else:
+        print(&#34;All baseline predictions &gt;= 0.\n&#34;)
+
+    final_length = len(forecast_df[&#34;count&#34;])
+    print(
+        &#34;Data cleansing complete. {} rows removed from dataframe.&#34;.format(
+            init_length - final_length
+        )
+    )
+
+    copy_df = forecast_df
+    return copy_df</code></pre>
 </details>
 </section>
 <section>
@@ -344,6 +510,174 @@ def plot_region_by_rank(rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFra
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="SpatialScan.region.aggregate_event_data"><code class="name flex">
+<span>def <span class="ident">aggregate_event_data</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, x_ticks: numpy.ndarray, y_ticks: numpy.ndarray, t_ticks: numpy.ndarray) -> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Functionality to aggregate data in forecast_data (each row represents
+an event) to a data frame consisting N^2 * W rows (each row containing the
+aggregated count in the grid cell it represents).
+Clearly needs to be called after the grid is made.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>forecast_data</code></strong></dt>
+<dd>Data from <code>count_baseline()</code></dd>
+<dt><strong><code>x_ticks</code></strong></dt>
+<dd>x axis grid</dd>
+<dt><strong><code>y_ticks</code></strong></dt>
+<dd>y axis grid</dd>
+<dt><strong><code>t_ticks</code></strong></dt>
+<dd>t_axis grid</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Aggregated Dataframe on Grid Cell Level.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def aggregate_event_data(
+    forecast_data: pd.DataFrame,
+    x_ticks: np.ndarray,
+    y_ticks: np.ndarray,
+    t_ticks: np.ndarray,
+) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Functionality to aggregate data in forecast_data (each row represents
+    an event) to a data frame consisting N^2 * W rows (each row containing the
+    aggregated count in the grid cell it represents).
+    Clearly needs to be called after the grid is made.
+    Args:
+        forecast_data: Data from `count_baseline()`
+        x_ticks: x axis grid
+        y_ticks: y axis grid
+        t_ticks: t_axis grid
+    Returns:
+        Aggregated Dataframe on Grid Cell Level.
+    &#34;&#34;&#34;
+
+    agg_dict = {}
+    num_cells = 0
+    for i in range(len(x_ticks) - 1):
+        for j in range(len(y_ticks) - 1):
+            for s in range(len(t_ticks) - 1):
+                x_min = x_ticks[i]
+                x_max = x_ticks[i + 1]
+                y_min = y_ticks[j]
+                y_max = y_ticks[j + 1]
+                t_min = t_ticks[s]
+                t_max = t_ticks[s + 1]
+
+                sub_df = forecast_data[
+                    (forecast_data[&#34;lon&#34;].between(x_min, x_max))
+                    &amp; (forecast_data[&#34;lat&#34;].between(y_min, y_max))
+                    &amp; (forecast_data[&#34;measurement_start_utc&#34;] == t_min)
+                    &amp; (forecast_data[&#34;measurement_end_utc&#34;] == t_max)
+                ]
+
+                b_count = sub_df[&#34;baseline&#34;].sum()
+                c_count = sub_df[&#34;count&#34;].sum()
+
+                agg_dict[num_cells] = {
+                    &#34;x_min&#34;: x_min,
+                    &#34;x_max&#34;: x_max,
+                    &#34;y_min&#34;: y_min,
+                    &#34;y_max&#34;: y_max,
+                    &#34;t_min&#34;: t_min,
+                    &#34;t_max&#34;: t_max,
+                    &#34;baseline_agg&#34;: b_count,
+                    &#34;count_agg&#34;: c_count,
+                }
+                num_cells += 1
+
+    return pd.DataFrame.from_dict(agg_dict, &#34;index&#34;)</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.cleanse_forecast_data"><code class="name flex">
+<span>def <span class="ident">cleanse_forecast_data</span></span>(<span>forecast_df: pandas.core.frame.DataFrame) -> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Utility function to ensure that the forecast_df from <code>count_baseline()</code>
+is in the correct format to move forward with processing. Removes NaNs, assigns
+zero to any negative baseline values, and converts dated into datetime format
+if required.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>forecast_df</code></strong></dt>
+<dd>Data frame from <code>count_baseline()</code></dd>
+<dt><strong><code>Returns</code></strong></dt>
+<dd>pd.DataFrame: Cleansed dataframe</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cleanse_forecast_data(forecast_df: pd.DataFrame) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Utility function to ensure that the forecast_df from `count_baseline()`
+    is in the correct format to move forward with processing. Removes NaNs, assigns
+    zero to any negative baseline values, and converts dated into datetime format
+    if required.
+    Args:
+        forecast_df: Data frame from `count_baseline()`
+    Returns
+        pd.DataFrame: Cleansed dataframe
+    &#34;&#34;&#34;
+
+    init_length = len(forecast_df[&#34;count&#34;])
+    test_date = forecast_df[&#34;measurement_start_utc&#34;].iloc[0]
+
+    # First check that dates are in the right format
+    if isinstance(test_date, datetime):
+        print(&#34;Dates in datetime format. Moving to next stage.\n&#34;)
+    else:
+        print(&#34;Dates are not in datetime format. Attempting to convert...&#34;)
+        forecast_df = convert_dates(forecast_df)
+        test_date = forecast_df[&#34;measurement_start_utc&#34;].iloc[0]
+        print(
+            &#34;Dates converted successfully: {}.\n&#34;.format(
+                isinstance(test_date, datetime)
+            )
+        )
+
+    # Remove Count NaN&#39;s
+    count_nans = forecast_df[&#34;count&#34;].isnull().sum(axis=0)
+    baseline_nans = forecast_df[&#34;baseline&#34;].isnull().sum(axis=0)
+    print(
+        &#34;{} NaN values found in &#39;count&#39; column. Dropping these from the dataframe.&#34;.format(
+            count_nans
+        )
+    )
+    print(
+        &#34;{} NaN values found in &#39;baseline&#39; column. Dropping these from the dataframe.\n&#34;.format(
+            baseline_nans
+        )
+    )
+    forecast_df.dropna(inplace=True)
+
+    # Make Baseline Values Non-Negative
+    negative = len(forecast_df[forecast_df[&#34;baseline&#34;] &lt; 0][&#34;baseline&#34;])
+    if negative &gt; 0:
+        print(
+            &#34;{} negative baseline values found. Setting these to zero.\n&#34;.format(
+                negative
+            )
+        )
+        forecast_df[&#34;baseline&#34;] = forecast_df[&#34;baseline&#34;].apply(
+            lambda x: np.max([0, x])
+        )
+    else:
+        print(&#34;All baseline predictions &gt;= 0.\n&#34;)
+
+    final_length = len(forecast_df[&#34;count&#34;])
+    print(
+        &#34;Data cleansing complete. {} rows removed from dataframe.&#34;.format(
+            init_length - final_length
+        )
+    )
+
+    copy_df = forecast_df
+    return copy_df</code></pre>
+</details>
+</dd>
 <dt id="SpatialScan.region.convert_dates"><code class="name flex">
 <span>def <span class="ident">convert_dates</span></span>(<span>df: pandas.core.frame.DataFrame, date_start_label='measurement_start_utc', date_end_label='measurement_end_utc') -> pandas.core.frame.DataFrame</span>
 </code></dt>
@@ -370,8 +704,11 @@ date period.</dd>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def convert_dates(df: pd.DataFrame, date_start_label=&#34;measurement_start_utc&#34;,
-                  date_end_label=&#34;measurement_end_utc&#34;) -&gt; pd.DataFrame:
+<pre><code class="python">def convert_dates(
+    df: pd.DataFrame,
+    date_start_label=&#34;measurement_start_utc&#34;,
+    date_end_label=&#34;measurement_end_utc&#34;,
+) -&gt; pd.DataFrame:
 
     &#34;&#34;&#34; Utility functionality to convert dates in a dataframe from string to
     datetime. Useful when reading in df from csv.
@@ -390,8 +727,67 @@ date period.</dd>
 
     copy_df = df
     copy_df[date_start_label] = pd.to_datetime(df[date_start_label])
-    copy_df[date_end_label]= pd.to_datetime(df[date_end_label])
+    copy_df[date_end_label] = pd.to_datetime(df[date_end_label])
     return copy_df</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.region.event_count"><code class="name flex">
+<span>def <span class="ident">event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], agg_data: pandas.core.frame.DataFrame) -> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Function to calculate both the expected (B) and actual (C) count
+(vehicles) within a given space-time region S from the grid-cell-level-aggregated.
+Used in the likelihood ratio statistic.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>S</code></strong></dt>
+<dd>Space-Time Region to count events in</dd>
+<dt><strong><code>agg_data</code></strong></dt>
+<dd>Event counts aggregated at grid level. eg. from <code><a title="SpatialScan.region.aggregate_event_data" href="#SpatialScan.region.aggregate_event_data">aggregate_event_data()</a></code></dd>
+</dl>
+<p>Returns: (Tuple of floats) both types of event counts within region S.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def event_count(S: Type[Region], agg_data: pd.DataFrame) -&gt; tuple:
+
+    &#34;&#34;&#34;Function to calculate both the expected (B) and actual (C) count
+    (vehicles) within a given space-time region S from the grid-cell-level-aggregated.
+    Used in the likelihood ratio statistic.
+    Args:
+        S: Space-Time Region to count events in
+        agg_data: Event counts aggregated at grid level. eg. from `aggregate_event_data()`
+    Returns: (Tuple of floats) both types of event counts within region S.
+    &#34;&#34;&#34;
+
+    # Check for columns existence.
+    assert set(
+        [
+            &#34;x_min&#34;,
+            &#34;x_max&#34;,
+            &#34;y_min&#34;,
+            &#34;y_max&#34;,
+            &#34;t_min&#34;,
+            &#34;t_max&#34;,
+            &#34;count_agg&#34;,
+            &#34;baseline_agg&#34;,
+        ]
+    ) &lt;= set(agg_data.columns)
+
+    region_mask = (
+        (agg_data[&#34;x_min&#34;] &gt;= S.x_min)
+        &amp; (agg_data[&#34;x_max&#34;] &lt;= S.x_max)
+        &amp; (agg_data[&#34;y_min&#34;] &gt;= S.y_min)
+        &amp; (agg_data[&#34;y_max&#34;] &lt;= S.y_max)
+        &amp; (agg_data[&#34;t_min&#34;] &gt;= S.t_min)
+        &amp; (agg_data[&#34;t_max&#34;] &lt;= S.t_max)
+    )
+
+    S_df = agg_data.loc[region_mask]
+    if S_df.empty:
+        return 0, 0
+    return S_df[&#34;baseline_agg&#34;].sum() / 1e6, S_df[&#34;count_agg&#34;].sum() / 1e6</code></pre>
 </details>
 </dd>
 <dt id="SpatialScan.region.infer_global_region"><code class="name flex">
@@ -535,7 +931,7 @@ likelihood ratio scores as determined by the loop.</dd>
 </details>
 </dd>
 <dt id="SpatialScan.region.plot_global_region"><code class="name flex">
-<span>def <span class="ident">plot_global_region</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, time_slice: datetime.datetime, overlay_grid: bool = True, grid_partition: int = 1, plot_type='count') -> NoneType</span>
+<span>def <span class="ident">plot_global_region</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, time_slice: datetime.datetime, overlay_grid: bool = True, grid_partition: int = 1, plot_type='count', add_legend: bool = True) -> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Functionality to plot the computational grid on a region of interest.
@@ -564,6 +960,7 @@ value.</p>
     overlay_grid: bool = True,
     grid_partition: int = 1,
     plot_type=&#34;count&#34;,
+    add_legend: bool = True,
 ) -&gt; None:
 
     &#34;&#34;&#34;Functionality to plot the computational grid on a region of interest.
@@ -577,9 +974,12 @@ value.</p>
         plot_type: counts, baselines or cb_ratio
     &#34;&#34;&#34;
 
+    legend = &#34;brief&#34; if add_legend else False
+
     global_region = infer_global_region(forecast_data)
     x_ticks, y_ticks, _ = make_grid(global_region, grid_partition)
     forecast_data[&#34;cb_ratio&#34;] = forecast_data[&#34;count&#34;] / forecast_data[&#34;baseline&#34;]
+    forecast_data.loc[~np.isfinite(forecast_data[&#34;cb_ratio&#34;]), &#34;cb_ratio&#34;] = np.nan
     forecast_data = forecast_data[forecast_data[&#34;measurement_end_utc&#34;] == time_slice]
 
     sbn.scatterplot(
@@ -587,7 +987,7 @@ value.</p>
         x=&#34;lon&#34;,
         y=&#34;lat&#34;,
         size=plot_type,
-        legend=&#34;brief&#34;,
+        legend=legend,
         hue=plot_type,
     )
 
@@ -597,7 +997,7 @@ value.</p>
         for _, y in enumerate(y_ticks[1:-1]):
             plt.axhline(y=y, alpha=0.4, c=&#34;k&#34;)
 
-    plt.title(&#34;Plot Type: {}&#34;.format(plot_type))
+    plt.title(&#34;Plot Type: {}, {}&#34;.format(plot_type, time_slice))
     plt.xlim([global_region.x_min, global_region.x_max])
     plt.ylim([global_region.y_min, global_region.y_max])
 
@@ -605,7 +1005,7 @@ value.</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.plot_region_by_rank"><code class="name flex">
-<span>def <span class="ident">plot_region_by_rank</span></span>(<span>rank: int, res_df: pandas.core.frame.DataFrame, forecast_df: pandas.core.frame.DataFrame, plot_type='count') -> NoneType</span>
+<span>def <span class="ident">plot_region_by_rank</span></span>(<span>rank: int, res_df: pandas.core.frame.DataFrame, forecast_df: pandas.core.frame.DataFrame, plot_type='count', add_legend: bool = False) -> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Functionality to plot the 'rank'ed region form the results dataframe
@@ -625,7 +1025,13 @@ superposed with the global grid.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def plot_region_by_rank(rank: int, res_df: pd.DataFrame, forecast_df: pd.DataFrame, plot_type=&#39;count&#39;) -&gt; None:
+<pre><code class="python">def plot_region_by_rank(
+    rank: int,
+    res_df: pd.DataFrame,
+    forecast_df: pd.DataFrame,
+    plot_type=&#34;count&#34;,
+    add_legend: bool = False,
+) -&gt; None:
 
     &#34;&#34;&#34;Functionality to plot the &#39;rank&#39;ed region form the results dataframe
     superposed with the global grid.
@@ -635,6 +1041,9 @@ superposed with the global grid.</p>
         forecast_df: Resulting dataframe from `count_baseline()`
         plot_type: Size of dots represent actual counts, baseline or c/b ratio
     &#34;&#34;&#34;
+
+    legend = &#34;brief&#34; if add_legend else False
+
     # Infer grid partition from the resulting dataframe
     grid_partition = len(res_df[&#34;x_min&#34;].unique())
 
@@ -646,8 +1055,13 @@ superposed with the global grid.</p>
     t_min = res_df[&#34;t_min&#34;].iloc[rank]
     t_max = res_df[&#34;t_max&#34;].iloc[rank]
 
-
-    plot_global_region(forecast_df, res_df[&#34;t_max&#34;].iloc[rank], grid_partition=grid_partition, plot_type=plot_type)
+    plot_global_region(
+        forecast_df,
+        res_df[&#34;t_max&#34;].iloc[rank],
+        grid_partition=grid_partition,
+        plot_type=plot_type,
+        add_legend=legend,
+    )
     plt.hlines(y_min, x_min, x_max)
     plt.hlines(y_max, x_min, x_max)
     plt.vlines(x_min, y_min, y_max)
@@ -658,7 +1072,7 @@ superposed with the global grid.</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.plot_region_time_series"><code class="name flex">
-<span>def <span class="ident">plot_region_time_series</span></span>(<span>region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_df: pandas.core.frame.DataFrame, plot_type: str = 'count') -> NoneType</span>
+<span>def <span class="ident">plot_region_time_series</span></span>(<span>region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_df: pandas.core.frame.DataFrame, plot_type: str = 'count', add_legend: bool = False) -> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Plots all the time series associated with a space-time region. To be used
@@ -678,7 +1092,12 @@ in conjunction with <code><a title="SpatialScan.region.make_region_from_res" hre
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def plot_region_time_series(region: Type[Region], forecast_df: pd.DataFrame, plot_type: str = &#34;count&#34;) -&gt; None:
+<pre><code class="python">def plot_region_time_series(
+    region: Type[Region],
+    forecast_df: pd.DataFrame,
+    plot_type: str = &#34;count&#34;,
+    add_legend: bool = False,
+) -&gt; None:
     &#34;&#34;&#34;Plots all the time series associated with a space-time region. To be used
     in conjunction with `make_region_from_res` as follows:
         1. Find Highest scoring regions from the main scan loop
@@ -689,6 +1108,8 @@ in conjunction with <code><a title="SpatialScan.region.make_region_from_res" hre
         region: Space-Time Region of interest
         forecast_df: dataframe containing all prediction data from timeseries module.
     &#34;&#34;&#34;
+
+    legend = &#34;brief&#34; if add_legend else False
 
     # Check for columns existence.
     assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, plot_type]) &lt;= set(
@@ -710,61 +1131,14 @@ in conjunction with <code><a title="SpatialScan.region.make_region_from_res" hre
         y=plot_type,
         hue=&#34;detector_id&#34;,
         ax=ax,
-        legend=&#34;brief&#34;,
+        legend=legend,
     )
     fig.suptitle(&#34;{}s between {} and {}&#34;.format(plot_type, region.t_min, region.t_max))
     return None</code></pre>
 </details>
 </dd>
-<dt id="SpatialScan.region.region_event_count"><code class="name flex">
-<span>def <span class="ident">region_event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], data: pandas.core.frame.DataFrame) -> tuple</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Function to calculate both the expected (B) and actual (C) count
-(vehicles) within a given space-time region S. Used in the likelihood ratio
-statistic.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>S</code></strong></dt>
-<dd>Space-Time Region to count events in</dd>
-<dt><strong><code>data</code></strong></dt>
-<dd>Usual format SCOOT dataframe</dd>
-</dl>
-<p>Returns: (Tuple of floats) both types of event counts within region S.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
-
-    &#34;&#34;&#34;Function to calculate both the expected (B) and actual (C) count
-    (vehicles) within a given space-time region S. Used in the likelihood ratio
-    statistic.
-    Args:
-        S: Space-Time Region to count events in
-        data: Usual format SCOOT dataframe
-    Returns: (Tuple of floats) both types of event counts within region S.
-    &#34;&#34;&#34;
-
-    # Check for columns existence.
-    assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
-        data.columns
-    )
-
-    region_mask = (
-        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
-        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
-        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
-        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
-    )
-    S_df = data.loc[region_mask]
-    if S_df.empty:
-        return 0, 0
-    return S_df[&#34;baseline&#34;].sum() / 1e6, S_df[&#34;count&#34;].sum() / 1e6</code></pre>
-</details>
-</dd>
-<dt id="SpatialScan.region.simulate_region_event_count"><code class="name flex">
-<span>def <span class="ident">simulate_region_event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], data: pandas.core.frame.DataFrame) -> tuple</span>
+<dt id="SpatialScan.region.simulate_event_count"><code class="name flex">
+<span>def <span class="ident">simulate_event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_data: pandas.core.frame.DataFrame) -> tuple</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Function to simulate the count (vehicles) within a given
@@ -775,38 +1149,38 @@ baseline forecast. Used in randomisation testing.</p>
 <dt><strong><code>S</code></strong></dt>
 <dd>Space-Time Region to count events in</dd>
 <dt><strong><code>data</code></strong></dt>
-<dd>Usual format SCOOT dataframe</dd>
+<dd>Forecast data from <code>count_baseline()</code></dd>
 </dl>
 <p>Returns: (Tuple of floats) both types of event counts within region S.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -&gt; tuple:
+<pre><code class="python">def simulate_event_count(S: Type[Region], forecast_data: pd.DataFrame) -&gt; tuple:
 
     &#34;&#34;&#34;Function to simulate the count (vehicles) within a given
     space-time region S assuming a Poisson Distribution with mean given by the
     baseline forecast. Used in randomisation testing.
     Args:
         S: Space-Time Region to count events in
-        data: Usual format SCOOT dataframe
+        data: Forecast data from `count_baseline()`
     Returns: (Tuple of floats) both types of event counts within region S.
     &#34;&#34;&#34;
 
     # Check for columns existence.
     assert set([&#34;lon&#34;, &#34;lat&#34;, &#34;measurement_end_utc&#34;, &#34;count&#34;, &#34;baseline&#34;]) &lt;= set(
-        data.columns
+        forecast_data.columns
     )
 
-    data[&#34;simulated&#34;] = np.random.poisson(data[&#34;baseline&#34;])
+    forecast_data[&#34;simulated&#34;] = np.random.poisson(forecast_data[&#34;baseline&#34;])
 
     region_mask = (
-        (data[&#34;lon&#34;].between(S.x_min, S.x_max))
-        &amp; (data[&#34;lat&#34;].between(S.y_min, S.y_max))
-        &amp; (data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
-        &amp; (data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
+        (forecast_data[&#34;lon&#34;].between(S.x_min, S.x_max))
+        &amp; (forecast_data[&#34;lat&#34;].between(S.y_min, S.y_max))
+        &amp; (forecast_data[&#34;measurement_end_utc&#34;] &gt; S.t_min)
+        &amp; (forecast_data[&#34;measurement_end_utc&#34;] &lt;= S.t_max)
     )
-    S_df = data.loc[region_mask]
+    S_df = forecast_data.loc[region_mask]
     if S_df.empty:
         return 0, 0
 
@@ -860,7 +1234,7 @@ baseline forecast. Used in randomisation testing.</p>
         return (self.t_max - self.t_min).days
 
     def num_hours(self):
-        return (self.t_max - self.t_min).seconds / 3600</code></pre>
+        return (self.t_max - self.t_min).days * 24</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
@@ -900,7 +1274,7 @@ baseline forecast. Used in randomisation testing.</p>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def num_hours(self):
-    return (self.t_max - self.t_min).seconds / 3600</code></pre>
+    return (self.t_max - self.t_min).days * 24</code></pre>
 </details>
 </dd>
 </dl>
@@ -921,15 +1295,17 @@ baseline forecast. Used in randomisation testing.</p>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
+<li><code><a title="SpatialScan.region.aggregate_event_data" href="#SpatialScan.region.aggregate_event_data">aggregate_event_data</a></code></li>
+<li><code><a title="SpatialScan.region.cleanse_forecast_data" href="#SpatialScan.region.cleanse_forecast_data">cleanse_forecast_data</a></code></li>
 <li><code><a title="SpatialScan.region.convert_dates" href="#SpatialScan.region.convert_dates">convert_dates</a></code></li>
+<li><code><a title="SpatialScan.region.event_count" href="#SpatialScan.region.event_count">event_count</a></code></li>
 <li><code><a title="SpatialScan.region.infer_global_region" href="#SpatialScan.region.infer_global_region">infer_global_region</a></code></li>
 <li><code><a title="SpatialScan.region.make_grid" href="#SpatialScan.region.make_grid">make_grid</a></code></li>
 <li><code><a title="SpatialScan.region.make_region_from_res" href="#SpatialScan.region.make_region_from_res">make_region_from_res</a></code></li>
 <li><code><a title="SpatialScan.region.plot_global_region" href="#SpatialScan.region.plot_global_region">plot_global_region</a></code></li>
 <li><code><a title="SpatialScan.region.plot_region_by_rank" href="#SpatialScan.region.plot_region_by_rank">plot_region_by_rank</a></code></li>
 <li><code><a title="SpatialScan.region.plot_region_time_series" href="#SpatialScan.region.plot_region_time_series">plot_region_time_series</a></code></li>
-<li><code><a title="SpatialScan.region.region_event_count" href="#SpatialScan.region.region_event_count">region_event_count</a></code></li>
-<li><code><a title="SpatialScan.region.simulate_region_event_count" href="#SpatialScan.region.simulate_region_event_count">simulate_region_event_count</a></code></li>
+<li><code><a title="SpatialScan.region.simulate_event_count" href="#SpatialScan.region.simulate_event_count">simulate_event_count</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>

@@ -28,13 +28,97 @@
 <pre><code class="python">&#34;&#34;&#34;Module containing Time Series Forecast functionality&#34;&#34;&#34;
 import numpy as np
 import pandas as pd
-import scipy as sp
-import seaborn as sbn
-from typing import Any, List, Type
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from datetime import datetime
 import matplotlib.colors as colors
+#from tensorflow.keras.backend import clear_session
+#from tensorflow.keras.models import Sequential
+#from tensorflow.keras.layers import Dense
+#from tensorflow.keras.layers import LSTM
+from sklearn.preprocessing import MinMaxScaler
+#import tensorflow as tf
+import plotly.express as px
+
+
+def data_preprocessor(
+    df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Function takes a SCOOT dataframe, interpolates any missing values, and returns
+    a dataframe with missing values interpolated. Any detectors missing more than 
+    percentage_missing datapoints will be dropped for having to few values.
+
+    Args:
+        df: Dataframe of SCOOT data
+        percentage_missing: float percentage of missing values, above which drop detector
+
+    Returns:
+        Dataframe of interpolated values with detectors dropped for too many missing values.
+
+        &#34;&#34;&#34;
+    detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+    df_list = []
+    i = 0
+    detectors_removed = []
+    for detector in detectors:
+        dataset = df[df[&#34;detector_id&#34;] == detector]
+
+        dataset[&#34;hour&#34;] = dataset[&#34;measurement_start_utc&#34;].dt.hour.to_numpy()
+
+        threshold = (
+            dataset.groupby(&#34;hour&#34;).median()[&#34;n_vehicles_in_interval&#34;]
+            + sigma * dataset.groupby(&#34;hour&#34;).std()[&#34;n_vehicles_in_interval&#34;]
+        )
+
+        for j in range(0, len(dataset)):
+            if (
+                dataset.iloc[j][&#34;n_vehicles_in_interval&#34;]
+                &gt; threshold[dataset.iloc[j][&#34;hour&#34;]]
+            ):
+                dataset.iloc[
+                    j, dataset.columns.get_loc(&#34;n_vehicles_in_interval&#34;)
+                ] = float(&#34;NaN&#34;)
+
+        dataset.index = dataset[&#34;measurement_end_utc&#34;]
+
+        T = pd.date_range(
+            start=df[&#34;measurement_end_utc&#34;].min(),
+            end=df[&#34;measurement_end_utc&#34;].max(),
+            freq=&#34;H&#34;,
+        )
+        dataset = dataset.reindex(T)
+        num_nan = dataset[&#34;n_vehicles_in_interval&#34;].isna().sum()
+        if num_nan &gt; (len(dataset) * percentage_missing) / 100:
+            detectors_removed.append(detector)
+            continue
+
+        dataset[&#34;n_vehicles_in_interval&#34;].to_numpy()
+
+        dataset[&#34;n_vehicles_in_interval&#34;] = dataset[
+            &#34;n_vehicles_in_interval&#34;
+        ].interpolate(method=&#34;linear&#34;, limit_direction=&#34;forward&#34;, axis=0)
+        dataset[&#34;detector_id&#34;] = dataset[&#34;detector_id&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;lon&#34;] = dataset[&#34;lon&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;lat&#34;] = dataset[&#34;lat&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;measurement_end_utc&#34;] = dataset.index
+        dataset[&#34;measurement_start_utc&#34;] = dataset[
+            &#34;measurement_end_utc&#34;
+        ] - np.timedelta64(1, &#34;h&#34;)
+
+        df_list.append(dataset)
+        i += 1
+        print(&#34;please wait: &#34;, i, &#34;/&#34;, len(detectors), &#34;detectors&#34;, end=&#34;\r&#34;)
+    print(&#34;detectors dropped: &#34;, detectors_removed)
+    DF = pd.concat(df_list)
+
+    return DF.reset_index(drop=True)
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -&gt; float:
@@ -228,10 +312,10 @@ def count_baseline(
     days_in_future: int,
     method: str = &#34;HW&#34;,
     detectors: list = None,
-    alpha=0.06,
-    beta=0.02,
-    gamma=0.6,
-):
+    alpha: float = 0.06,
+    beta: float = 0.02,
+    gamma: float = 0.6,
+) -&gt; pd.DataFrame:
 
     &#34;&#34;&#34;Produces a DataFrame where the count and baseline can be compared for use
         in scan statistics
@@ -270,6 +354,15 @@ def count_baseline(
         )
     if method == &#34;MALD&#34;:
         y = MALDforecast(train_data, days_in_past, days_in_future, detectors=detectors)
+
+    if method == &#34;LSTM&#34;:
+        y = LSTM_forecast(
+            df,
+            days_in_past=days_in_past,
+            days_in_future=days_in_future,
+            detectors=detectors,
+        )
+
     sd = []
 
     for detector in detectors:
@@ -315,7 +408,7 @@ def CB_plot(df: pd.DataFrame):
     df_format[&#34;hour_from_start&#34;] = df_format[&#34;hour_from_start&#34;].astype(
         dtype=&#34;timedelta64[h]&#34;
     )
-    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection=&#34;3d&#34;)
     p = ax.scatter(
@@ -331,7 +424,154 @@ def CB_plot(df: pd.DataFrame):
     ax.set_ylabel(&#34;lat&#34;)
     ax.set_zlabel(&#34;Hours&#34;)
     fig.colorbar(p)
-    plt.show()</code></pre>
+    plt.show()
+
+
+# convert an array of values into a datset of X values to use for predictions (made
+# up of sets of day&#39;s in the past), and Y values to prediction (sets of days in the
+# future)
+def create_dataset(dataset: pd.DataFrame, look_back: int = 24, look_forward: int = 24):
+    dataX, dataY = [], []
+    for i in range(0, len(dataset) - look_back - look_forward + 1, look_forward):
+        # a will be one set of X data to be used as inputs to the NN
+        a = dataset[i : (i + look_back), 0]
+        dataX.append(a)
+        # by will be one set of Y data, to be predicted by the NN and then
+        # compared to for means of training
+        b = dataset[(i + look_back) : (i + look_back + look_forward), 0]
+        dataY.append(b)
+    return np.array(dataX), np.array(dataY)
+
+
+def LSTM_forecast(
+    df: pd.DataFrame,
+    days_in_past: int = 2,
+    days_in_future: int = 1,
+    detectors: list = None,
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Forecast using LSTM Neural Network 
+    Args: 
+        df: Dataframe of SCOOT data
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+        detectors: List of detectors to look at
+
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        &#34;&#34;&#34;
+
+    # extract numpy array of detector ID&#39;s
+    if detectors is None:
+        detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+    framelist = []
+
+    i = 0
+    for detector in detectors:
+        i += 1
+
+        dataset = df[df[&#34;detector_id&#34;] == detector]
+        dataset.index = dataset[&#34;measurement_end_utc&#34;]
+
+        # get full temporal range, to be intepolated over for missing vlaues
+        T = pd.date_range(
+            start=df[&#34;measurement_end_utc&#34;].min(),
+            end=df[&#34;measurement_end_utc&#34;].max(),
+            freq=&#34;H&#34;,
+        )
+
+        # fill in missing hours with interpolation
+        dataset = dataset.reindex(T)
+        num_nan = dataset[&#34;n_vehicles_in_interval&#34;].isna().sum()
+        if num_nan &gt; int(len(dataset) / 6):
+            print(detector)
+            continue
+        dataset[&#34;n_vehicles_in_interval&#34;] = dataset[
+            &#34;n_vehicles_in_interval&#34;
+        ].interpolate(method=&#34;linear&#34;, limit_direction=&#34;forward&#34;, axis=0)
+        dataset[&#34;detector_id&#34;] = dataset[&#34;detector_id&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;measurement_end_utc&#34;] = dataset.index
+
+        # split up dataset into train and test. The test dataset is the final
+        # days in future + days in the past (days in past to feed into the inputs
+        # to make predictions on days in the future). the training days are used to
+        # train the weights of the NN
+        prediction_start = df[&#34;measurement_end_utc&#34;].max() - np.timedelta64(
+            (days_in_future + days_in_past) * 24, &#34;h&#34;
+        )
+        dataset_train = dataset[dataset[&#34;measurement_end_utc&#34;] &lt;= prediction_start]
+        dataset_test = dataset[dataset[&#34;measurement_end_utc&#34;] &gt; prediction_start]
+
+        # datasets converted to arrays then rescaled with a MinMax scaler
+        train = dataset_train[&#34;n_vehicles_in_interval&#34;].to_numpy()
+        test = dataset_test[&#34;n_vehicles_in_interval&#34;].to_numpy()
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        train = scaler.fit_transform(train.reshape(-1, 1))
+        test = scaler.fit_transform(test.reshape(-1, 1))
+
+        # use create to reshape the data into sucessive sets of X and Y features and
+        # labels that can be fed into the LSTM NN
+        X_train, Y_train = create_dataset(
+            train, look_back=days_in_past * 24, look_forward=24 * days_in_future
+        )
+        X_test, Y_test = create_dataset(
+            test, look_back=days_in_past * 24, look_forward=24 * days_in_future
+        )
+
+        X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+        X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+
+        # initialise neural network, LSTM with day in the past inputs and
+        # days in the future outputs
+        model = Sequential()
+        model.add(LSTM(8, input_shape=(1, 24 * days_in_past)))
+        model.add(Dense(24 * days_in_future))
+        model.compile(loss=&#34;mean_squared_error&#34;, optimizer=&#34;adam&#34;)
+
+        # train LSTM with our training data!
+        model.fit(X_train, Y_train, epochs=50, batch_size=1, verbose=0)
+
+        # use our testing data to make predictions on Y_test
+        trainPredict = model.predict(X_train)
+        testPredict = model.predict(X_test)
+
+        print(&#34;please wait: &#34;, i, &#34;/&#34;, len(detectors), end=&#34;\r&#34;)
+
+        # reverse min_max scaler
+        testPredict = scaler.inverse_transform(testPredict)
+
+        # find the time period for our testPredictions
+        prediction_start = dataset_test[&#34;measurement_end_utc&#34;].max() - np.timedelta64(
+            days_in_future * 24, &#34;h&#34;
+        )
+        t = pd.date_range(
+            start=prediction_start,
+            end=prediction_start + np.timedelta64(24 * days_in_future - 1, &#34;h&#34;),
+            freq=&#34;H&#34;,
+        )
+
+        # organise data into dataframe similar to the SCOOT outputs
+        df2 = pd.DataFrame(
+            {
+                &#34;detector_id&#34;: detector,
+                &#34;lon&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lon&#34;].iloc[0],
+                &#34;lat&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lat&#34;].iloc[0],
+                &#34;measurement_start_utc&#34;: t,
+                &#34;measurement_end_utc&#34;: t + np.timedelta64(1, &#34;h&#34;),
+                &#34;n_vehicles_in_interval&#34;: testPredict.flatten(),
+            }
+        )
+
+        framelist.append(df2)
+
+        # clear our Keras session
+        clear_session()
+
+    return pd.concat(framelist)</code></pre>
 </details>
 </section>
 <section>
@@ -370,7 +610,7 @@ shown by size of point, and C/B is shown using a colourmap</p>
     df_format[&#34;hour_from_start&#34;] = df_format[&#34;hour_from_start&#34;].astype(
         dtype=&#34;timedelta64[h]&#34;
     )
-    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection=&#34;3d&#34;)
     p = ax.scatter(
@@ -387,6 +627,156 @@ shown by size of point, and C/B is shown using a colourmap</p>
     ax.set_zlabel(&#34;Hours&#34;)
     fig.colorbar(p)
     plt.show()</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.timeseries.LSTM_forecast"><code class="name flex">
+<span>def <span class="ident">LSTM_forecast</span></span>(<span>df: pandas.core.frame.DataFrame, days_in_past: int = 2, days_in_future: int = 1, detectors: list = None) -> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Forecast using LSTM Neural Network
+Args:
+df: Dataframe of SCOOT data
+days_in_past: Integer number of previous days to use for forecast
+days_in_future: Days in future produce a for forecast for
+detectors: List of detectors to look at</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Dataframe forecast in same format as SCOOT input dataframe</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def LSTM_forecast(
+    df: pd.DataFrame,
+    days_in_past: int = 2,
+    days_in_future: int = 1,
+    detectors: list = None,
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Forecast using LSTM Neural Network 
+    Args: 
+        df: Dataframe of SCOOT data
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+        detectors: List of detectors to look at
+
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        &#34;&#34;&#34;
+
+    # extract numpy array of detector ID&#39;s
+    if detectors is None:
+        detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+    framelist = []
+
+    i = 0
+    for detector in detectors:
+        i += 1
+
+        dataset = df[df[&#34;detector_id&#34;] == detector]
+        dataset.index = dataset[&#34;measurement_end_utc&#34;]
+
+        # get full temporal range, to be intepolated over for missing vlaues
+        T = pd.date_range(
+            start=df[&#34;measurement_end_utc&#34;].min(),
+            end=df[&#34;measurement_end_utc&#34;].max(),
+            freq=&#34;H&#34;,
+        )
+
+        # fill in missing hours with interpolation
+        dataset = dataset.reindex(T)
+        num_nan = dataset[&#34;n_vehicles_in_interval&#34;].isna().sum()
+        if num_nan &gt; int(len(dataset) / 6):
+            print(detector)
+            continue
+        dataset[&#34;n_vehicles_in_interval&#34;] = dataset[
+            &#34;n_vehicles_in_interval&#34;
+        ].interpolate(method=&#34;linear&#34;, limit_direction=&#34;forward&#34;, axis=0)
+        dataset[&#34;detector_id&#34;] = dataset[&#34;detector_id&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;measurement_end_utc&#34;] = dataset.index
+
+        # split up dataset into train and test. The test dataset is the final
+        # days in future + days in the past (days in past to feed into the inputs
+        # to make predictions on days in the future). the training days are used to
+        # train the weights of the NN
+        prediction_start = df[&#34;measurement_end_utc&#34;].max() - np.timedelta64(
+            (days_in_future + days_in_past) * 24, &#34;h&#34;
+        )
+        dataset_train = dataset[dataset[&#34;measurement_end_utc&#34;] &lt;= prediction_start]
+        dataset_test = dataset[dataset[&#34;measurement_end_utc&#34;] &gt; prediction_start]
+
+        # datasets converted to arrays then rescaled with a MinMax scaler
+        train = dataset_train[&#34;n_vehicles_in_interval&#34;].to_numpy()
+        test = dataset_test[&#34;n_vehicles_in_interval&#34;].to_numpy()
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        train = scaler.fit_transform(train.reshape(-1, 1))
+        test = scaler.fit_transform(test.reshape(-1, 1))
+
+        # use create to reshape the data into sucessive sets of X and Y features and
+        # labels that can be fed into the LSTM NN
+        X_train, Y_train = create_dataset(
+            train, look_back=days_in_past * 24, look_forward=24 * days_in_future
+        )
+        X_test, Y_test = create_dataset(
+            test, look_back=days_in_past * 24, look_forward=24 * days_in_future
+        )
+
+        X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+        X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+
+        # initialise neural network, LSTM with day in the past inputs and
+        # days in the future outputs
+        model = Sequential()
+        model.add(LSTM(8, input_shape=(1, 24 * days_in_past)))
+        model.add(Dense(24 * days_in_future))
+        model.compile(loss=&#34;mean_squared_error&#34;, optimizer=&#34;adam&#34;)
+
+        # train LSTM with our training data!
+        model.fit(X_train, Y_train, epochs=50, batch_size=1, verbose=0)
+
+        # use our testing data to make predictions on Y_test
+        trainPredict = model.predict(X_train)
+        testPredict = model.predict(X_test)
+
+        print(&#34;please wait: &#34;, i, &#34;/&#34;, len(detectors), end=&#34;\r&#34;)
+
+        # reverse min_max scaler
+        testPredict = scaler.inverse_transform(testPredict)
+
+        # find the time period for our testPredictions
+        prediction_start = dataset_test[&#34;measurement_end_utc&#34;].max() - np.timedelta64(
+            days_in_future * 24, &#34;h&#34;
+        )
+        t = pd.date_range(
+            start=prediction_start,
+            end=prediction_start + np.timedelta64(24 * days_in_future - 1, &#34;h&#34;),
+            freq=&#34;H&#34;,
+        )
+
+        # organise data into dataframe similar to the SCOOT outputs
+        df2 = pd.DataFrame(
+            {
+                &#34;detector_id&#34;: detector,
+                &#34;lon&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lon&#34;].iloc[0],
+                &#34;lat&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lat&#34;].iloc[0],
+                &#34;measurement_start_utc&#34;: t,
+                &#34;measurement_end_utc&#34;: t + np.timedelta64(1, &#34;h&#34;),
+                &#34;n_vehicles_in_interval&#34;: testPredict.flatten(),
+            }
+        )
+
+        framelist.append(df2)
+
+        # clear our Keras session
+        clear_session()
+
+    return pd.concat(framelist)</code></pre>
 </details>
 </dd>
 <dt id="SpatialScan.timeseries.MA"><code class="name flex">
@@ -567,7 +957,7 @@ shown by size of point, and C/B is shown using a colourmap</p>
 </details>
 </dd>
 <dt id="SpatialScan.timeseries.count_baseline"><code class="name flex">
-<span>def <span class="ident">count_baseline</span></span>(<span>df: pandas.core.frame.DataFrame, days_in_past: int, days_in_future: int, method: str = 'HW', detectors: list = None, alpha=0.06, beta=0.02, gamma=0.6)</span>
+<span>def <span class="ident">count_baseline</span></span>(<span>df: pandas.core.frame.DataFrame, days_in_past: int, days_in_future: int, method: str = 'HW', detectors: list = None, alpha: float = 0.06, beta: float = 0.02, gamma: float = 0.6) -> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Produces a DataFrame where the count and baseline can be compared for use
@@ -600,10 +990,10 @@ in scan statistics</p>
     days_in_future: int,
     method: str = &#34;HW&#34;,
     detectors: list = None,
-    alpha=0.06,
-    beta=0.02,
-    gamma=0.6,
-):
+    alpha: float = 0.06,
+    beta: float = 0.02,
+    gamma: float = 0.6,
+) -&gt; pd.DataFrame:
 
     &#34;&#34;&#34;Produces a DataFrame where the count and baseline can be compared for use
         in scan statistics
@@ -642,6 +1032,15 @@ in scan statistics</p>
         )
     if method == &#34;MALD&#34;:
         y = MALDforecast(train_data, days_in_past, days_in_future, detectors=detectors)
+
+    if method == &#34;LSTM&#34;:
+        y = LSTM_forecast(
+            df,
+            days_in_past=days_in_past,
+            days_in_future=days_in_future,
+            detectors=detectors,
+        )
+
     sd = []
 
     for detector in detectors:
@@ -669,6 +1068,128 @@ in scan statistics</p>
     )
 
     return Y</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.timeseries.create_dataset"><code class="name flex">
+<span>def <span class="ident">create_dataset</span></span>(<span>dataset: pandas.core.frame.DataFrame, look_back: int = 24, look_forward: int = 24)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_dataset(dataset: pd.DataFrame, look_back: int = 24, look_forward: int = 24):
+    dataX, dataY = [], []
+    for i in range(0, len(dataset) - look_back - look_forward + 1, look_forward):
+        # a will be one set of X data to be used as inputs to the NN
+        a = dataset[i : (i + look_back), 0]
+        dataX.append(a)
+        # by will be one set of Y data, to be predicted by the NN and then
+        # compared to for means of training
+        b = dataset[(i + look_back) : (i + look_back + look_forward), 0]
+        dataY.append(b)
+    return np.array(dataX), np.array(dataY)</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.timeseries.data_preprocessor"><code class="name flex">
+<span>def <span class="ident">data_preprocessor</span></span>(<span>df: pandas.core.frame.DataFrame, percentage_missing: float = 20, sigma: float = 3) -> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Function takes a SCOOT dataframe, interpolates any missing values, and returns
+a dataframe with missing values interpolated. Any detectors missing more than
+percentage_missing datapoints will be dropped for having to few values.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>df</code></strong></dt>
+<dd>Dataframe of SCOOT data</dd>
+<dt><strong><code>percentage_missing</code></strong></dt>
+<dd>float percentage of missing values, above which drop detector</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Dataframe of interpolated values with detectors dropped for too many missing values.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def data_preprocessor(
+    df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Function takes a SCOOT dataframe, interpolates any missing values, and returns
+    a dataframe with missing values interpolated. Any detectors missing more than 
+    percentage_missing datapoints will be dropped for having to few values.
+
+    Args:
+        df: Dataframe of SCOOT data
+        percentage_missing: float percentage of missing values, above which drop detector
+
+    Returns:
+        Dataframe of interpolated values with detectors dropped for too many missing values.
+
+        &#34;&#34;&#34;
+    detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+    df_list = []
+    i = 0
+    detectors_removed = []
+    for detector in detectors:
+        dataset = df[df[&#34;detector_id&#34;] == detector]
+
+        dataset[&#34;hour&#34;] = dataset[&#34;measurement_start_utc&#34;].dt.hour.to_numpy()
+
+        threshold = (
+            dataset.groupby(&#34;hour&#34;).median()[&#34;n_vehicles_in_interval&#34;]
+            + sigma * dataset.groupby(&#34;hour&#34;).std()[&#34;n_vehicles_in_interval&#34;]
+        )
+
+        for j in range(0, len(dataset)):
+            if (
+                dataset.iloc[j][&#34;n_vehicles_in_interval&#34;]
+                &gt; threshold[dataset.iloc[j][&#34;hour&#34;]]
+            ):
+                dataset.iloc[
+                    j, dataset.columns.get_loc(&#34;n_vehicles_in_interval&#34;)
+                ] = float(&#34;NaN&#34;)
+
+        dataset.index = dataset[&#34;measurement_end_utc&#34;]
+
+        T = pd.date_range(
+            start=df[&#34;measurement_end_utc&#34;].min(),
+            end=df[&#34;measurement_end_utc&#34;].max(),
+            freq=&#34;H&#34;,
+        )
+        dataset = dataset.reindex(T)
+        num_nan = dataset[&#34;n_vehicles_in_interval&#34;].isna().sum()
+        if num_nan &gt; (len(dataset) * percentage_missing) / 100:
+            detectors_removed.append(detector)
+            continue
+
+        dataset[&#34;n_vehicles_in_interval&#34;].to_numpy()
+
+        dataset[&#34;n_vehicles_in_interval&#34;] = dataset[
+            &#34;n_vehicles_in_interval&#34;
+        ].interpolate(method=&#34;linear&#34;, limit_direction=&#34;forward&#34;, axis=0)
+        dataset[&#34;detector_id&#34;] = dataset[&#34;detector_id&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;lon&#34;] = dataset[&#34;lon&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;lat&#34;] = dataset[&#34;lat&#34;].interpolate(
+            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
+        )
+        dataset[&#34;measurement_end_utc&#34;] = dataset.index
+        dataset[&#34;measurement_start_utc&#34;] = dataset[
+            &#34;measurement_end_utc&#34;
+        ] - np.timedelta64(1, &#34;h&#34;)
+
+        df_list.append(dataset)
+        i += 1
+        print(&#34;please wait: &#34;, i, &#34;/&#34;, len(detectors), &#34;detectors&#34;, end=&#34;\r&#34;)
+    print(&#34;detectors dropped: &#34;, detectors_removed)
+    DF = pd.concat(df_list)
+
+    return DF.reset_index(drop=True)</code></pre>
 </details>
 </dd>
 <dt id="SpatialScan.timeseries.holt_winters"><code class="name flex">
@@ -794,10 +1315,13 @@ alpha, beta, gamma: optimisation parameters</p>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="two-column">
 <li><code><a title="SpatialScan.timeseries.CB_plot" href="#SpatialScan.timeseries.CB_plot">CB_plot</a></code></li>
+<li><code><a title="SpatialScan.timeseries.LSTM_forecast" href="#SpatialScan.timeseries.LSTM_forecast">LSTM_forecast</a></code></li>
 <li><code><a title="SpatialScan.timeseries.MA" href="#SpatialScan.timeseries.MA">MA</a></code></li>
 <li><code><a title="SpatialScan.timeseries.MALD" href="#SpatialScan.timeseries.MALD">MALD</a></code></li>
 <li><code><a title="SpatialScan.timeseries.MALDforecast" href="#SpatialScan.timeseries.MALDforecast">MALDforecast</a></code></li>
 <li><code><a title="SpatialScan.timeseries.count_baseline" href="#SpatialScan.timeseries.count_baseline">count_baseline</a></code></li>
+<li><code><a title="SpatialScan.timeseries.create_dataset" href="#SpatialScan.timeseries.create_dataset">create_dataset</a></code></li>
+<li><code><a title="SpatialScan.timeseries.data_preprocessor" href="#SpatialScan.timeseries.data_preprocessor">data_preprocessor</a></code></li>
 <li><code><a title="SpatialScan.timeseries.holt_winters" href="#SpatialScan.timeseries.holt_winters">holt_winters</a></code></li>
 </ul>
 </li>

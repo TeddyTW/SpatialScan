@@ -14,7 +14,9 @@ import tensorflow as tf
 import plotly.express as px
 
 
-def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3) -> pd.DataFrame:
+def data_preprocessor(
+    df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3
+) -> pd.DataFrame:
 
     """Function takes a SCOOT dataframe, interpolates any missing values, and returns
     a dataframe with missing values interpolated. Any detectors missing more than 
@@ -39,7 +41,7 @@ def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: f
 
         threshold = (
             dataset.groupby("hour").median()["n_vehicles_in_interval"]
-            + sigma* dataset.groupby("hour").std()["n_vehicles_in_interval"]
+            + sigma * dataset.groupby("hour").std()["n_vehicles_in_interval"]
         )
 
         for j in range(0, len(dataset)):

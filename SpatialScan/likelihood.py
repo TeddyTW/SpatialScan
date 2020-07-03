@@ -15,7 +15,41 @@ def likelihood_ratio(B: float, C: float) -> float:
     Returns:
         float
     """
-
+    if B == 0 and C > 0:
+        return 1.0
     if C > B:
         return np.power((C / B), C) * np.exp(B - C)
     return 1.0
+
+
+def likelihood_ratio_kulgen(B: float, C: float, B_tot: float, C_tot: float, eps: float):
+    """Generalised likelihood expression as explained by D. Neill in more
+    recent work. Allows for tuning with parameter eps. The eps = 0 case defaults
+    to the original test statistic suggested by Kulldorf. Note that the original
+    Kulldorf statistic and this one calculate metrics based on C, B inside AND
+    outside the test region S. `likelihood_ratio()` does not; it only focuses
+    on counts inside the region of interest.
+    Args:
+        B: Sum of baseline counts in region of interest
+        C: Sum of actual counts in region of interest
+        B_tot: Sum of baseline counts in global region
+        C_tot: Sum of baseline counts in global region
+    Returns:
+        Generalised Test Statistic D_epsilon (S)
+    """
+
+    # First Calculate the Sign
+    if B == 0:
+        condition = True
+    else:
+        condition = C / B > (1 + eps) * (C_tot - C) / (B_tot - B)
+
+    sign = 1 if condition else -1
+
+    if B == 0:
+        return np.nan
+    return sign * (
+        C * np.log(C / ((1 + eps) * B))
+        + (C_tot - C) * np.log((C_tot - C) / (B_tot - B))
+        - C_tot * np.log(C_tot / (B_tot + eps * B))
+    )
