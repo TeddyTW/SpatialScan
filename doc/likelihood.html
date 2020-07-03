@@ -48,10 +48,44 @@ def likelihood_ratio(B: float, C: float) -&gt; float:
     Returns:
         float
     &#34;&#34;&#34;
-
+    if B == 0 and C &gt; 0:
+        return 1.0
     if C &gt; B:
         return np.power((C / B), C) * np.exp(B - C)
-    return 1.0</code></pre>
+    return 1.0
+
+
+def likelihood_ratio_kulgen(B: float, C: float, B_tot: float, C_tot: float, eps: float):
+    &#34;&#34;&#34;Generalised likelihood expression as explained by D. Neill in more
+    recent work. Allows for tuning with parameter eps. The eps = 0 case defaults
+    to the original test statistic suggested by Kulldorf. Note that the original
+    Kulldorf statistic and this one calculate metrics based on C, B inside AND
+    outside the test region S. `likelihood_ratio()` does not; it only focuses
+    on counts inside the region of interest.
+    Args:
+        B: Sum of baseline counts in region of interest
+        C: Sum of actual counts in region of interest
+        B_tot: Sum of baseline counts in global region
+        C_tot: Sum of baseline counts in global region
+    Returns:
+        Generalised Test Statistic D_epsilon (S)
+    &#34;&#34;&#34;
+
+    # First Calculate the Sign
+    if B == 0:
+        condition = True
+    else:
+        condition = C / B &gt; (1 + eps) * (C_tot - C) / (B_tot - B)
+
+    sign = 1 if condition else -1
+
+    if B == 0:
+        return np.nan
+    return sign * (
+        C * np.log(C / ((1 + eps) * B))
+        + (C_tot - C) * np.log((C_tot - C) / (B_tot - B))
+        - C_tot * np.log(C_tot / (B_tot + eps * B))
+    )</code></pre>
 </details>
 </section>
 <section>
@@ -90,10 +124,74 @@ def likelihood_ratio(B: float, C: float) -&gt; float:
     Returns:
         float
     &#34;&#34;&#34;
-
+    if B == 0 and C &gt; 0:
+        return 1.0
     if C &gt; B:
         return np.power((C / B), C) * np.exp(B - C)
     return 1.0</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.likelihood.likelihood_ratio_kulgen"><code class="name flex">
+<span>def <span class="ident">likelihood_ratio_kulgen</span></span>(<span>B: float, C: float, B_tot: float, C_tot: float, eps: float)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generalised likelihood expression as explained by D. Neill in more
+recent work. Allows for tuning with parameter eps. The eps = 0 case defaults
+to the original test statistic suggested by Kulldorf. Note that the original
+Kulldorf statistic and this one calculate metrics based on C, B inside AND
+outside the test region S. <code><a title="SpatialScan.likelihood.likelihood_ratio" href="#SpatialScan.likelihood.likelihood_ratio">likelihood_ratio()</a></code> does not; it only focuses
+on counts inside the region of interest.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>B</code></strong></dt>
+<dd>Sum of baseline counts in region of interest</dd>
+<dt><strong><code>C</code></strong></dt>
+<dd>Sum of actual counts in region of interest</dd>
+<dt><strong><code>B_tot</code></strong></dt>
+<dd>Sum of baseline counts in global region</dd>
+<dt><strong><code>C_tot</code></strong></dt>
+<dd>Sum of baseline counts in global region</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Generalised Test Statistic D_epsilon (S)</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def likelihood_ratio_kulgen(B: float, C: float, B_tot: float, C_tot: float, eps: float):
+    &#34;&#34;&#34;Generalised likelihood expression as explained by D. Neill in more
+    recent work. Allows for tuning with parameter eps. The eps = 0 case defaults
+    to the original test statistic suggested by Kulldorf. Note that the original
+    Kulldorf statistic and this one calculate metrics based on C, B inside AND
+    outside the test region S. `likelihood_ratio()` does not; it only focuses
+    on counts inside the region of interest.
+    Args:
+        B: Sum of baseline counts in region of interest
+        C: Sum of actual counts in region of interest
+        B_tot: Sum of baseline counts in global region
+        C_tot: Sum of baseline counts in global region
+    Returns:
+        Generalised Test Statistic D_epsilon (S)
+    &#34;&#34;&#34;
+
+    # First Calculate the Sign
+    if B == 0:
+        condition = True
+    else:
+        condition = C / B &gt; (1 + eps) * (C_tot - C) / (B_tot - B)
+
+    sign = 1 if condition else -1
+
+    if B == 0:
+        return np.nan
+    return sign * (
+        C * np.log(C / ((1 + eps) * B))
+        + (C_tot - C) * np.log((C_tot - C) / (B_tot - B))
+        - C_tot * np.log(C_tot / (B_tot + eps * B))
+    )</code></pre>
 </details>
 </dd>
 </dl>
@@ -115,6 +213,7 @@ def likelihood_ratio(B: float, C: float) -&gt; float:
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="SpatialScan.likelihood.likelihood_ratio" href="#SpatialScan.likelihood.likelihood_ratio">likelihood_ratio</a></code></li>
+<li><code><a title="SpatialScan.likelihood.likelihood_ratio_kulgen" href="#SpatialScan.likelihood.likelihood_ratio_kulgen">likelihood_ratio_kulgen</a></code></li>
 </ul>
 </li>
 </ul>

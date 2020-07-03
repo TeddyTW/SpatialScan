@@ -70,59 +70,127 @@ def convert_dates(
     return copy_df
 
 
-def region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
+def aggregate_event_data(
+    forecast_data: pd.DataFrame,
+    x_ticks: np.ndarray,
+    y_ticks: np.ndarray,
+    t_ticks: np.ndarray,
+) -> pd.DataFrame:
+    """Functionality to aggregate data in forecast_data (each row represents
+    an event) to a data frame consisting N^2 * W rows (each row containing the
+    aggregated count in the grid cell it represents).
+    Clearly needs to be called after the grid is made.
+    Args:
+        forecast_data: Data from `count_baseline()`
+        x_ticks: x axis grid
+        y_ticks: y axis grid
+        t_ticks: t_axis grid
+    Returns:
+        Aggregated Dataframe on Grid Cell Level.
+    """
+
+    agg_dict = {}
+    num_cells = 0
+    for i in range(len(x_ticks) - 1):
+        for j in range(len(y_ticks) - 1):
+            for s in range(len(t_ticks) - 1):
+                x_min = x_ticks[i]
+                x_max = x_ticks[i + 1]
+                y_min = y_ticks[j]
+                y_max = y_ticks[j + 1]
+                t_min = t_ticks[s]
+                t_max = t_ticks[s + 1]
+
+                sub_df = forecast_data[
+                    (forecast_data["lon"].between(x_min, x_max))
+                    & (forecast_data["lat"].between(y_min, y_max))
+                    & (forecast_data["measurement_start_utc"] == t_min)
+                    & (forecast_data["measurement_end_utc"] == t_max)
+                ]
+
+                b_count = sub_df["baseline"].sum()
+                c_count = sub_df["count"].sum()
+
+                agg_dict[num_cells] = {
+                    "x_min": x_min,
+                    "x_max": x_max,
+                    "y_min": y_min,
+                    "y_max": y_max,
+                    "t_min": t_min,
+                    "t_max": t_max,
+                    "baseline_agg": b_count,
+                    "count_agg": c_count,
+                }
+                num_cells += 1
+
+    return pd.DataFrame.from_dict(agg_dict, "index")
+
+
+def event_count(S: Type[Region], agg_data: pd.DataFrame) -> tuple:
 
     """Function to calculate both the expected (B) and actual (C) count
-    (vehicles) within a given space-time region S. Used in the likelihood ratio
-    statistic.
+    (vehicles) within a given space-time region S from the grid-cell-level-aggregated.
+    Used in the likelihood ratio statistic.
     Args:
         S: Space-Time Region to count events in
-        data: Usual format SCOOT dataframe
+        agg_data: Event counts aggregated at grid level. eg. from `aggregate_event_data()`
     Returns: (Tuple of floats) both types of event counts within region S.
     """
 
     # Check for columns existence.
-    assert set(["lon", "lat", "measurement_end_utc", "count", "baseline"]) <= set(
-        data.columns
-    )
+    assert set(
+        [
+            "x_min",
+            "x_max",
+            "y_min",
+            "y_max",
+            "t_min",
+            "t_max",
+            "count_agg",
+            "baseline_agg",
+        ]
+    ) <= set(agg_data.columns)
 
     region_mask = (
-        (data["lon"].between(S.x_min, S.x_max))
-        & (data["lat"].between(S.y_min, S.y_max))
-        & (data["measurement_end_utc"] > S.t_min)
-        & (data["measurement_end_utc"] <= S.t_max)
+        (agg_data["x_min"] >= S.x_min)
+        & (agg_data["x_max"] <= S.x_max)
+        & (agg_data["y_min"] >= S.y_min)
+        & (agg_data["y_max"] <= S.y_max)
+        & (agg_data["t_min"] >= S.t_min)
+        & (agg_data["t_max"] <= S.t_max)
     )
-    S_df = data.loc[region_mask]
+
+    S_df = agg_data.loc[region_mask]
     if S_df.empty:
         return 0, 0
-    return S_df["baseline"].sum() / 1e6, S_df["count"].sum() / 1e6
+    return S_df["baseline_agg"].sum() / 1e6, S_df["count_agg"].sum() / 1e6
 
 
-def simulate_region_event_count(S: Type[Region], data: pd.DataFrame) -> tuple:
+def simulate_event_count(S: Type[Region], forecast_data: pd.DataFrame) -> tuple:
 
     """Function to simulate the count (vehicles) within a given
     space-time region S assuming a Poisson Distribution with mean given by the
     baseline forecast. Used in randomisation testing.
     Args:
         S: Space-Time Region to count events in
-        data: Usual format SCOOT dataframe
+        data: Forecast data from `count_baseline()`
     Returns: (Tuple of floats) both types of event counts within region S.
     """
 
     # Check for columns existence.
     assert set(["lon", "lat", "measurement_end_utc", "count", "baseline"]) <= set(
-        data.columns
+        forecast_data.columns
     )
 
-    data["simulated"] = np.random.poisson(data["baseline"])
+    forecast_data["simulated"] = np.random.poisson(forecast_data["baseline"])
 
     region_mask = (
-        (data["lon"].between(S.x_min, S.x_max))
-        & (data["lat"].between(S.y_min, S.y_max))
-        & (data["measurement_end_utc"] > S.t_min)
-        & (data["measurement_end_utc"] <= S.t_max)
+        (forecast_data["lon"].between(S.x_min, S.x_max))
+        & (forecast_data["lat"].between(S.y_min, S.y_max))
+        & (forecast_data["measurement_end_utc"] > S.t_min)
+        & (forecast_data["measurement_end_utc"] <= S.t_max)
     )
-    S_df = data.loc[region_mask]
+    S_df = forecast_data.loc[region_mask]
     if S_df.empty:
         return 0, 0
 
