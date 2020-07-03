@@ -370,7 +370,6 @@ def count_baseline(
             train_data,
             days_in_past,
             days_in_future,
-            days_in_future * 2,
             detectors=detectors,
         )
 
