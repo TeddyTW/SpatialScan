@@ -242,7 +242,7 @@ def HW_RSME(
         for i in range(0, len(past) - 1):
             h = i % 24
 
-            if i > 24*10:
+            if i > len(past)-24*8:
                 RSME = np.append(
                     RSME,
                     (past["n_vehicles_in_interval"].iloc[i + 1] - ((S + T) * I[h]))
@@ -298,7 +298,8 @@ def HW_opt(
             HW_RSME,
             [a, b, c],
             args=(one_D, days_in_past),
-            method="Nelder-Mead",
+            method='SLSQP',
+            bounds=[(0, 1), (0,1), (0,1)],
             options={"ftol": 3},
         )["x"]
 
