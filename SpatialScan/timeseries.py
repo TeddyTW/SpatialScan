@@ -204,8 +204,24 @@ def holt_winters(
 
 
 def HW_RSME(
-    params, df: pd.DataFrame, days_in_past: int, detectors: list = None,
-) -> pd.DataFrame:
+    params: list, df: pd.DataFrame, days_in_past: int, detectors: list = None,
+) -> float:
+
+    """Calcualte Root-Mean Squared error on historical training data for holt winters.
+    This function is minimised to optimise the hyperparameters of the Holt-Winters
+
+    Args: 
+        params: [alpha, beta, gamma] paramaters as a list
+        df: Dataframe of SCOOT data
+        days_in_past: Integer number of previous days to calculate for
+        detectors: List of detectors to look at
+
+    Returns:
+        RMSE for HW method with histroical data for given params
+
+
+    """
+
 
     alpha = params[0]
     beta = params[1]
@@ -248,9 +264,22 @@ def HW_opt(
     df: pd.DataFrame,
     days_in_past: int,
     days_in_future: int,
-    days_validation: int,
     detectors: list = None,
 ):
+
+    """Average forecast using Holt-Winters method, where parameters have been optimised
+    by minimising HW_RSME with historical data
+
+    Args: 
+        df: Dataframe of SCOOT data
+        detectors: List of detectors to look at
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        """
 
     framelist = []
 
