@@ -96,7 +96,7 @@ def reindex_and_drop(df: pd.DataFrame, percentage_missing: float = 20) -> pd.Dat
 
 
 def data_preprocessor(
-    df: pd.DataFrame, percentage_missing: float = 20, N_sigma: float = 3
+    df: pd.DataFrame, percentage_missing: float = 20, N_sigma: float = 3, repeats: int = 1
 ) -> pd.DataFrame:
 
     """Function takes a SCOOT dataframe, performs anomaly removal, fill_and_drop, and then
@@ -118,21 +118,31 @@ def data_preprocessor(
     for detector in detectors:
         dataset = df[df["detector_id"] == detector]
 
-        dataset["hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
+        dataset.loc[:,"hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
 
-        threshold = (
-            dataset.groupby("hour").median()["n_vehicles_in_interval"]
-            + N_sigma * dataset.groupby("hour").std()["n_vehicles_in_interval"]
-        )
+        for k in range(0, repeats):
 
-        for j in range(0, len(dataset)):
-            if (
-                dataset.iloc[j]["n_vehicles_in_interval"]
-                > threshold[dataset.iloc[j]["hour"]]
-            ):
-                dataset.iloc[
-                    j, dataset.columns.get_loc("n_vehicles_in_interval")
-                ] = float("NaN")
+            threshold = (
+                dataset.groupby("hour").median()["n_vehicles_in_interval"]
+                + N_sigma * dataset.groupby("hour").std()["n_vehicles_in_interval"]
+            )
+
+            global_threshold=np.percentile(dataset["n_vehicles_in_interval"], 95)
+
+            for j in range(0, len(dataset)):
+                if (
+                    dataset.iloc[j]["n_vehicles_in_interval"]
+                    > threshold[dataset.iloc[j]["hour"]] 
+                ):
+                    dataset.iloc[
+                        j, dataset.columns.get_loc("n_vehicles_in_interval")
+                    ] = float("NaN")
+                
+                if (dataset.iloc[j]["n_vehicles_in_interval"]>global_threshold):
+                    dataset.iloc[
+                        j, dataset.columns.get_loc("n_vehicles_in_interval")
+                    ] = float("NaN")
+
 
         dataset.index = dataset["measurement_end_utc"]
 
