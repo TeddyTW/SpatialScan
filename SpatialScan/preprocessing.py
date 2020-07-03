@@ -125,14 +125,22 @@ def data_preprocessor(
             + N_sigma * dataset.groupby("hour").std()["n_vehicles_in_interval"]
         )
 
+        global_threshold=np.percentile(dataset["n_vehicles_in_interval"], 95)
+
         for j in range(0, len(dataset)):
             if (
                 dataset.iloc[j]["n_vehicles_in_interval"]
-                > threshold[dataset.iloc[j]["hour"]]
+                > threshold[dataset.iloc[j]["hour"]] 
             ):
                 dataset.iloc[
                     j, dataset.columns.get_loc("n_vehicles_in_interval")
                 ] = float("NaN")
+            
+            if (dataset.iloc[j]["n_vehicles_in_interval"]>global_threshold):
+                dataset.iloc[
+                    j, dataset.columns.get_loc("n_vehicles_in_interval")
+                ] = float("NaN")
+
 
         dataset.index = dataset["measurement_end_utc"]
 
