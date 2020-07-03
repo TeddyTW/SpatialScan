@@ -12,9 +12,13 @@ from tensorflow.keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 import plotly.express as px
+from scipy.optimize import minimize
+from sklearn.metrics import mean_squared_error
 
 
-def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3) -> pd.DataFrame:
+def data_preprocessor(
+    df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3
+) -> pd.DataFrame:
 
     """Function takes a SCOOT dataframe, interpolates any missing values, and returns
     a dataframe with missing values interpolated. Any detectors missing more than 
@@ -39,7 +43,7 @@ def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: f
 
         threshold = (
             dataset.groupby("hour").median()["n_vehicles_in_interval"]
-            + sigma* dataset.groupby("hour").std()["n_vehicles_in_interval"]
+            + sigma * dataset.groupby("hour").std()["n_vehicles_in_interval"]
         )
 
         for j in range(0, len(dataset)):
@@ -58,6 +62,7 @@ def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: f
             end=df["measurement_end_utc"].max(),
             freq="H",
         )
+
         dataset = dataset.reindex(T)
         num_nan = dataset["n_vehicles_in_interval"].isna().sum()
         if num_nan > (len(dataset) * percentage_missing) / 100:
@@ -68,15 +73,15 @@ def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: f
 
         dataset["n_vehicles_in_interval"] = dataset[
             "n_vehicles_in_interval"
-        ].interpolate(method="linear", limit_direction="forward", axis=0)
+        ].interpolate(method="linear", limit_direction="both", axis=0)
         dataset["detector_id"] = dataset["detector_id"].interpolate(
-            method="pad", limit_direction="forward", axis=0
+            method="pad", limit_direction="both", axis=0, limit=1000
         )
         dataset["lon"] = dataset["lon"].interpolate(
-            method="pad", limit_direction="forward", axis=0
+            method="pad", limit_direction="both", axis=0, limit=1000
         )
         dataset["lat"] = dataset["lat"].interpolate(
-            method="pad", limit_direction="forward", axis=0
+            method="pad", limit_direction="both", axis=0, limit=1000
         )
         dataset["measurement_end_utc"] = dataset.index
         dataset["measurement_start_utc"] = dataset[
@@ -88,8 +93,9 @@ def data_preprocessor(df: pd.DataFrame, percentage_missing: float = 20, sigma: f
         print("please wait: ", i, "/", len(detectors), "detectors", end="\r")
     print("detectors dropped: ", detectors_removed)
     DF = pd.concat(df_list)
+    DF = DF.fillna(method="backfill")
 
-    return DF.reset_index(drop=True)
+    return DF.drop(columns=["hour"]).reset_index(drop=True)
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -243,8 +249,10 @@ def holt_winters(
         endtime = []
         starttime = []
         for j in range(0, days_in_future * 24):
-            end = df["measurement_end_utc"].to_numpy()[-1] + np.timedelta64(j, "h")
-            start = df["measurement_start_utc"].to_numpy()[-1] + np.timedelta64(j, "h")
+            end = df["measurement_end_utc"].to_numpy()[-1] + np.timedelta64(j + 1, "h")
+            start = df["measurement_start_utc"].to_numpy()[-1] + np.timedelta64(
+                j + 1, "h"
+            )
             h = j % 24
             b = (S + T) * I[h]
             baseline.append(b)
@@ -259,8 +267,8 @@ def holt_winters(
         df2 = pd.DataFrame(
             {
                 "detector_id": detector,
-                "lon": df[df["detector_id"] == detector]["lon"].iloc[0],
-                "lat": df[df["detector_id"] == detector]["lat"].iloc[0],
+                "lon": one_D[one_D["detector_id"] == detector]["lon"].iloc[0],
+                "lat": one_D[one_D["detector_id"] == detector]["lat"].iloc[0],
                 "measurement_start_utc": starttime,
                 "measurement_end_utc": endtime,
                 "n_vehicles_in_interval": baseline,
@@ -273,6 +281,92 @@ def holt_winters(
         df_plot = DF.set_index("measurement_end_utc")
         for detector in detectors:
             df_plot[df_plot["detector_id"] == detector]["n_vehicles_in_interval"].plot()
+
+    return DF
+
+
+def HW_RSME(
+    params, df: pd.DataFrame, days_in_past: int, detectors: list = None,
+) -> pd.DataFrame:
+
+    alpha = params[0]
+    beta = params[1]
+    gamma = params[2]
+
+    if detectors is None:
+        detectors = df["detector_id"].drop_duplicates().to_numpy()
+
+    framelist = []
+    for detector in detectors:
+        S = 1
+        T = 1
+        I = np.ones(24)
+        one_D = df[df["detector_id"] == detector]
+        one_D = one_D.sort_values(by=["measurement_end_utc"])
+        past = one_D.tail(n=24 * days_in_past)
+        RSME = []
+        for i in range(0, len(past) - 1):
+            h = i % 24
+
+            if i > 24*10:
+                RSME = np.append(
+                    RSME,
+                    (past["n_vehicles_in_interval"].iloc[i + 1] - ((S + T) * I[h]))
+                    ** 2,
+                )
+
+            c = past["n_vehicles_in_interval"].iloc[i]
+            Snew = (alpha * (c / I[h])) + (1 - alpha) * (S + T)
+            T = beta * (Snew - S) + (1 - beta) * T
+            I[h] = gamma * (c / Snew) + (1 - gamma) * I[h]
+            S = Snew
+
+        RSME = np.sqrt(RSME.mean())
+
+        return RSME
+
+
+def HW_opt(
+    df: pd.DataFrame,
+    days_in_past: int,
+    days_in_future: int,
+    days_validation: int,
+    detectors: list = None,
+):
+
+    framelist = []
+
+    if detectors is None:
+        detectors = df["detector_id"].drop_duplicates().to_numpy()
+
+    for d, detector in enumerate(detectors, 1):
+
+        one_D = df[df["detector_id"] == detector]
+
+        a = 0.1
+        b = 0.1
+        c = 0.1
+
+        params = minimize(
+            HW_RSME,
+            [a, b, c],
+            args=(one_D, days_in_past),
+            method="Nelder-Mead",
+            options={"ftol": 3},
+        )["x"]
+
+        alpha = params[0]
+        beta = params[1]
+        gamma = params[2]
+
+        framelist.append(
+            holt_winters(
+                one_D, days_in_past, days_in_future, alpha=alpha, beta=beta, gamma=gamma
+            )
+        )
+        print("please wait: ", d, "/", len(detectors), end="\r")
+
+    DF = pd.concat(framelist)
 
     return DF
 
@@ -323,6 +417,16 @@ def count_baseline(
             gamma=gamma,
             detectors=detectors,
         )
+
+    if method == "HWO":
+        y = HW_opt(
+            train_data,
+            days_in_past,
+            days_in_future,
+            days_in_future * 2,
+            detectors=detectors,
+        )
+
     if method == "MALD":
         y = MALDforecast(train_data, days_in_past, days_in_future, detectors=detectors)
 
