@@ -231,7 +231,7 @@ def make_grid(global_region: Type[Region], N: int) -> tuple:
 
 def plot_global_region(
     forecast_data: pd.DataFrame,
-    time_slice: datetime,
+    time_slice: datetime = None,
     overlay_grid: bool = True,
     grid_partition: int = 1,
     plot_type="count",
@@ -249,6 +249,8 @@ def plot_global_region(
         plot_type: counts, baselines or cb_ratio
     """
 
+    # Set defaults accordingly
+    time_slice = forecast_data["measurement_end_utc"].iloc[0] if time_slice is None else time_slice
     legend = "brief" if add_legend else False
 
     global_region = infer_global_region(forecast_data)
