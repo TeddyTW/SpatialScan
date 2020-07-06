@@ -258,7 +258,7 @@ def make_grid(global_region: Type[Region], N: int) -&gt; tuple:
 
 def plot_global_region(
     forecast_data: pd.DataFrame,
-    time_slice: datetime,
+    time_slice: datetime = None,
     overlay_grid: bool = True,
     grid_partition: int = 1,
     plot_type=&#34;count&#34;,
@@ -276,6 +276,8 @@ def plot_global_region(
         plot_type: counts, baselines or cb_ratio
     &#34;&#34;&#34;
 
+    # Set defaults accordingly
+    time_slice = forecast_data[&#34;measurement_end_utc&#34;].iloc[0] if time_slice is None else time_slice
     legend = &#34;brief&#34; if add_legend else False
 
     global_region = infer_global_region(forecast_data)
@@ -931,7 +933,7 @@ likelihood ratio scores as determined by the loop.</dd>
 </details>
 </dd>
 <dt id="SpatialScan.region.plot_global_region"><code class="name flex">
-<span>def <span class="ident">plot_global_region</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, time_slice: datetime.datetime, overlay_grid: bool = True, grid_partition: int = 1, plot_type='count', add_legend: bool = True) -> NoneType</span>
+<span>def <span class="ident">plot_global_region</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, time_slice: datetime.datetime = None, overlay_grid: bool = True, grid_partition: int = 1, plot_type='count', add_legend: bool = True) -> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Functionality to plot the computational grid on a region of interest.
@@ -956,7 +958,7 @@ value.</p>
 </summary>
 <pre><code class="python">def plot_global_region(
     forecast_data: pd.DataFrame,
-    time_slice: datetime,
+    time_slice: datetime = None,
     overlay_grid: bool = True,
     grid_partition: int = 1,
     plot_type=&#34;count&#34;,
@@ -974,6 +976,8 @@ value.</p>
         plot_type: counts, baselines or cb_ratio
     &#34;&#34;&#34;
 
+    # Set defaults accordingly
+    time_slice = forecast_data[&#34;measurement_end_utc&#34;].iloc[0] if time_slice is None else time_slice
     legend = &#34;brief&#34; if add_legend else False
 
     global_region = infer_global_region(forecast_data)

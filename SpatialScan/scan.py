@@ -112,17 +112,17 @@ def EBP(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataFrame:
                             if B_tot != B
                             else np.inf,
                             "l_score_basic": basic_l_score,
-                            "p_value_basic": np.nan,
+                            #"p_value_basic": np.nan,
                             "l_score_000": general_l_scores[0],
-                            "p_value_000": np.nan,
+                            #"p_value_000": np.nan,
                             "l_score_025": general_l_scores[1],
-                            "p_value_025": np.nan,
+                            #"p_value_025": np.nan,
                             "l_score_050": general_l_scores[2],
-                            "p_value_050": np.nan,
+                            #"p_value_050": np.nan,
                             "l_score_075": general_l_scores[3],
-                            "p_value_075": np.nan,
+                            #"p_value_075": np.nan,
                             "l_score_100": general_l_scores[4],
-                            "p_value_100": np.nan,
+                            #"p_value_100": np.nan,
                         }
 
                         # Count Regions
@@ -234,17 +234,17 @@ def EBP_exhaustive(forecast_data: pd.DataFrame, grid_partition: int) -> pd.DataF
                                 if B_tot != B
                                 else np.inf,
                                 "l_score_basic": basic_l_score,
-                                "p_value_basic": np.nan,
+                                #"p_value_basic": np.nan,
                                 "l_score_000": general_l_scores[0],
-                                "p_value_000": np.nan,
+                                #"p_value_000": np.nan,
                                 "l_score_025": general_l_scores[1],
-                                "p_value_025": np.nan,
+                                #"p_value_025": np.nan,
                                 "l_score_050": general_l_scores[2],
-                                "p_value_050": np.nan,
+                                #"p_value_050": np.nan,
                                 "l_score_075": general_l_scores[3],
-                                "p_value_075": np.nan,
+                                #"p_value_075": np.nan,
                                 "l_score_100": general_l_scores[4],
-                                "p_value_100": np.nan,
+                                #"p_value_100": np.nan,
                             }
 
                             # Count Regions
