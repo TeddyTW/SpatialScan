@@ -9,6 +9,7 @@ from tensorflow.keras.backend import clear_session
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
+from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 import plotly.express as px
@@ -557,6 +558,8 @@ def LSTM_forecast(
         # train LSTM with our training data!
         model.fit(X_train, Y_train, epochs=50, batch_size=1, verbose=0)
 
+        plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
+
         # use our testing data to make predictions on Y_test
         trainPredict = model.predict(X_train)
         testPredict = model.predict(X_test)
@@ -575,6 +578,7 @@ def LSTM_forecast(
             end=prediction_start + np.timedelta64(24 * days_in_future - 1, "h"),
             freq="H",
         )
+
 
         # organise data into dataframe similar to the SCOOT outputs
         df2 = pd.DataFrame(
