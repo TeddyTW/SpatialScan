@@ -191,3 +191,30 @@ def data_preprocessor(
     DF = DF.fillna(method="backfill")
 
     return DF.drop(columns=["hour"]).reset_index(drop=True)
+
+def plot_processing(raw_scoot_df: pd.DataFrame, processed_scoot_df:pd.DataFrame, detector:str = None):
+
+    """ Helper function to compare raw and processed time-series of a detector.
+    Args:
+        raw_scoot_df: Dataframe directly from SCOOT query
+        processed_df: Dataframe returned `data_preprocessor`
+        detector: Detctor's time-series to plot. If not specified, chosen at random.
+
+    """
+
+    if detector is None:
+        detector = raw_scoot_df['detector_id'].sample(1).iloc[0]
+    print(detector)
+    
+    d_scoot = raw_scoot_df[raw_scoot_df['detector_id'] == detector]['n_vehicles_in_interval'].to_numpy()
+    t_scoot = raw_scoot_df[raw_scoot_df['detector_id'] == detector]['measurement_end_utc'].to_numpy()
+    d_proc = processed_scoot_df[processed_scoot_df['detector_id'] == detector]['n_vehicles_in_interval'].to_numpy()
+    t_proc = processed_scoot_df[processed_scoot_df['detector_id'] == detector]['measurement_end_utc'].to_numpy()
+    
+    fig, ax = plt.subplots(figsize=(20, 6))
+    plt.plot(t_scoot, d_scoot, label="Raw")
+    plt.plot(t_proc, d_proc, label="Processed")
+    plt.xlabel("Date")
+    plt.ylabel("Vehicle Count")
+    plt.legend()
+    return
