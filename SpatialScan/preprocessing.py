@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def drop_anom(df: pd.DataFrame, N_sigma: float = 3) -> pd.DataFrame:
@@ -192,7 +193,7 @@ def data_preprocessor(
 
     return DF.drop(columns=["hour"]).reset_index(drop=True)
 
-def plot_processing(raw_scoot_df: pd.DataFrame, processed_scoot_df:pd.DataFrame, detector:str = None):
+def plot_processing(raw_scoot_df: pd.DataFrame, processed_scoot_df: pd.DataFrame, detector: str = None):
 
     """ Helper function to compare raw and processed time-series of a detector.
     Args:
