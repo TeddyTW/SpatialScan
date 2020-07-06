@@ -1,9 +1,7 @@
 """Module containing Time Series Forecast functionality"""
 import numpy as np
 import pandas as pd
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from datetime import datetime
 import matplotlib.colors as colors
 from tensorflow.keras.backend import clear_session
 from tensorflow.keras.models import Sequential
@@ -12,9 +10,7 @@ from tensorflow.keras.layers import LSTM
 from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
-import plotly.express as px
 from scipy.optimize import minimize
-from sklearn.metrics import mean_squared_error
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -223,7 +219,6 @@ def HW_RSME(
 
     """
 
-
     alpha = params[0]
     beta = params[1]
     gamma = params[2]
@@ -243,7 +238,7 @@ def HW_RSME(
         for i in range(0, len(past) - 1):
             h = i % 24
 
-            if i > len(past)-24*8:
+            if i > len(past) - 24 * 8:
                 RSME = np.append(
                     RSME,
                     (past["n_vehicles_in_interval"].iloc[i + 1] - ((S + T) * I[h]))
@@ -262,10 +257,7 @@ def HW_RSME(
 
 
 def HW_opt(
-    df: pd.DataFrame,
-    days_in_past: int,
-    days_in_future: int,
-    detectors: list = None,
+    df: pd.DataFrame, days_in_past: int, days_in_future: int, detectors: list = None,
 ):
 
     """Average forecast using Holt-Winters method, where parameters have been optimised
@@ -299,8 +291,8 @@ def HW_opt(
             HW_RSME,
             [a, b, c],
             args=(one_D, days_in_past),
-            method='SLSQP',
-            bounds=[(0, 1), (0,1), (0,1)],
+            method="SLSQP",
+            bounds=[(0, 1), (0, 1), (0, 1)],
             options={"ftol": 3},
         )["x"]
 
@@ -346,6 +338,11 @@ def count_baseline(
 
         """
 
+    t_min = df["measurement_start_utc"].min()
+    t_max = df["measurement_end_utc"].max()
+
+    print("Input dataframe contains data spanning {} to {}.".format(t_min, t_max))
+
     if detectors is None:
         detectors = df["detector_id"].drop_duplicates().to_numpy()
 
@@ -355,6 +352,21 @@ def count_baseline(
 
     train_data = df[df["measurement_end_utc"] <= prediction_start]
     test_data = df[df["measurement_end_utc"] > prediction_start]
+
+    avail_past_days = int(len(train_data["measurement_end_utc"].unique()) / 24)
+    if avail_past_days < days_in_past:
+        print(
+            "Input dataframe only contains {} days worth of data before the prediction period.".format(
+                avail_past_days
+            ),
+            "Setting days_in_past = {}.".format(avail_past_days),
+        )
+
+    print(
+        "Using data from {} to {}, to forecast counts between {} and {} for {} detectors using {} method...".format(
+            t_min, prediction_start, prediction_start, t_max, len(detectors), method
+        )
+    )
 
     if method == "HW":
         y = holt_winters(
@@ -368,12 +380,7 @@ def count_baseline(
         )
 
     if method == "HWO":
-        y = HW_opt(
-            train_data,
-            days_in_past,
-            days_in_future,
-            detectors=detectors,
-        )
+        y = HW_opt(train_data, days_in_past, days_in_future, detectors=detectors,)
 
     if method == "MALD":
         y = MALDforecast(train_data, days_in_past, days_in_future, detectors=detectors)
@@ -387,6 +394,8 @@ def count_baseline(
         )
 
     sd = []
+
+    print("Forecasting complete.")
 
     for detector in detectors:
 
@@ -558,7 +567,9 @@ def LSTM_forecast(
         # train LSTM with our training data!
         model.fit(X_train, Y_train, epochs=50, batch_size=1, verbose=0)
 
-        plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
+        plot_model(
+            model, to_file="model_plot.png", show_shapes=True, show_layer_names=True
+        )
 
         # use our testing data to make predictions on Y_test
         trainPredict = model.predict(X_train)
@@ -578,7 +589,6 @@ def LSTM_forecast(
             end=prediction_start + np.timedelta64(24 * days_in_future - 1, "h"),
             freq="H",
         )
-
 
         # organise data into dataframe similar to the SCOOT outputs
         df2 = pd.DataFrame(
