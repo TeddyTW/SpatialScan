@@ -39,86 +39,8 @@ import matplotlib.colors as colors
 from sklearn.preprocessing import MinMaxScaler
 #import tensorflow as tf
 import plotly.express as px
-
-
-def data_preprocessor(
-    df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3
-) -&gt; pd.DataFrame:
-
-    &#34;&#34;&#34;Function takes a SCOOT dataframe, interpolates any missing values, and returns
-    a dataframe with missing values interpolated. Any detectors missing more than 
-    percentage_missing datapoints will be dropped for having to few values.
-
-    Args:
-        df: Dataframe of SCOOT data
-        percentage_missing: float percentage of missing values, above which drop detector
-
-    Returns:
-        Dataframe of interpolated values with detectors dropped for too many missing values.
-
-        &#34;&#34;&#34;
-    detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
-    df_list = []
-    i = 0
-    detectors_removed = []
-    for detector in detectors:
-        dataset = df[df[&#34;detector_id&#34;] == detector]
-
-        dataset[&#34;hour&#34;] = dataset[&#34;measurement_start_utc&#34;].dt.hour.to_numpy()
-
-        threshold = (
-            dataset.groupby(&#34;hour&#34;).median()[&#34;n_vehicles_in_interval&#34;]
-            + sigma * dataset.groupby(&#34;hour&#34;).std()[&#34;n_vehicles_in_interval&#34;]
-        )
-
-        for j in range(0, len(dataset)):
-            if (
-                dataset.iloc[j][&#34;n_vehicles_in_interval&#34;]
-                &gt; threshold[dataset.iloc[j][&#34;hour&#34;]]
-            ):
-                dataset.iloc[
-                    j, dataset.columns.get_loc(&#34;n_vehicles_in_interval&#34;)
-                ] = float(&#34;NaN&#34;)
-
-        dataset.index = dataset[&#34;measurement_end_utc&#34;]
-
-        T = pd.date_range(
-            start=df[&#34;measurement_end_utc&#34;].min(),
-            end=df[&#34;measurement_end_utc&#34;].max(),
-            freq=&#34;H&#34;,
-        )
-        dataset = dataset.reindex(T)
-        num_nan = dataset[&#34;n_vehicles_in_interval&#34;].isna().sum()
-        if num_nan &gt; (len(dataset) * percentage_missing) / 100:
-            detectors_removed.append(detector)
-            continue
-
-        dataset[&#34;n_vehicles_in_interval&#34;].to_numpy()
-
-        dataset[&#34;n_vehicles_in_interval&#34;] = dataset[
-            &#34;n_vehicles_in_interval&#34;
-        ].interpolate(method=&#34;linear&#34;, limit_direction=&#34;forward&#34;, axis=0)
-        dataset[&#34;detector_id&#34;] = dataset[&#34;detector_id&#34;].interpolate(
-            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
-        )
-        dataset[&#34;lon&#34;] = dataset[&#34;lon&#34;].interpolate(
-            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
-        )
-        dataset[&#34;lat&#34;] = dataset[&#34;lat&#34;].interpolate(
-            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
-        )
-        dataset[&#34;measurement_end_utc&#34;] = dataset.index
-        dataset[&#34;measurement_start_utc&#34;] = dataset[
-            &#34;measurement_end_utc&#34;
-        ] - np.timedelta64(1, &#34;h&#34;)
-
-        df_list.append(dataset)
-        i += 1
-        print(&#34;please wait: &#34;, i, &#34;/&#34;, len(detectors), &#34;detectors&#34;, end=&#34;\r&#34;)
-    print(&#34;detectors dropped: &#34;, detectors_removed)
-    DF = pd.concat(df_list)
-
-    return DF.reset_index(drop=True)
+from scipy.optimize import minimize
+from sklearn.metrics import mean_squared_error
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -&gt; float:
@@ -272,8 +194,10 @@ def holt_winters(
         endtime = []
         starttime = []
         for j in range(0, days_in_future * 24):
-            end = df[&#34;measurement_end_utc&#34;].to_numpy()[-1] + np.timedelta64(j, &#34;h&#34;)
-            start = df[&#34;measurement_start_utc&#34;].to_numpy()[-1] + np.timedelta64(j, &#34;h&#34;)
+            end = df[&#34;measurement_end_utc&#34;].to_numpy()[-1] + np.timedelta64(j + 1, &#34;h&#34;)
+            start = df[&#34;measurement_start_utc&#34;].to_numpy()[-1] + np.timedelta64(
+                j + 1, &#34;h&#34;
+            )
             h = j % 24
             b = (S + T) * I[h]
             baseline.append(b)
@@ -288,8 +212,8 @@ def holt_winters(
         df2 = pd.DataFrame(
             {
                 &#34;detector_id&#34;: detector,
-                &#34;lon&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lon&#34;].iloc[0],
-                &#34;lat&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lat&#34;].iloc[0],
+                &#34;lon&#34;: one_D[one_D[&#34;detector_id&#34;] == detector][&#34;lon&#34;].iloc[0],
+                &#34;lat&#34;: one_D[one_D[&#34;detector_id&#34;] == detector][&#34;lat&#34;].iloc[0],
                 &#34;measurement_start_utc&#34;: starttime,
                 &#34;measurement_end_utc&#34;: endtime,
                 &#34;n_vehicles_in_interval&#34;: baseline,
@@ -302,6 +226,122 @@ def holt_winters(
         df_plot = DF.set_index(&#34;measurement_end_utc&#34;)
         for detector in detectors:
             df_plot[df_plot[&#34;detector_id&#34;] == detector][&#34;n_vehicles_in_interval&#34;].plot()
+
+    return DF
+
+
+def HW_RSME(
+    params: list, df: pd.DataFrame, days_in_past: int, detectors: list = None,
+) -&gt; float:
+
+    &#34;&#34;&#34;Calcualte Root-Mean Squared error on historical training data for holt winters.
+    This function is minimised to optimise the hyperparameters of the Holt-Winters
+
+    Args: 
+        params: [alpha, beta, gamma] paramaters as a list
+        df: Dataframe of SCOOT data
+        days_in_past: Integer number of previous days to calculate for
+        detectors: List of detectors to look at
+
+    Returns:
+        RMSE for HW method with histroical data for given params
+
+
+    &#34;&#34;&#34;
+
+
+    alpha = params[0]
+    beta = params[1]
+    gamma = params[2]
+
+    if detectors is None:
+        detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+
+    framelist = []
+    for detector in detectors:
+        S = 1
+        T = 1
+        I = np.ones(24)
+        one_D = df[df[&#34;detector_id&#34;] == detector]
+        one_D = one_D.sort_values(by=[&#34;measurement_end_utc&#34;])
+        past = one_D.tail(n=24 * days_in_past)
+        RSME = []
+        for i in range(0, len(past) - 1):
+            h = i % 24
+
+            if i &gt; len(past)-24*8:
+                RSME = np.append(
+                    RSME,
+                    (past[&#34;n_vehicles_in_interval&#34;].iloc[i + 1] - ((S + T) * I[h]))
+                    ** 2,
+                )
+
+            c = past[&#34;n_vehicles_in_interval&#34;].iloc[i]
+            Snew = (alpha * (c / I[h])) + (1 - alpha) * (S + T)
+            T = beta * (Snew - S) + (1 - beta) * T
+            I[h] = gamma * (c / Snew) + (1 - gamma) * I[h]
+            S = Snew
+
+        RSME = np.sqrt(RSME.mean())
+
+        return RSME
+
+
+def HW_opt(
+    df: pd.DataFrame,
+    days_in_past: int,
+    days_in_future: int,
+    detectors: list = None,
+):
+
+    &#34;&#34;&#34;Average forecast using Holt-Winters method, where parameters have been optimised
+    by minimising HW_RSME with historical data
+
+    Args: 
+        df: Dataframe of SCOOT data
+        detectors: List of detectors to look at
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        &#34;&#34;&#34;
+
+    framelist = []
+
+    if detectors is None:
+        detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+
+    for d, detector in enumerate(detectors, 1):
+
+        one_D = df[df[&#34;detector_id&#34;] == detector]
+
+        a = 0.1
+        b = 0.1
+        c = 0.1
+
+        params = minimize(
+            HW_RSME,
+            [a, b, c],
+            args=(one_D, days_in_past),
+            method=&#39;SLSQP&#39;,
+            bounds=[(0, 1), (0,1), (0,1)],
+            options={&#34;ftol&#34;: 3},
+        )[&#34;x&#34;]
+
+        alpha = params[0]
+        beta = params[1]
+        gamma = params[2]
+
+        framelist.append(
+            holt_winters(
+                one_D, days_in_past, days_in_future, alpha=alpha, beta=beta, gamma=gamma
+            )
+        )
+        print(&#34;please wait: &#34;, d, &#34;/&#34;, len(detectors), end=&#34;\r&#34;)
+
+    DF = pd.concat(framelist)
 
     return DF
 
@@ -352,6 +392,15 @@ def count_baseline(
             gamma=gamma,
             detectors=detectors,
         )
+
+    if method == &#34;HWO&#34;:
+        y = HW_opt(
+            train_data,
+            days_in_past,
+            days_in_future,
+            detectors=detectors,
+        )
+
     if method == &#34;MALD&#34;:
         y = MALDforecast(train_data, days_in_past, days_in_future, detectors=detectors)
 
@@ -408,7 +457,7 @@ def CB_plot(df: pd.DataFrame):
     df_format[&#34;hour_from_start&#34;] = df_format[&#34;hour_from_start&#34;].astype(
         dtype=&#34;timedelta64[h]&#34;
     )
-    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection=&#34;3d&#34;)
     p = ax.scatter(
@@ -610,7 +659,7 @@ shown by size of point, and C/B is shown using a colourmap</p>
     df_format[&#34;hour_from_start&#34;] = df_format[&#34;hour_from_start&#34;].astype(
         dtype=&#34;timedelta64[h]&#34;
     )
-    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection=&#34;3d&#34;)
     p = ax.scatter(
@@ -627,6 +676,162 @@ shown by size of point, and C/B is shown using a colourmap</p>
     ax.set_zlabel(&#34;Hours&#34;)
     fig.colorbar(p)
     plt.show()</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.timeseries.HW_RSME"><code class="name flex">
+<span>def <span class="ident">HW_RSME</span></span>(<span>params: list, df: pandas.core.frame.DataFrame, days_in_past: int, detectors: list = None) -> float</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calcualte Root-Mean Squared error on historical training data for holt winters.
+This function is minimised to optimise the hyperparameters of the Holt-Winters</p>
+<p>Args:
+params: [alpha, beta, gamma] paramaters as a list
+df: Dataframe of SCOOT data
+days_in_past: Integer number of previous days to calculate for
+detectors: List of detectors to look at</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>RMSE for HW method with histroical data for given params</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def HW_RSME(
+    params: list, df: pd.DataFrame, days_in_past: int, detectors: list = None,
+) -&gt; float:
+
+    &#34;&#34;&#34;Calcualte Root-Mean Squared error on historical training data for holt winters.
+    This function is minimised to optimise the hyperparameters of the Holt-Winters
+
+    Args: 
+        params: [alpha, beta, gamma] paramaters as a list
+        df: Dataframe of SCOOT data
+        days_in_past: Integer number of previous days to calculate for
+        detectors: List of detectors to look at
+
+    Returns:
+        RMSE for HW method with histroical data for given params
+
+
+    &#34;&#34;&#34;
+
+
+    alpha = params[0]
+    beta = params[1]
+    gamma = params[2]
+
+    if detectors is None:
+        detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+
+    framelist = []
+    for detector in detectors:
+        S = 1
+        T = 1
+        I = np.ones(24)
+        one_D = df[df[&#34;detector_id&#34;] == detector]
+        one_D = one_D.sort_values(by=[&#34;measurement_end_utc&#34;])
+        past = one_D.tail(n=24 * days_in_past)
+        RSME = []
+        for i in range(0, len(past) - 1):
+            h = i % 24
+
+            if i &gt; len(past)-24*8:
+                RSME = np.append(
+                    RSME,
+                    (past[&#34;n_vehicles_in_interval&#34;].iloc[i + 1] - ((S + T) * I[h]))
+                    ** 2,
+                )
+
+            c = past[&#34;n_vehicles_in_interval&#34;].iloc[i]
+            Snew = (alpha * (c / I[h])) + (1 - alpha) * (S + T)
+            T = beta * (Snew - S) + (1 - beta) * T
+            I[h] = gamma * (c / Snew) + (1 - gamma) * I[h]
+            S = Snew
+
+        RSME = np.sqrt(RSME.mean())
+
+        return RSME</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.timeseries.HW_opt"><code class="name flex">
+<span>def <span class="ident">HW_opt</span></span>(<span>df: pandas.core.frame.DataFrame, days_in_past: int, days_in_future: int, detectors: list = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Average forecast using Holt-Winters method, where parameters have been optimised
+by minimising HW_RSME with historical data</p>
+<p>Args:
+df: Dataframe of SCOOT data
+detectors: List of detectors to look at
+days_in_past: Integer number of previous days to use for forecast
+days_in_future: Days in future produce a for forecast for</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Dataframe forecast in same format as SCOOT input dataframe</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def HW_opt(
+    df: pd.DataFrame,
+    days_in_past: int,
+    days_in_future: int,
+    detectors: list = None,
+):
+
+    &#34;&#34;&#34;Average forecast using Holt-Winters method, where parameters have been optimised
+    by minimising HW_RSME with historical data
+
+    Args: 
+        df: Dataframe of SCOOT data
+        detectors: List of detectors to look at
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        &#34;&#34;&#34;
+
+    framelist = []
+
+    if detectors is None:
+        detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
+
+    for d, detector in enumerate(detectors, 1):
+
+        one_D = df[df[&#34;detector_id&#34;] == detector]
+
+        a = 0.1
+        b = 0.1
+        c = 0.1
+
+        params = minimize(
+            HW_RSME,
+            [a, b, c],
+            args=(one_D, days_in_past),
+            method=&#39;SLSQP&#39;,
+            bounds=[(0, 1), (0,1), (0,1)],
+            options={&#34;ftol&#34;: 3},
+        )[&#34;x&#34;]
+
+        alpha = params[0]
+        beta = params[1]
+        gamma = params[2]
+
+        framelist.append(
+            holt_winters(
+                one_D, days_in_past, days_in_future, alpha=alpha, beta=beta, gamma=gamma
+            )
+        )
+        print(&#34;please wait: &#34;, d, &#34;/&#34;, len(detectors), end=&#34;\r&#34;)
+
+    DF = pd.concat(framelist)
+
+    return DF</code></pre>
 </details>
 </dd>
 <dt id="SpatialScan.timeseries.LSTM_forecast"><code class="name flex">
@@ -1030,6 +1235,15 @@ in scan statistics</p>
             gamma=gamma,
             detectors=detectors,
         )
+
+    if method == &#34;HWO&#34;:
+        y = HW_opt(
+            train_data,
+            days_in_past,
+            days_in_future,
+            detectors=detectors,
+        )
+
     if method == &#34;MALD&#34;:
         y = MALDforecast(train_data, days_in_past, days_in_future, detectors=detectors)
 
@@ -1090,106 +1304,6 @@ in scan statistics</p>
         b = dataset[(i + look_back) : (i + look_back + look_forward), 0]
         dataY.append(b)
     return np.array(dataX), np.array(dataY)</code></pre>
-</details>
-</dd>
-<dt id="SpatialScan.timeseries.data_preprocessor"><code class="name flex">
-<span>def <span class="ident">data_preprocessor</span></span>(<span>df: pandas.core.frame.DataFrame, percentage_missing: float = 20, sigma: float = 3) -> pandas.core.frame.DataFrame</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Function takes a SCOOT dataframe, interpolates any missing values, and returns
-a dataframe with missing values interpolated. Any detectors missing more than
-percentage_missing datapoints will be dropped for having to few values.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>df</code></strong></dt>
-<dd>Dataframe of SCOOT data</dd>
-<dt><strong><code>percentage_missing</code></strong></dt>
-<dd>float percentage of missing values, above which drop detector</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<p>Dataframe of interpolated values with detectors dropped for too many missing values.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def data_preprocessor(
-    df: pd.DataFrame, percentage_missing: float = 20, sigma: float = 3
-) -&gt; pd.DataFrame:
-
-    &#34;&#34;&#34;Function takes a SCOOT dataframe, interpolates any missing values, and returns
-    a dataframe with missing values interpolated. Any detectors missing more than 
-    percentage_missing datapoints will be dropped for having to few values.
-
-    Args:
-        df: Dataframe of SCOOT data
-        percentage_missing: float percentage of missing values, above which drop detector
-
-    Returns:
-        Dataframe of interpolated values with detectors dropped for too many missing values.
-
-        &#34;&#34;&#34;
-    detectors = df[&#34;detector_id&#34;].drop_duplicates().to_numpy()
-    df_list = []
-    i = 0
-    detectors_removed = []
-    for detector in detectors:
-        dataset = df[df[&#34;detector_id&#34;] == detector]
-
-        dataset[&#34;hour&#34;] = dataset[&#34;measurement_start_utc&#34;].dt.hour.to_numpy()
-
-        threshold = (
-            dataset.groupby(&#34;hour&#34;).median()[&#34;n_vehicles_in_interval&#34;]
-            + sigma * dataset.groupby(&#34;hour&#34;).std()[&#34;n_vehicles_in_interval&#34;]
-        )
-
-        for j in range(0, len(dataset)):
-            if (
-                dataset.iloc[j][&#34;n_vehicles_in_interval&#34;]
-                &gt; threshold[dataset.iloc[j][&#34;hour&#34;]]
-            ):
-                dataset.iloc[
-                    j, dataset.columns.get_loc(&#34;n_vehicles_in_interval&#34;)
-                ] = float(&#34;NaN&#34;)
-
-        dataset.index = dataset[&#34;measurement_end_utc&#34;]
-
-        T = pd.date_range(
-            start=df[&#34;measurement_end_utc&#34;].min(),
-            end=df[&#34;measurement_end_utc&#34;].max(),
-            freq=&#34;H&#34;,
-        )
-        dataset = dataset.reindex(T)
-        num_nan = dataset[&#34;n_vehicles_in_interval&#34;].isna().sum()
-        if num_nan &gt; (len(dataset) * percentage_missing) / 100:
-            detectors_removed.append(detector)
-            continue
-
-        dataset[&#34;n_vehicles_in_interval&#34;].to_numpy()
-
-        dataset[&#34;n_vehicles_in_interval&#34;] = dataset[
-            &#34;n_vehicles_in_interval&#34;
-        ].interpolate(method=&#34;linear&#34;, limit_direction=&#34;forward&#34;, axis=0)
-        dataset[&#34;detector_id&#34;] = dataset[&#34;detector_id&#34;].interpolate(
-            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
-        )
-        dataset[&#34;lon&#34;] = dataset[&#34;lon&#34;].interpolate(
-            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
-        )
-        dataset[&#34;lat&#34;] = dataset[&#34;lat&#34;].interpolate(
-            method=&#34;pad&#34;, limit_direction=&#34;forward&#34;, axis=0
-        )
-        dataset[&#34;measurement_end_utc&#34;] = dataset.index
-        dataset[&#34;measurement_start_utc&#34;] = dataset[
-            &#34;measurement_end_utc&#34;
-        ] - np.timedelta64(1, &#34;h&#34;)
-
-        df_list.append(dataset)
-        i += 1
-        print(&#34;please wait: &#34;, i, &#34;/&#34;, len(detectors), &#34;detectors&#34;, end=&#34;\r&#34;)
-    print(&#34;detectors dropped: &#34;, detectors_removed)
-    DF = pd.concat(df_list)
-
-    return DF.reset_index(drop=True)</code></pre>
 </details>
 </dd>
 <dt id="SpatialScan.timeseries.holt_winters"><code class="name flex">
@@ -1262,8 +1376,10 @@ alpha, beta, gamma: optimisation parameters</p>
         endtime = []
         starttime = []
         for j in range(0, days_in_future * 24):
-            end = df[&#34;measurement_end_utc&#34;].to_numpy()[-1] + np.timedelta64(j, &#34;h&#34;)
-            start = df[&#34;measurement_start_utc&#34;].to_numpy()[-1] + np.timedelta64(j, &#34;h&#34;)
+            end = df[&#34;measurement_end_utc&#34;].to_numpy()[-1] + np.timedelta64(j + 1, &#34;h&#34;)
+            start = df[&#34;measurement_start_utc&#34;].to_numpy()[-1] + np.timedelta64(
+                j + 1, &#34;h&#34;
+            )
             h = j % 24
             b = (S + T) * I[h]
             baseline.append(b)
@@ -1278,8 +1394,8 @@ alpha, beta, gamma: optimisation parameters</p>
         df2 = pd.DataFrame(
             {
                 &#34;detector_id&#34;: detector,
-                &#34;lon&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lon&#34;].iloc[0],
-                &#34;lat&#34;: df[df[&#34;detector_id&#34;] == detector][&#34;lat&#34;].iloc[0],
+                &#34;lon&#34;: one_D[one_D[&#34;detector_id&#34;] == detector][&#34;lon&#34;].iloc[0],
+                &#34;lat&#34;: one_D[one_D[&#34;detector_id&#34;] == detector][&#34;lat&#34;].iloc[0],
                 &#34;measurement_start_utc&#34;: starttime,
                 &#34;measurement_end_utc&#34;: endtime,
                 &#34;n_vehicles_in_interval&#34;: baseline,
@@ -1315,13 +1431,14 @@ alpha, beta, gamma: optimisation parameters</p>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="two-column">
 <li><code><a title="SpatialScan.timeseries.CB_plot" href="#SpatialScan.timeseries.CB_plot">CB_plot</a></code></li>
+<li><code><a title="SpatialScan.timeseries.HW_RSME" href="#SpatialScan.timeseries.HW_RSME">HW_RSME</a></code></li>
+<li><code><a title="SpatialScan.timeseries.HW_opt" href="#SpatialScan.timeseries.HW_opt">HW_opt</a></code></li>
 <li><code><a title="SpatialScan.timeseries.LSTM_forecast" href="#SpatialScan.timeseries.LSTM_forecast">LSTM_forecast</a></code></li>
 <li><code><a title="SpatialScan.timeseries.MA" href="#SpatialScan.timeseries.MA">MA</a></code></li>
 <li><code><a title="SpatialScan.timeseries.MALD" href="#SpatialScan.timeseries.MALD">MALD</a></code></li>
 <li><code><a title="SpatialScan.timeseries.MALDforecast" href="#SpatialScan.timeseries.MALDforecast">MALDforecast</a></code></li>
 <li><code><a title="SpatialScan.timeseries.count_baseline" href="#SpatialScan.timeseries.count_baseline">count_baseline</a></code></li>
 <li><code><a title="SpatialScan.timeseries.create_dataset" href="#SpatialScan.timeseries.create_dataset">create_dataset</a></code></li>
-<li><code><a title="SpatialScan.timeseries.data_preprocessor" href="#SpatialScan.timeseries.data_preprocessor">data_preprocessor</a></code></li>
 <li><code><a title="SpatialScan.timeseries.holt_winters" href="#SpatialScan.timeseries.holt_winters">holt_winters</a></code></li>
 </ul>
 </li>
