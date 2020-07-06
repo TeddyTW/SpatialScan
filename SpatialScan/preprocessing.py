@@ -100,7 +100,6 @@ def data_preprocessor(
     percentage_missing: float = 20,
     N_sigma: float = 3,
     repeats: int = 1,
-    percentile: float = 99,
 ) -> pd.DataFrame:
 
     """Function takes a SCOOT dataframe, performs anomaly removal, fill_and_drop, and then
@@ -131,10 +130,16 @@ def data_preprocessor(
                 + N_sigma * dataset.groupby("hour").std()["n_vehicles_in_interval"]
             )
 
-            global_threshold = (
-                dataset["n_vehicles_in_interval"].median()
-                + N_sigma * dataset["n_vehicles_in_interval"].std()
+            # global_threshold = (
+            #     dataset["n_vehicles_in_interval"].median()
+            #     + N_sigma * dataset["n_vehicles_in_interval"].std()
+            # )
+
+            rolling_threshold = (
+                dataset["n_vehicles_in_interval"].rolling(24).median()
+                + 3 * dataset["n_vehicles_in_interval"].rolling(24).std()
             )
+            rolling_threshold = rolling_threshold.fillna(method="backfill")
 
             for j in range(0, len(dataset)):
                 if (
@@ -145,7 +150,7 @@ def data_preprocessor(
                         j, dataset.columns.get_loc("n_vehicles_in_interval")
                     ] = float("NaN")
 
-                if dataset.iloc[j]["n_vehicles_in_interval"] > global_threshold:
+                if dataset.iloc[j]["n_vehicles_in_interval"] > rolling_threshold[j]:
                     dataset.iloc[
                         j, dataset.columns.get_loc("n_vehicles_in_interval")
                     ] = float("NaN")
