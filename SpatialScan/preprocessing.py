@@ -99,6 +99,7 @@ def reindex_and_drop(df: pd.DataFrame, percentage_missing: float = 20) -> pd.Dat
 def data_preprocessor(
     df: pd.DataFrame,
     percentage_missing: float = 20,
+    max_anom: int = 30,
     N_sigma: float = 3,
     repeats: int = 1,
     rolling_hours: int = 24,
@@ -129,15 +130,11 @@ def data_preprocessor(
 
     T = pd.date_range(start=start_date, end=end_date, freq="H",)
 
-    print("Filling in missing dates and times. Reindexing on date ...")
-
     mux = pd.MultiIndex.from_product(
         [df["detector_id"].unique(), T], names=("detector_id", "measurement_end_utc")
     )
 
-    df = df.set_index(["detector_id", "measurement_end_utc"]).reindex(mux)
-
-    print("Reindexing complete.\n")
+    df = df.set_index(["detector_id", "measurement_end_utc"])
 
     if global_threshold:
         print(
@@ -162,19 +159,37 @@ def data_preprocessor(
             )
         )
 
+    df = df.sort_values(["detector_id", "measurement_end_utc"])
+    
     for r in range(0, repeats):
 
-        df.loc[:, "rolling_threshold"] = (
-            df["n_vehicles_in_interval"].rolling(rolling_hours).median()
-            + N_sigma * df["n_vehicles_in_interval"].std()
+        df["rolling_threshold"] = (
+            df.groupby(level="detector_id")["n_vehicles_in_interval"]
+            .rolling(window=rolling_hours)
+            .median()
+            .values
+            + N_sigma
+            * df.groupby(level="detector_id")["n_vehicles_in_interval"]
+            .rolling(window=rolling_hours)
+            .std()
+            .values
         )
-        df["global_threshold"] = np.repeat(
-            (
-                df.median(level="detector_id")["n_vehicles_in_interval"]
-                + N_sigma * (df.std(level="detector_id")["n_vehicles_in_interval"])
-            ).to_numpy(),
-            len(T),
+
+        #         df.loc[:, "rolling_threshold"] = (
+        #             df["n_vehicles_in_interval"].rolling(rolling_hours).median()
+        #             + N_sigma * df["n_vehicles_in_interval"].std()
+        #         )
+
+        df = df.join(
+            df.median(level="detector_id")["n_vehicles_in_interval"]
+            + N_sigma * (df.std(level="detector_id")["n_vehicles_in_interval"]),
+            on=["detector_id"],
+            rsuffix="anom",
         )
+
+        df["global_threshold"] = df["n_vehicles_in_intervalanom"]
+        df = df.drop(["n_vehicles_in_intervalanom"], axis=1)
+
         df["rolling_threshold"] = df["rolling_threshold"].fillna(df["global_threshold"])
         if global_threshold:
             df["rolling_threshold"] = df["global_threshold"]
@@ -190,6 +205,24 @@ def data_preprocessor(
 
     print("\nThreshold(s) calculated.\n")
 
+    df = df.join(
+        df.isna().astype(int).sum(level="detector_id")["n_vehicles_in_interval"],
+        on=["detector_id"],
+        rsuffix="NaN",
+    )
+
+    df["Num_Anom"] = df["n_vehicles_in_intervalNaN"]
+    df = df.drop(["n_vehicles_in_intervalNaN"], axis=1)
+
+    orig_set = set(df.index.get_level_values("detector_id"))
+    orig_length = len(orig_set)
+
+    print("Dropping detectors with more than {} anomalies...".format(max_anom))
+    df = df.drop(df[df["Num_Anom"] > max_anom].index)
+
+    print("Filling in missing dates and times. Reindexing on date ...")
+    df = df.reindex(mux)
+
     x = []
     for d in df.index.get_level_values("detector_id").unique():
         x.append([df.loc[d]["n_vehicles_in_interval"].isna().sum()] * len(df.loc[d]))
@@ -198,9 +231,6 @@ def data_preprocessor(
     x = x.flatten()
 
     df["Num_Missing"] = x
-
-    orig_set = set(df.index.get_level_values("detector_id"))
-    orig_length = len(orig_set)
 
     print(
         "Dropping detectors with sufficiently high amounts of missing data (>{}%)...".format(
