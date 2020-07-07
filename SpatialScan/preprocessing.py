@@ -159,9 +159,9 @@ def data_preprocessor(
             )
         )
 
+    df = df.sort_values(["detector_id", "measurement_end_utc"])
+    
     for r in range(0, repeats):
-
-        df = df.sort_values(["detector_id", "measurement_end_utc"])
 
         df["rolling_threshold"] = (
             df.groupby(level="detector_id")["n_vehicles_in_interval"]
@@ -217,7 +217,7 @@ def data_preprocessor(
     orig_set = set(df.index.get_level_values("detector_id"))
     orig_length = len(orig_set)
 
-    print("Dropping detectors with more than {} anomallys...".format(max_anom))
+    print("Dropping detectors with more than {} anomalies...".format(max_anom))
     df = df.drop(df[df["Num_Anom"] > max_anom].index)
 
     print("Filling in missing dates and times. Reindexing on date ...")
