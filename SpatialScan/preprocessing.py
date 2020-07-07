@@ -270,9 +270,6 @@ def data_preprocessor(
     df["lat"] = df["lat"].interpolate(method="pad", limit_direction="both", axis=0)
 
     print("Data processing complete.\n")
-    df = df.drop(
-        ["rolling_threshold", "global_threshold", "Num_Anom", "Num_Missing"], axis=1
-    )
     return df
 
 

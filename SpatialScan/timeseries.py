@@ -338,6 +338,10 @@ def count_baseline(
 
         """
 
+    df = df.drop(
+        ["rolling_threshold", "global_threshold", "Num_Anom", "Num_Missing"], axis=1
+    )
+
     t_min = df["measurement_start_utc"].min()
     t_max = df["measurement_end_utc"].max()
 
