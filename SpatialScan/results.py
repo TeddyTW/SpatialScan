@@ -8,20 +8,19 @@ import numpy as np
 
 def title_generator(scan_type: str, i: int, t_labels: np.ndarray) -> str:
     """Quick utility function to create labels based on the tye of search.
-    Accounts for the varying/non-varying t_min in both regimes.
+    Accounts for the varying/non-varying t_max in both regimes.
     Args:
-        scan_type: "Normal" or "Exhaustive"
+        scan_type: "normal" or "exhaustive"
         i: loop iteration
         t_labels: Array of t_tick labels for plotting
     Returns:
         String representing the appropiate label for graph.
     """
     if scan_type == "normal":
-        return "{} to {}".format(t_labels[0], t_labels[i + 1])
+        return "{} to {}".format(t_labels[i], t_labels[len(t_labels) - 1])
     elif scan_type == "exhaustive":
         return "{} to {}".format(t_labels[i], t_labels[i + 1])
     return None
-
 
 def visualise_results(
     res_df,
@@ -43,11 +42,11 @@ def visualise_results(
     assert (set([metric])) <= set(res_df.columns)
 
     # What type of scan was it? Normal or Exhaustive?
-    # Only way to tell is by the number of unuique t_mins in res_df
-    num_t_mins = len(res_df["t_min"].unique())
+    # Only way to tell is by the number of unique t_maxs in res_df
+    num_t_maxs = len(res_df["t_max"].unique())
 
-    # If more than one t_min, scan was exhaustive
-    if num_t_mins > 1:
+    # If more than one t_max, scan was exhaustive
+    if num_t_maxs > 1:
         scan_type = "exhaustive"
     else:
         scan_type = "normal"
@@ -98,8 +97,8 @@ def visualise_results(
                     & (res_df["x_max"] >= x_ticks[i + 1])
                     & (res_df["y_min"] <= y_ticks[j])
                     & (res_df["y_max"] >= y_ticks[j + 1])
-                    & (res_df["t_min"] == t_ticks[0 if scan_type == "normal" else t])
-                    & (res_df["t_max"] == t_ticks[t + 1])
+                    & (res_df["t_min"] == t_ticks[t])
+                    & (res_df["t_max"] == t_ticks[len(t_ticks) - 1  if scan_type == "normal" else t + 1])
                 ]
 
                 l_score = sub_df[metric].mean()
@@ -130,7 +129,7 @@ def visualise_results(
             )
         ],
         layout=go.Layout(
-            title="{} to {}".format(t_labels[0], t_labels[1]),
+            title="{} to {}".format(t_labels[0], t_labels[len(t_labels) - 1]),
             width=800,
             height=500,
             updatemenus=[
@@ -183,11 +182,11 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
     """
 
     # What type of scan was it? Normal or Exhaustive?
-    # Only way to tell is by the number of unuique t_mins in res_df
-    num_t_mins = len(res_df["t_min"].unique())
+    # Only way to tell is by the number of unuique t_maxs in res_df
+    num_t_maxs = len(res_df["t_max"].unique())
 
-    # If more than one t_min, scan was exhaustive
-    if num_t_mins > 1:
+    # If more than one t_max, scan was exhaustive
+    if num_t_maxs > 1:
         scan_type = "exhaustive"
     else:
         scan_type = "normal"
@@ -220,8 +219,8 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     & (res_df["x_max"] >= x_ticks[i + 1])
                     & (res_df["y_min"] <= y_ticks[j])
                     & (res_df["y_max"] >= y_ticks[j + 1])
-                    & (res_df["t_min"] == t_ticks[0 if scan_type == "normal" else t])
-                    & (res_df["t_max"] == t_ticks[t + 1])
+                    & (res_df["t_min"] == t_ticks[t])
+                    & (res_df["t_max"] == t_ticks[len(t_ticks) - 1  if scan_type == "normal" else t + 1])
                 ]
 
                 B, C = sub_df[["B_in", "C_in"]].sum()
@@ -238,8 +237,8 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                 ].mean()
 
                 return_dict[num_regions] = {
-                    "start_time_utc": t_ticks[0 if scan_type == "normal" else t],
-                    "end_time_utc": t_ticks[t + 1],
+                    "start_time_utc": t_ticks[t],
+                    "end_time_utc": t_ticks[len(t_ticks) - 1  if scan_type == "normal" else t + 1],
                     "point_id": num_spatial_regions,
                     "observed_count": C,
                     "forecasted_count": B,
