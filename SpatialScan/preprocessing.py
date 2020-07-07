@@ -121,15 +121,15 @@ def data_preprocessor(
         Dataframe of interpolated values with detectors dropped for too many missing values.
 
         """
-    detectors = df["detector_id"].drop_duplicates().to_numpy()
-    i = 0
-    detectors_removed = []
 
-    T = pd.date_range(
-        start=df["measurement_end_utc"].min(),
-        end=df["measurement_end_utc"].max(),
-        freq="H",
-    )
+    start_date = df["measurement_end_utc"].min()
+    end_date = df["measurement_end_utc"].max()
+
+    num_days = (end_date - start_date).days
+
+    T = pd.date_range(start=start_date, end=end_date, freq="H",)
+
+    print("Filling in missing dates and times. Reindexing on date ...")
 
     mux = pd.MultiIndex.from_product(
         [df["detector_id"].unique(), T], names=("detector_id", "measurement_end_utc")
@@ -137,7 +137,30 @@ def data_preprocessor(
 
     df = df.set_index(["detector_id", "measurement_end_utc"]).reindex(mux)
 
-    print("reindexing complete")
+    print("Reindexing complete.\n")
+
+    if global_threshold:
+        print(
+            "Using the global median over {} days to remove outliers ...".format(
+                num_days
+            )
+        )
+        print(
+            "Using {} iteration(s) to remove points outside of {} sigma from the global median ...".format(
+                repeats, N_sigma
+            )
+        )
+    else:
+        print(
+            "Using the {}-day rolling median to remove outliers ...".format(
+                rolling_hours
+            )
+        )
+        print(
+            "Using {} iterations to remove points outside of {} sigma from the rolling median ...".format(
+                repeats, N_sigma
+            )
+        )
 
     for r in range(0, repeats):
 
@@ -160,37 +183,64 @@ def data_preprocessor(
             df["n_vehicles_in_interval"] > df["rolling_threshold"],
             ["n_vehicles_in_interval"],
         ] = float("NaN")
-        print("calcualting thresholds, repeats: ", r + 1, end="\r")
+        print(
+            "Calculating threshold(s): Iteration {} of {}...".format(r + 1, repeats),
+            end="\r",
+        )
 
-    print("thresholds calculated")
+    print("\nThreshold(s) calculated.\n")
 
     x = []
     for d in df.index.get_level_values("detector_id").unique():
         x.append([df.loc[d]["n_vehicles_in_interval"].isna().sum()] * len(df.loc[d]))
-    print("detectors missing values dropped")
 
     x = np.array(x)
     x = x.flatten()
 
     df["Num_Missing"] = x
 
+    orig_set = set(df.index.get_level_values("detector_id"))
+    orig_length = len(orig_set)
+
+    print(
+        "Dropping detectors with sufficiently high amounts of missing data (>{}%)...".format(
+            percentage_missing
+        )
+    )
     df = df.drop(df[df["Num_Missing"] > ((len(T) * percentage_missing) / 100)].index)
 
-    print("malfunctioning detectors dropped")
+    curr_set = set(df.index.get_level_values("detector_id"))
+    curr_length = len(curr_set)
+    print(
+        "{} detectors dropped: {}\n".format(
+            orig_length - curr_length, orig_set.difference(curr_set)
+        )
+    )
 
     # df["detector_id"]=df.index.get_level_values('detector_id')
     # df["measurement_end_utc"]=df.index.get_level_values('measurement_end_utc')
     df["measurement_start_utc"] = df.index.get_level_values(
         "measurement_end_utc"
     ) - np.timedelta64(1, "h")
+
+    print(
+        "Linearly interpolating between missing vehicle counts for remaining detectors ",
+        "with less than {}% missing data...".format(percentage_missing),
+    )
     df["n_vehicles_in_interval"] = df["n_vehicles_in_interval"].interpolate(
         method="linear", limit_direction="both", axis=0
     )
-    df["lon"] = df["lon"].interpolate(method="linear", limit_direction="both", axis=0)
-    df["lat"] = df["lat"].interpolate(method="linear", limit_direction="both", axis=0)
-    print("interpolation complete")
+    print("Interpolation complete.\n")
 
-    return df.reset_index()
+    print("Filling missing lon and lats...")
+    df = df.reset_index()
+    df.sort_values(["detector_id", "measurement_end_utc"], inplace=True)
+
+    df["lon"] = df["lon"].interpolate(method="pad", limit_direction="both", axis=0)
+    df["lat"] = df["lat"].interpolate(method="pad", limit_direction="both", axis=0)
+
+    print("Data processing complete.\n")
+    return df
 
 
 def data_preprocessor_slow(
@@ -222,7 +272,7 @@ def data_preprocessor_slow(
 
         dataset.loc[:, "hour"] = dataset["measurement_start_utc"].dt.hour.to_numpy()
 
-        for k in range(0, repeats):
+        for _ in range(0, repeats):
 
             threshold = (
                 dataset.groupby("hour").median()["n_vehicles_in_interval"]
@@ -297,7 +347,10 @@ def data_preprocessor_slow(
 
     return DF.drop(columns=["hour"]).reset_index(drop=True)
 
-def plot_processing(raw_scoot_df: pd.DataFrame, processed_scoot_df: pd.DataFrame, detector: str = None):
+
+def plot_processing(
+    raw_scoot_df: pd.DataFrame, processed_scoot_df: pd.DataFrame, detector: str = None
+):
 
     """ Helper function to compare raw and processed time-series of a detector.
     Args:
@@ -308,14 +361,22 @@ def plot_processing(raw_scoot_df: pd.DataFrame, processed_scoot_df: pd.DataFrame
     """
 
     if detector is None:
-        detector = raw_scoot_df['detector_id'].sample(1).iloc[0]
+        detector = raw_scoot_df["detector_id"].sample(1).iloc[0]
     print(detector)
-    
-    d_scoot = raw_scoot_df[raw_scoot_df['detector_id'] == detector]['n_vehicles_in_interval'].to_numpy()
-    t_scoot = raw_scoot_df[raw_scoot_df['detector_id'] == detector]['measurement_end_utc'].to_numpy()
-    d_proc = processed_scoot_df[processed_scoot_df['detector_id'] == detector]['n_vehicles_in_interval'].to_numpy()
-    t_proc = processed_scoot_df[processed_scoot_df['detector_id'] == detector]['measurement_end_utc'].to_numpy()
-    
+
+    d_scoot = raw_scoot_df[raw_scoot_df["detector_id"] == detector][
+        "n_vehicles_in_interval"
+    ].to_numpy()
+    t_scoot = raw_scoot_df[raw_scoot_df["detector_id"] == detector][
+        "measurement_end_utc"
+    ].to_numpy()
+    d_proc = processed_scoot_df[processed_scoot_df["detector_id"] == detector][
+        "n_vehicles_in_interval"
+    ].to_numpy()
+    t_proc = processed_scoot_df[processed_scoot_df["detector_id"] == detector][
+        "measurement_end_utc"
+    ].to_numpy()
+
     fig, ax = plt.subplots(figsize=(20, 6))
     plt.plot(t_scoot, d_scoot, label="Raw")
     plt.plot(t_proc, d_proc, label="Processed")

@@ -6,3 +6,5 @@
 region_event_try.py
 *.csv
 *.DS_Store
+notebooks/chance/*
+
