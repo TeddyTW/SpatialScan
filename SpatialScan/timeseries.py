@@ -427,6 +427,24 @@ def count_baseline(
 
     return Y
 
+def forecast_plot(df: pd.DataFrame, detector: str = None):
+    """Function that plots the Count against the forecasted Baseline
+        
+        Args:
+            df: Dataframe with Time, Count and Baseline columns
+            detector: String of detector name, if none detector chosen at random"""
+
+    
+    detectors = df["detector_id"].drop_duplicates()
+    if(detector is None):
+        detector=detectors.sample(n=1).to_numpy()[0]
+
+    df_d=df[df["detector_id"]==detector]
+
+    print(detector)
+    df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    plt.show()
+            
 
 def CB_plot(df: pd.DataFrame):
 
