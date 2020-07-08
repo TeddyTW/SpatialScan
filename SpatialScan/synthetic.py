@@ -50,5 +50,4 @@ def synthetic_SCOOT(
     )
     DF["n_vehicles_in_interval"] = np.hstack(X.to_numpy())
     DF = DF.reset_index()
-    DF.sort_values(["detector_id", "measurement_end_utc"], inplace=True)
     return DF
