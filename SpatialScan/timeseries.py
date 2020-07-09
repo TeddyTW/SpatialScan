@@ -460,6 +460,10 @@ def CB_plot(df: pd.DataFrame):
             Dataframe with Time, Count and Baseline columns"""
 
     df_format = df
+
+    forecast_t_min = df_format['measurement_start_utc'].min()
+    forecast_t_max = df_format['measurement_end_utc'].max()
+
     df_format["C/B"] = df_format["count"] / df_format["baseline"]
     df_format["hour_from_start"] = (
         df_format["measurement_end_utc"] - df_format["measurement_end_utc"].min()
@@ -483,6 +487,7 @@ def CB_plot(df: pd.DataFrame):
     ax.set_ylabel("lat")
     ax.set_zlabel("Hours")
     fig.colorbar(p)
+    fig.suptitle("Forecast from {} to {}".format(forecast_t_min, forecast_t_max))
     plt.show()
 
 
