@@ -286,7 +286,7 @@ def results_builder(
         res_df = scan(forecast_df, grid_partition=grid_partition, scan_type=scan_type)
 
         plot_region_by_rank(
-            0, res_df_normal, forecast_df, plot_type="count", add_legend=False
+            0, res_df, forecast_df, plot_type="count", add_legend=False
         )
 
         #  Return Highest Scoring region here
@@ -325,8 +325,8 @@ def results_builder(
             iter(database_df.groupby(database_df["start_time_utc"].dt.day))
         )
 
-        for i in range(days_in_future):
-            forecast_day = (today - np.timedelta64(days_in_future - i, "D")).day
+        for j in range(days_in_future):
+            forecast_day = (today - np.timedelta64(days_in_future - j, "D")).day
             dataframe_list.append(days_dict[forecast_day])
 
         today += np.timedelta64(1, "D")
