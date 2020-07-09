@@ -350,13 +350,15 @@ def count_baseline(
     if detectors is None:
         detectors = df["detector_id"].drop_duplicates().to_numpy()
 
-    prediction_start = df["measurement_end_utc"].iloc[-1] - np.timedelta64(
+    # Previously assumed sorted
+    prediction_start = t_max - np.timedelta64(
         days_in_future * 24, "h"
     )
 
     train_data = df[df["measurement_end_utc"] <= prediction_start]
     test_data = df[df["measurement_end_utc"] > prediction_start]
 
+    # Relies on data being pre-processed
     avail_past_days = int(len(train_data["measurement_end_utc"].unique()) / 24)
     if avail_past_days < days_in_past:
         print(
@@ -365,10 +367,13 @@ def count_baseline(
             ),
             "Setting days_in_past = {}.".format(avail_past_days),
         )
+        forecast_data_start = t_min
+    else:
+        forecast_data_start = prediction_start - np.timedelta64(days_in_past, 'D')
 
     print(
         "Using data from {} to {}, to forecast counts between {} and {} for {} detectors using {} method...".format(
-            t_min, prediction_start, prediction_start, t_max, len(detectors), method
+            forecast_data_start, prediction_start, prediction_start, t_max, len(detectors), method
         )
     )
 
