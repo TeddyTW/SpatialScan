@@ -240,6 +240,10 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     "start_time_utc": t_ticks[t],
                     "end_time_utc": t_ticks[len(t_ticks) - 1  if scan_type == "normal" else t + 1],
                     "point_id": num_spatial_regions,
+                    "x_min": x_ticks[i],
+                    "x_max": x_ticks[i + 1],
+                    "y_min": y_ticks[j],
+                    "y_max": y_ticks[j + 1],
                     "observed_count": C,
                     "forecasted_count": B,
                     "av_lhd_score_basic": means["l_score_basic"],
@@ -253,3 +257,130 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                 num_spatial_regions += 1
                 num_regions += 1
     return pd.DataFrame.from_dict(return_dict, "index")
+
+
+def visualise_results_from_database(
+    database_df,
+    metric: str = "av_lhd_score_basic",
+    smooth: bool = False,
+    c_min: float = None,
+    c_max: float = None):
+    
+    """Allows reconstruction of the plot from any time slice of database data.
+    the above make the plots directly from the output of `scan()`
+
+    Args:
+        database_df: dataframe from database storage
+        metric: Which metric to plot from database_df
+        smooth: Boolean which decides whether to smooth the spatial region in
+                the animation or not.
+        c_min: Minimum value to set the color bar
+        c_max: Maximum value to set the color bar.
+    """
+
+    assert (set([metric])) <= set(database_df.columns)
+    
+    times = database_df['start_time_utc'].unique()
+    grid_partition = len(database_df["x_min"].unique())
+    
+    x_min = database_df["x_min"].min()
+    x_max = database_df["x_max"].max()
+    y_min = database_df["y_min"].min()
+    y_max = database_df["y_max"].max()
+    t_min = database_df["start_time_utc"].min()
+    t_max = database_df["end_time_utc"].max()
+    
+    print("Dataframe contains data from the database spanning {} to {}.".format(t_min, t_max))
+
+    # Re-create the grid used
+    x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
+    y_ticks = np.linspace(y_min, y_max, grid_partition + 1)
+
+    # Use these to explicitly return labels
+    x_labels = [
+        "{0:.3f}".format((x_ticks[i] + x_ticks[i + 1]) / 2)
+        for i in range(len(x_ticks) - 1)
+    ]
+    y_labels = [
+        "{0:.3f}".format((y_ticks[i] + y_ticks[i + 1]) / 2)
+        for i in reversed(range(len(y_ticks) - 1))
+    ]
+    
+    # Pick random time series to get correct dates
+    # XXX - point Id will need to be changed eventually.
+    example_df = database_df[database_df['point_id'] == 0]
+  
+    t_min_ticks = example_df['start_time_utc']
+    t_max_ticks = example_df['end_time_utc']
+    t_min_labels = [x.strftime("%I%p, %d %b %y") for x in t_min_ticks]
+    t_max_labels = [x.strftime("%I%p, %d %b %y") for x in t_max_ticks]
+
+    scores_array = []
+    for time in times:
+        scores = database_df[database_df['start_time_utc'] == time][metric].to_numpy()
+        scores = np.reshape(scores, (grid_partition, grid_partition))
+        
+        # Reverse the array for plotting convention (low y is high)
+        scores = scores[::-1]
+        
+        scores_array.append(scores)
+        
+    global_min = np.min(scores_array)
+    global_max = np.max(scores_array)
+
+
+    # Below is all plotting
+    zsmooth = "best" if smooth else None
+    c_min = global_min if c_min is None else c_min
+    c_max = global_max if c_max is None else c_max
+
+    fig = go.Figure(
+        data=[
+            go.Heatmap(
+                z=scores_array[0],
+                x=x_labels,
+                y=y_labels,
+                zmin=c_min,
+                zmax=c_max,
+                zsmooth=zsmooth,
+                colorbar={"title": "Average Likelihood Ratio Score"},
+            )
+        ],
+        layout=go.Layout(
+            title="{} to {}".format(t_min_labels[0], t_max_labels[0]),
+            width=800,
+            height=500,
+            updatemenus=[
+                dict(
+                    type="buttons",
+                    buttons=[
+                        dict(label="Play", method="animate", args=[None]),
+                        dict(
+                            label="Pause",
+                            method="animate",
+                            args=[
+                                None,
+                                {
+                                    "frame": {"duration": 0, "redraw": False},
+                                    "mode": "immediate",
+                                    "transition": {"duration": 0},
+                                },
+                            ],
+                        ),
+                    ],
+                )
+            ],
+        ),
+        frames=[
+            go.Frame(
+                data=[go.Heatmap(z=scores_array[i], zmin=c_min, zmax=c_max)],
+                layout=go.Layout(title="{} to {}".format(t_min_labels[i], t_max_labels[i])),
+            )
+            for i in range(0, len(t_min_labels))
+        ],
+    )
+    fig.update_layout(
+        xaxis_title="Longitude", yaxis_title="Latitude",
+    )
+    fig.show()
+    return {"max": c_max, "min": c_min}
