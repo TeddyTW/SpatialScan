@@ -453,6 +453,14 @@ def forecast_plot(df: pd.DataFrame, detector: str = None):
 
     print(detector)
     df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    if 'prediction_variance' in df_d.columns:
+        plt.fill_between(df_d["measurement_end_utc"],
+            df_d["baseline"] + np.sqrt(df_d['prediction_variance']) ,
+            df_d["baseline"] - np.sqrt(df_d['prediction_variance']) ,
+            color="C0",
+            alpha=0.2,
+        )
+    
     plt.show()
 
 
@@ -687,11 +695,11 @@ def GP_forecast(
         kern_M = gpflow.kernels.Matern52()
 
         kern_pD.period.assign(24.0)
-        kern_pD.base_kernel.variance.assign(10)
+        #kern_pD.base_kernel.variance.assign(10)
         kern_pW.period.assign(168.0)
-        kern_pW.base_kernel.variance.assign(10)
+        #kern_pW.base_kernel.variance.assign(10)
 
-        k = kern_pD * kern_pW + kern_SE + kern_M
+        k = kern_pD * kern_pW + kern_SE + kern_W
 
         m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
         opt = gpflow.optimizers.Scipy()
@@ -703,7 +711,7 @@ def GP_forecast(
 
         ## generate test points for prediction
         xx = np.linspace(
-            len(Y), len(Y) + (days_in_future * 24), (days_in_future * 24)
+            len(Y) +1, len(Y) + (days_in_future * 24)+1, (days_in_future * 24)
         ).reshape(
             (days_in_future * 24), 1
         )  # test points must be of shape (N, D)
@@ -713,7 +721,7 @@ def GP_forecast(
 
         # reverse min_max scaler
         testPredict = scaler.inverse_transform(mean)
-        testVar = scaler.inverse_transform(mean)
+        testVar = scaler.inverse_transform(var)
 
         # find the time period for our testPredictions
         prediction_start = dataset["measurement_end_utc"].max()
