@@ -207,7 +207,8 @@ def simulate_outbreak(synthetic_data, severity, k_min, k_max, outbreak_duration=
 
 
 def results_builder(
-    outbreak_dataframe: pd.DataFrame,
+    outbreak_df: pd.DataFrame,
+    outbreak_detectors: pd.DataFrame,
     days_in_past: int,
     days_in_future: int,
     method: str,
@@ -237,8 +238,15 @@ def results_builder(
         Dataframe of highest scoring regions per day
         """
 
-    t_min = outbreak_dataframe["measurement_start_utc"].min()
-    t_max = outbreak_dataframe["measurement_end_utc"].max()
+    t_min = outbreak_df["measurement_start_utc"].min()
+    t_max = outbreak_df["measurement_end_utc"].max()
+
+    # Get outbreak characteristics
+    num_outbreak_detectors = len(set(outbreak_detectors['detector_id']))
+    ob_x_min = outbreak_detectors['lon'].min()
+    ob_x_max = outbreak_detectors['lon'].max()
+    ob_y_min = outbreak_detectors['lat'].min()
+    ob_y_max = outbreak_detectors['lat'].max()
 
     total_num_days = (t_max - t_min).days
     print("Total number of days in dataframe: ", total_num_days)
@@ -267,8 +275,8 @@ def results_builder(
             )
         )
 
-        available_today = outbreak_dataframe[
-            outbreak_dataframe["measurement_end_utc"] <= today
+        available_today = outbreak_df[
+            outbreak_df["measurement_end_utc"] <= today
         ].copy()
 
         forecast_df = count_baseline(
@@ -297,17 +305,44 @@ def results_builder(
                 "y_max",
                 "t_min",
                 "t_max",
-                "l_score_basic",
+                "l_score_EBP",
                 "l_score_000",
                 "l_score_025",
                 "l_score_050",
-                "l_score_075",
-                "l_score_100",
+                "posterior_bbayes",
             ]
         ].to_dict()
+
+        # Add some Spatial analysis
+        x_min = highest_region['x_min']
+        x_max = highest_region['x_max']
+        y_min = highest_region['y_min']
+        y_max = highest_region['y_max']
+        
+        
+        num_detectors_in_highest_region = len(set(outbreak_df[(outbreak_df['lon'].between(x_min, x_max)) &\
+                                                             (outbreak_df['lat'].between(y_min, y_max))].detector_id))
+        
+        overlap_x_min = max([x_min, ob_x_min])
+        overlap_x_max = min([x_max, ob_x_max])
+        overlap_y_min = max([y_min, ob_y_min])
+        overlap_y_max = min([y_max, ob_y_max])
+        
+        num_detectors_in_highest_region_and_true = len(set(outbreak_df[(outbreak_df['lon'].between(overlap_x_min, overlap_x_max)) &\
+                                                             (outbreak_df['lat'].between(overlap_y_min, overlap_y_max))].detector_id))
+        
+        # Calculate Spatial Precision and Recall
+        precision = num_detectors_in_highest_region_and_true / num_detectors_in_highest_region
+        recall = num_detectors_in_highest_region_and_true / num_outbreak_detectors
+        
+        highest_region["precision"] = precision
+        highest_region["recall"] = recall
         highest_region["day"] = today
+        
+        # Append to list of dataframes
         daily_highest_scoring_regions[i] = highest_region
 
+        # Send results to database
         database_df = database_results(res_df)
 
         # Updates data correctly with most reliable average likelihood scores.
