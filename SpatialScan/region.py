@@ -250,7 +250,11 @@ def plot_global_region(
     """
 
     # Set defaults accordingly
-    time_slice = forecast_data["measurement_end_utc"].iloc[0] if time_slice is None else time_slice
+    time_slice = (
+        forecast_data["measurement_end_utc"].iloc[0]
+        if time_slice is None
+        else time_slice
+    )
     legend = "brief" if add_legend else False
 
     global_region = infer_global_region(forecast_data)

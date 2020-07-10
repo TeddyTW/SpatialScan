@@ -59,7 +59,12 @@ def likelihood_ratio_kulgen(B: float, C: float, B_tot: float, C_tot: float, eps:
 def bayes_lhood_form(alpha, beta, B, C):
     if B == 0 or C == 0:
         return np.nan
-    return (beta ** alpha) * gamma(alpha + C) / (((beta + B)**(alpha + C)) * gamma(alpha))
+    return (
+        (beta ** alpha)
+        * gamma(alpha + C)
+        / (((beta + B) ** (alpha + C)) * gamma(alpha))
+    )
+
 
 def bbayes_lhood_H1(B_in, C_in, B_tot, C_tot, num_m_samples=10):
 
@@ -84,10 +89,11 @@ def bbayes_lhood_H1(B_in, C_in, B_tot, C_tot, num_m_samples=10):
         # Set the last prior which depends on m
         alpha_in = m * q_0 * B_in
 
-        l_score = bayes_lhood_form(alpha_in, beta_in, B_in, C_in) *\
-                  bayes_lhood_form(alpha_out, beta_out, B_out, C_out)
+        l_score = bayes_lhood_form(alpha_in, beta_in, B_in, C_in) * bayes_lhood_form(
+            alpha_out, beta_out, B_out, C_out
+        )
 
-        av_score += (l_score / num_m_samples)
+        av_score += l_score / num_m_samples
 
     return av_score
 

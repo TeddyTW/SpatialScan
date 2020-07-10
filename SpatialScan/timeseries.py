@@ -353,9 +353,7 @@ def count_baseline(
         detectors = df["detector_id"].drop_duplicates().to_numpy()
 
     # Previously assumed sorted
-    prediction_start = t_max - np.timedelta64(
-        days_in_future * 24, "h"
-    )
+    prediction_start = t_max - np.timedelta64(days_in_future * 24, "h")
 
     train_data = df[df["measurement_end_utc"] <= prediction_start]
     test_data = df[df["measurement_end_utc"] > prediction_start]
@@ -371,13 +369,15 @@ def count_baseline(
         )
         forecast_data_start = t_min
     else:
-        forecast_data_start = prediction_start - np.timedelta64(days_in_past, 'D')
+        forecast_data_start = prediction_start - np.timedelta64(days_in_past, "D")
 
     print(
-        "Using data from {} to {}, to forecast counts\n".format(forecast_data_start, prediction_start),
+        "Using data from {} to {}, to forecast counts\n".format(
+            forecast_data_start, prediction_start
+        ),
         "between {} and {} for {} detectors using {} method...".format(
             prediction_start, t_max, len(detectors), method
-        )
+        ),
     )
 
     if method == "HW":
@@ -459,14 +459,15 @@ def forecast_plot(df: pd.DataFrame, detector: str = None):
 
     print(detector)
     df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
-    if 'prediction_variance' in df_d.columns:
-        plt.fill_between(df_d["measurement_end_utc"],
-            df_d["baseline"] + np.sqrt(df_d['prediction_variance']) ,
-            df_d["baseline"] - np.sqrt(df_d['prediction_variance']) ,
+    if "prediction_variance" in df_d.columns:
+        plt.fill_between(
+            df_d["measurement_end_utc"],
+            df_d["baseline"] + np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] - np.sqrt(df_d["prediction_variance"]),
             color="C0",
             alpha=0.2,
         )
-    
+
     plt.show()
 
 
@@ -480,8 +481,8 @@ def CB_plot(df: pd.DataFrame):
 
     df_format = df
 
-    forecast_t_min = df_format['measurement_start_utc'].min()
-    forecast_t_max = df_format['measurement_end_utc'].max()
+    forecast_t_min = df_format["measurement_start_utc"].min()
+    forecast_t_max = df_format["measurement_end_utc"].max()
 
     df_format["C/B"] = df_format["count"] / df_format["baseline"]
     df_format["hour_from_start"] = (
@@ -706,9 +707,9 @@ def GP_forecast(
         kern_M = gpflow.kernels.Matern52()
 
         kern_pD.period.assign(24.0)
-        #kern_pD.base_kernel.variance.assign(10)
+        # kern_pD.base_kernel.variance.assign(10)
         kern_pW.period.assign(168.0)
-        #kern_pW.base_kernel.variance.assign(10)
+        # kern_pW.base_kernel.variance.assign(10)
 
         k = kern_pD * kern_pW + kern_SE + kern_W
 
@@ -722,7 +723,7 @@ def GP_forecast(
 
         ## generate test points for prediction
         xx = np.linspace(
-            len(Y) +1, len(Y) + (days_in_future * 24)+1, (days_in_future * 24)
+            len(Y) + 1, len(Y) + (days_in_future * 24) + 1, (days_in_future * 24)
         ).reshape(
             (days_in_future * 24), 1
         )  # test points must be of shape (N, D)

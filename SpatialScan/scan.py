@@ -11,11 +11,19 @@ from SpatialScan.region import (
     simulate_event_count,
     aggregate_event_data,
 )
-from SpatialScan.likelihood import likelihood_ratio, likelihood_ratio_kulgen, bbayes_lhood_H0, bbayes_lhood_H1
+from SpatialScan.likelihood import (
+    likelihood_ratio,
+    likelihood_ratio_kulgen,
+    bbayes_lhood_H0,
+    bbayes_lhood_H1,
+)
 
 
 def scan(
-    forecast_data: pd.DataFrame, grid_partition: int, scan_type: str = "normal", bayes_no_outbreak_prior = 0.99
+    forecast_data: pd.DataFrame,
+    grid_partition: int,
+    scan_type: str = "normal",
+    bayes_no_outbreak_prior=0.99,
 ) -> pd.DataFrame:
 
     """Main function for looping through the sub-space-time regions (S) of
@@ -104,12 +112,16 @@ def scan(
                             B, C = event_count(test_region, agg_df)
 
                             # Compute Metrics
-                            ebp_l_score = likelihood_ratio(B, C) # Normal EBP metric
+                            ebp_l_score = likelihood_ratio(B, C)  # Normal EBP metric
                             general_l_scores = [
-                                likelihood_ratio_kulgen(B, C, B_tot, C_tot, eps) # General Kulldorf
+                                likelihood_ratio_kulgen(
+                                    B, C, B_tot, C_tot, eps
+                                )  # General Kulldorf
                                 for eps in [0.0, 0.25, 0.50]
                             ]
-                            bbayes_alt_score = bbayes_lhood_H1(B, C, B_tot, C_tot) # Blind Bayes Metric
+                            bbayes_alt_score = bbayes_lhood_H1(
+                                B, C, B_tot, C_tot
+                            )  # Blind Bayes Metric
 
                             # Append results
                             scores_dict[num_regions] = {
@@ -149,16 +161,25 @@ def scan(
     region_score_df = pd.DataFrame.from_dict(scores_dict, "index")
 
     # Now we need to extra work to find the Bayesian scores
-    region_score_df['l_score_bbayes'] *= ((1 - bayes_no_outbreak_prior) / num_regions)
+    region_score_df["l_score_bbayes"] *= (1 - bayes_no_outbreak_prior) / num_regions
 
-    prob_D = region_score_df['l_score_bbayes'].sum() + bbayes_null_lhood * bayes_no_outbreak_prior
+    prob_D = (
+        region_score_df["l_score_bbayes"].sum()
+        + bbayes_null_lhood * bayes_no_outbreak_prior
+    )
 
-    region_score_df['posterior_bbayes'] = region_score_df['l_score_bbayes'] / prob_D
+    region_score_df["posterior_bbayes"] = region_score_df["l_score_bbayes"] / prob_D
 
     region_score_df = region_score_df.drop("l_score_bbayes", axis=1)
 
-    print("\nNo Outbreak Posterior: {}".format(bbayes_null_lhood * bayes_no_outbreak_prior / prob_D))
-    print("Total Outbreak Posterior: {}".format(region_score_df['posterior_bbayes'].sum()))
+    print(
+        "\nNo Outbreak Posterior: {}".format(
+            bbayes_null_lhood * bayes_no_outbreak_prior / prob_D
+        )
+    )
+    print(
+        "Total Outbreak Posterior: {}".format(region_score_df["posterior_bbayes"].sum())
+    )
 
     # At this point, we have a dataframe populated with likelihood statistic
     # scores for each search region. Sort it so that highest `l_score_EBP`
@@ -207,13 +228,17 @@ def randomisation_test(
     # Only way to tell is by the number of unique t_maxs in res_df
     num_t_maxs = len(res_df["t_max"].unique())
 
-   # If more than one t_max, scan was exhaustive
+    # If more than one t_max, scan was exhaustive
     if num_t_maxs > 1:
         scan_type = "exhaustive"
     else:
         scan_type = "normal"
 
-    print("Found a grid partition = {} and a scan type = {}.".format(grid_partition, scan_type))
+    print(
+        "Found a grid partition = {} and a scan type = {}.".format(
+            grid_partition, scan_type
+        )
+    )
 
     # Set Initial Timer
     t1 = time.perf_counter()
@@ -246,12 +271,14 @@ def randomisation_test(
             for s in range(t + 1, len(t_ticks)):  # t_min
                 for i, _ in enumerate(x_ticks):  # x_min
                     for j in range(
-                        i + 1, np.min([i + (int(grid_partition / 2)), grid_partition]) + 1
+                        i + 1,
+                        np.min([i + (int(grid_partition / 2)), grid_partition]) + 1,
                     ):  # x_max
                         for k, _ in enumerate(y_ticks):  # y_min
                             for l in range(
                                 k + 1,
-                                np.min([k + (int(grid_partition / 2)), grid_partition]) + 1,
+                                np.min([k + (int(grid_partition / 2)), grid_partition])
+                                + 1,
                             ):  # y_max
 
                                 # At each iteration, create the space_time region
@@ -270,7 +297,11 @@ def randomisation_test(
 
                                 l_score = likelihood_ratio(baseline, simulated)
 
-                                max_EBP_score = l_score if l_score > max_EBP_score else max_EBP_score
+                                max_EBP_score = (
+                                    l_score
+                                    if l_score > max_EBP_score
+                                    else max_EBP_score
+                                )
 
         best_EBP_scores.append(max_EBP_score)
     arr = np.array(best_EBP_scores)

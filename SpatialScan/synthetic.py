@@ -32,7 +32,8 @@ def synthetic_detector(
         np.percentile(Y, 90)
         * abs((np.sin((np.pi * X / 24)) ** 2 + noise))
         * ((dow_percentage / 100) * np.sin((np.pi * X / 168)) ** 2 + 1)
-    + np.percentile(Y, 3)).astype(int)
+        + np.percentile(Y, 3)
+    ).astype(int)
     return S
 
 
@@ -57,6 +58,7 @@ def synthetic_SCOOT(
     DF["n_vehicles_in_interval"] = np.hstack(X.to_numpy())
     DF = DF.reset_index()
     return DF
+
 
 def select_detectors(
     detector_locations: pd.DataFrame, k: int, s_center_lon: float, s_center_lat: float
@@ -242,11 +244,11 @@ def results_builder(
     t_max = outbreak_df["measurement_end_utc"].max()
 
     # Get outbreak characteristics
-    num_outbreak_detectors = len(set(outbreak_detectors['detector_id']))
-    ob_x_min = outbreak_detectors['lon'].min()
-    ob_x_max = outbreak_detectors['lon'].max()
-    ob_y_min = outbreak_detectors['lat'].min()
-    ob_y_max = outbreak_detectors['lat'].max()
+    num_outbreak_detectors = len(set(outbreak_detectors["detector_id"]))
+    ob_x_min = outbreak_detectors["lon"].min()
+    ob_x_max = outbreak_detectors["lon"].max()
+    ob_y_min = outbreak_detectors["lat"].min()
+    ob_y_max = outbreak_detectors["lat"].max()
 
     total_num_days = (t_max - t_min).days
     print("Total number of days in dataframe: ", total_num_days)
@@ -292,9 +294,7 @@ def results_builder(
 
         res_df = scan(forecast_df, grid_partition=grid_partition, scan_type=scan_type)
 
-        plot_region_by_rank(
-            0, res_df, forecast_df, plot_type="count", add_legend=False
-        )
+        plot_region_by_rank(0, res_df, forecast_df, plot_type="count", add_legend=False)
 
         #  Return Highest Scoring region here
         highest_region = res_df.iloc[0][
@@ -314,31 +314,44 @@ def results_builder(
         ].to_dict()
 
         # Add some Spatial analysis
-        x_min = highest_region['x_min']
-        x_max = highest_region['x_max']
-        y_min = highest_region['y_min']
-        y_max = highest_region['y_max']
-        
-        
-        num_detectors_in_highest_region = len(set(outbreak_df[(outbreak_df['lon'].between(x_min, x_max)) &\
-                                                             (outbreak_df['lat'].between(y_min, y_max))].detector_id))
-        
+        x_min = highest_region["x_min"]
+        x_max = highest_region["x_max"]
+        y_min = highest_region["y_min"]
+        y_max = highest_region["y_max"]
+
+        num_detectors_in_highest_region = len(
+            set(
+                outbreak_df[
+                    (outbreak_df["lon"].between(x_min, x_max))
+                    & (outbreak_df["lat"].between(y_min, y_max))
+                ].detector_id
+            )
+        )
+
         overlap_x_min = max([x_min, ob_x_min])
         overlap_x_max = min([x_max, ob_x_max])
         overlap_y_min = max([y_min, ob_y_min])
         overlap_y_max = min([y_max, ob_y_max])
-        
-        num_detectors_in_highest_region_and_true = len(set(outbreak_df[(outbreak_df['lon'].between(overlap_x_min, overlap_x_max)) &\
-                                                             (outbreak_df['lat'].between(overlap_y_min, overlap_y_max))].detector_id))
-        
+
+        num_detectors_in_highest_region_and_true = len(
+            set(
+                outbreak_df[
+                    (outbreak_df["lon"].between(overlap_x_min, overlap_x_max))
+                    & (outbreak_df["lat"].between(overlap_y_min, overlap_y_max))
+                ].detector_id
+            )
+        )
+
         # Calculate Spatial Precision and Recall
-        precision = num_detectors_in_highest_region_and_true / num_detectors_in_highest_region
+        precision = (
+            num_detectors_in_highest_region_and_true / num_detectors_in_highest_region
+        )
         recall = num_detectors_in_highest_region_and_true / num_outbreak_detectors
-        
+
         highest_region["precision"] = precision
         highest_region["recall"] = recall
         highest_region["day"] = today
-        
+
         # Append to list of dataframes
         daily_highest_scoring_regions[i] = highest_region
 

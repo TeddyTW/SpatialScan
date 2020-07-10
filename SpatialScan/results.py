@@ -22,6 +22,7 @@ def title_generator(scan_type: str, i: int, t_labels: np.ndarray) -> str:
         return "{} to {}".format(t_labels[i], t_labels[i + 1])
     return None
 
+
 def visualise_results(
     res_df,
     metric: str = "l_score_EBP",
@@ -98,7 +99,10 @@ def visualise_results(
                     & (res_df["y_min"] <= y_ticks[j])
                     & (res_df["y_max"] >= y_ticks[j + 1])
                     & (res_df["t_min"] == t_ticks[t])
-                    & (res_df["t_max"] == t_ticks[len(t_ticks) - 1  if scan_type == "normal" else t + 1])
+                    & (
+                        res_df["t_max"]
+                        == t_ticks[len(t_ticks) - 1 if scan_type == "normal" else t + 1]
+                    )
                 ]
 
                 l_score = sub_df[metric].mean()
@@ -220,7 +224,10 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     & (res_df["y_min"] <= y_ticks[j])
                     & (res_df["y_max"] >= y_ticks[j + 1])
                     & (res_df["t_min"] == t_ticks[t])
-                    & (res_df["t_max"] == t_ticks[len(t_ticks) - 1  if scan_type == "normal" else t + 1])
+                    & (
+                        res_df["t_max"]
+                        == t_ticks[len(t_ticks) - 1 if scan_type == "normal" else t + 1]
+                    )
                 ]
 
                 B, C = sub_df[["B_in", "C_in"]].sum()
@@ -237,7 +244,9 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
 
                 return_dict[num_regions] = {
                     "start_time_utc": t_ticks[t],
-                    "end_time_utc": t_ticks[len(t_ticks) - 1  if scan_type == "normal" else t + 1],
+                    "end_time_utc": t_ticks[
+                        len(t_ticks) - 1 if scan_type == "normal" else t + 1
+                    ],
                     "point_id": num_spatial_regions,
                     "x_min": x_ticks[i],
                     "x_max": x_ticks[i + 1],
@@ -249,7 +258,7 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     "av_lhd_score_eps_000": means["l_score_000"],
                     "av_lhd_score_eps_025": means["l_score_025"],
                     "av_lhd_score_eps_050": means["l_score_050"],
-                    "av_posterior_bbayes": means["posterior_bbayes"]
+                    "av_posterior_bbayes": means["posterior_bbayes"],
                 }
 
                 num_spatial_regions += 1
@@ -262,8 +271,9 @@ def visualise_results_from_database(
     metric: str = "av_lhd_score_EBP",
     smooth: bool = False,
     c_min: float = None,
-    c_max: float = None):
-    
+    c_max: float = None,
+):
+
     """Allows reconstruction of the plot from any time slice of database data.
     the above make the plots directly from the output of `scan()`
 
@@ -277,18 +287,22 @@ def visualise_results_from_database(
     """
 
     assert (set([metric])) <= set(database_df.columns)
-    
-    times = database_df['start_time_utc'].unique()
+
+    times = database_df["start_time_utc"].unique()
     grid_partition = len(database_df["x_min"].unique())
-    
+
     x_min = database_df["x_min"].min()
     x_max = database_df["x_max"].max()
     y_min = database_df["y_min"].min()
     y_max = database_df["y_max"].max()
     t_min = database_df["start_time_utc"].min()
     t_max = database_df["end_time_utc"].max()
-    
-    print("Dataframe contains data from the database spanning {} to {}.".format(t_min, t_max))
+
+    print(
+        "Dataframe contains data from the database spanning {} to {}.".format(
+            t_min, t_max
+        )
+    )
 
     # Re-create the grid used
     x_ticks = np.linspace(x_min, x_max, grid_partition + 1)
@@ -303,29 +317,28 @@ def visualise_results_from_database(
         "{0:.3f}".format((y_ticks[i] + y_ticks[i + 1]) / 2)
         for i in reversed(range(len(y_ticks) - 1))
     ]
-    
+
     # Pick random time series to get correct dates
     # XXX - point Id will need to be changed eventually.
-    example_df = database_df[database_df['point_id'] == 0]
-  
-    t_min_ticks = example_df['start_time_utc']
-    t_max_ticks = example_df['end_time_utc']
+    example_df = database_df[database_df["point_id"] == 0]
+
+    t_min_ticks = example_df["start_time_utc"]
+    t_max_ticks = example_df["end_time_utc"]
     t_min_labels = [x.strftime("%I%p, %d %b %y") for x in t_min_ticks]
     t_max_labels = [x.strftime("%I%p, %d %b %y") for x in t_max_ticks]
 
     scores_array = []
     for time in times:
-        scores = database_df[database_df['start_time_utc'] == time][metric].to_numpy()
+        scores = database_df[database_df["start_time_utc"] == time][metric].to_numpy()
         scores = np.reshape(scores, (grid_partition, grid_partition))
-        
+
         # Reverse the array for plotting convention (low y is high)
         scores = scores[::-1]
-        
+
         scores_array.append(scores)
-        
+
     global_min = np.min(scores_array)
     global_max = np.max(scores_array)
-
 
     # Below is all plotting
     zsmooth = "best" if smooth else None
@@ -372,7 +385,9 @@ def visualise_results_from_database(
         frames=[
             go.Frame(
                 data=[go.Heatmap(z=scores_array[i], zmin=c_min, zmax=c_max)],
-                layout=go.Layout(title="{} to {}".format(t_min_labels[i], t_max_labels[i])),
+                layout=go.Layout(
+                    title="{} to {}".format(t_min_labels[i], t_max_labels[i])
+                ),
             )
             for i in range(0, len(t_min_labels))
         ],
