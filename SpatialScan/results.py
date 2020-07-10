@@ -24,7 +24,7 @@ def title_generator(scan_type: str, i: int, t_labels: np.ndarray) -> str:
 
 def visualise_results(
     res_df,
-    metric: str = "l_score_basic",
+    metric: str = "l_score_EBP",
     smooth: bool = False,
     c_min: float = None,
     c_max: float = None,
@@ -227,12 +227,11 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
 
                 means = sub_df[
                     [
-                        "l_score_basic",
+                        "l_score_EBP",
                         "l_score_000",
                         "l_score_025",
                         "l_score_050",
-                        "l_score_075",
-                        "l_score_100",
+                        "posterior_bbayes",
                     ]
                 ].mean()
 
@@ -246,12 +245,11 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     "y_max": y_ticks[j + 1],
                     "observed_count": C,
                     "forecasted_count": B,
-                    "av_lhd_score_basic": means["l_score_basic"],
+                    "av_lhd_score_EBP": means["l_score_EBP"],
                     "av_lhd_score_eps_000": means["l_score_000"],
                     "av_lhd_score_eps_025": means["l_score_025"],
                     "av_lhd_score_eps_050": means["l_score_050"],
-                    "av_lhd_score_eps_075": means["l_score_075"],
-                    "av_lhd_score_eps_100": means["l_score_100"],
+                    "av_posterior_bbayes": means["posterior_bbayes"]
                 }
 
                 num_spatial_regions += 1
@@ -261,7 +259,7 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
 
 def visualise_results_from_database(
     database_df,
-    metric: str = "av_lhd_score_basic",
+    metric: str = "av_lhd_score_EBP",
     smooth: bool = False,
     c_min: float = None,
     c_max: float = None):
