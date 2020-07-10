@@ -10,7 +10,7 @@ from SpatialScan.results import database_results
 
 
 def synthetic_detector(
-    Y: pd.Series, noise_percentage: float = 10, dow_percentage: float = 10
+    Y: pd.Series, noise_percentage: float = 10, dow_percentage: float = 5
 ) -> np.array:
     """
     Creates a synthetic count based on real counts for the means of simualting outbreak. Takes
@@ -32,7 +32,7 @@ def synthetic_detector(
         np.percentile(Y, 90)
         * abs((np.sin((np.pi * X / 24)) ** 2 + noise))
         * ((dow_percentage / 100) * np.sin((np.pi * X / 168)) ** 2 + 1)
-    ).astype(int)
+    + np.percentile(Y, 3)).astype(int)
     return S
 
 
@@ -57,7 +57,6 @@ def synthetic_SCOOT(
     DF["n_vehicles_in_interval"] = np.hstack(X.to_numpy())
     DF = DF.reset_index()
     return DF
-
 
 def select_detectors(
     detector_locations: pd.DataFrame, k: int, s_center_lon: float, s_center_lat: float
