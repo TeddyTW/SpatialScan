@@ -11,6 +11,8 @@ from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from scipy.optimize import minimize
+import gpflow
+from gpflow.utilities import print_summary
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -402,6 +404,14 @@ def count_baseline(
             detectors=detectors,
         )
 
+    if method == "GP":
+        y = GP_forecast(
+            train_data,
+            days_in_past=days_in_past,
+            days_in_future=days_in_future,
+            detectors=detectors,
+        )
+
     sd = []
 
     print("Forecasting complete.")
@@ -432,6 +442,7 @@ def count_baseline(
 
     return Y
 
+
 def forecast_plot(df: pd.DataFrame, detector: str = None):
     """Function that plots the Count against the forecasted Baseline
         
@@ -439,17 +450,24 @@ def forecast_plot(df: pd.DataFrame, detector: str = None):
             df: Dataframe with Time, Count and Baseline columns
             detector: String of detector name, if none detector chosen at random"""
 
-    
     detectors = df["detector_id"].drop_duplicates()
-    if(detector is None):
-        detector=detectors.sample(n=1).to_numpy()[0]
+    if detector is None:
+        detector = detectors.sample(n=1).to_numpy()[0]
 
-    df_d=df[df["detector_id"]==detector]
+    df_d = df[df["detector_id"] == detector]
 
     print(detector)
     df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    if 'prediction_variance' in df_d.columns:
+        plt.fill_between(df_d["measurement_end_utc"],
+            df_d["baseline"] + np.sqrt(df_d['prediction_variance']) ,
+            df_d["baseline"] - np.sqrt(df_d['prediction_variance']) ,
+            color="C0",
+            alpha=0.2,
+        )
+    
     plt.show()
-            
+
 
 def CB_plot(df: pd.DataFrame):
 
@@ -594,9 +612,9 @@ def LSTM_forecast(
         # train LSTM with our training data!
         model.fit(X_train, Y_train, epochs=50, batch_size=1, verbose=0)
 
-        plot_model(
-            model, to_file="model_plot.png", show_shapes=True, show_layer_names=True
-        )
+        # plot_model(
+        #     model, to_file="model_plot.png", show_shapes=True, show_layer_names=True
+        # )
 
         # use our testing data to make predictions on Y_test
         trainPredict = model.predict(X_train)
@@ -633,5 +651,105 @@ def LSTM_forecast(
 
         # clear our Keras session
         clear_session()
+
+    return pd.concat(framelist)
+
+
+def GP_forecast(
+    df: pd.DataFrame,
+    days_in_past: int = 2,
+    days_in_future: int = 1,
+    detectors: list = None,
+) -> pd.DataFrame:
+
+    """Forecast using Gaussian Processes 
+    Args: 
+        df: Dataframe of SCOOT data
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+        detectors: List of detectors to look at
+
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        """
+
+    # extract numpy array of detector ID's
+    if detectors is None:
+        detectors = df["detector_id"].drop_duplicates().to_numpy()
+    framelist = []
+
+    i = 0
+    for detector in detectors:
+        i += 1
+
+        dataset = df[df["detector_id"] == detector].tail(n=24 * days_in_past)
+
+        Y = dataset["n_vehicles_in_interval"].to_numpy().reshape(-1, 1)
+        Y = Y.astype(float)
+        X = np.arange(1, len(Y) + 1, dtype=float).reshape(-1, 1)
+
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        y = scaler.fit_transform(Y)
+
+        kern_pD = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+        kern_pW = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+        kern_SE = gpflow.kernels.SquaredExponential()
+        kern_W = gpflow.kernels.White()
+        kern_M = gpflow.kernels.Matern52()
+
+        kern_pD.period.assign(24.0)
+        #kern_pD.base_kernel.variance.assign(10)
+        kern_pW.period.assign(168.0)
+        #kern_pW.base_kernel.variance.assign(10)
+
+        k = kern_pD * kern_pW + kern_SE + kern_W
+
+        m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
+        opt = gpflow.optimizers.Scipy()
+        opt_logs = opt.minimize(
+            m.training_loss, m.trainable_variables, options=dict(maxiter=100)
+        )
+
+        print("please wait: ", i, "/", len(detectors), end="\r")
+
+        ## generate test points for prediction
+        xx = np.linspace(
+            len(Y) +1, len(Y) + (days_in_future * 24)+1, (days_in_future * 24)
+        ).reshape(
+            (days_in_future * 24), 1
+        )  # test points must be of shape (N, D)
+
+        ## predict mean and variance of latent GP at test points
+        mean, var = m.predict_f(xx)
+
+        # reverse min_max scaler
+        testPredict = scaler.inverse_transform(mean)
+        testVar = scaler.inverse_transform(var)
+
+        # find the time period for our testPredictions
+        prediction_start = dataset["measurement_end_utc"].max()
+
+        t = pd.date_range(
+            start=prediction_start,
+            end=prediction_start + np.timedelta64(24 * days_in_future - 1, "h"),
+            freq="H",
+        )
+
+        # organise data into dataframe similar to the SCOOT outputs
+        df2 = pd.DataFrame(
+            {
+                "detector_id": detector,
+                "lon": df[df["detector_id"] == detector]["lon"].iloc[0],
+                "lat": df[df["detector_id"] == detector]["lat"].iloc[0],
+                "measurement_start_utc": t,
+                "measurement_end_utc": t + np.timedelta64(1, "h"),
+                "n_vehicles_in_interval": testPredict.flatten(),
+                "prediction_variance": testVar.flatten(),
+            }
+        )
+
+        framelist.append(df2)
 
     return pd.concat(framelist)
