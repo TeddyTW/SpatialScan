@@ -374,8 +374,9 @@ def count_baseline(
         forecast_data_start = prediction_start - np.timedelta64(days_in_past, 'D')
 
     print(
-        "Using data from {} to {}, to forecast counts between {} and {} for {} detectors using {} method...".format(
-            forecast_data_start, prediction_start, prediction_start, t_max, len(detectors), method
+        "Using data from {} to {}, to forecast counts\n".format(forecast_data_start, prediction_start),
+        "between {} and {} for {} detectors using {} method...".format(
+            prediction_start, t_max, len(detectors), method
         )
     )
 
