@@ -480,7 +480,7 @@ def CB_plot(df: pd.DataFrame):
     df_format["hour_from_start"] = df_format["hour_from_start"].astype(
         dtype="timedelta64[h]"
     )
-    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection="3d")
     p = ax.scatter(
