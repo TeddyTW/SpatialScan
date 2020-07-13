@@ -283,7 +283,7 @@ def results_builder(
     print("Outbreak begins at {}.".format(outbreak_start))
 
     # False-Positive rates to check
-    fps = [0.0, 0.05, 0.10, 0.25, 0.50]
+    fps = [0.01, 0.05, 0.10, 0.25, 0.50]
 
     # Threshold of EBP score required to be detected
     threshs = [np.percentile(hist_sim_data["l_score_EBP"], 100 * (1 - x)) for x in fps]
@@ -391,8 +391,8 @@ def results_builder(
             )
             for x in fps
         ]
-        highest_region["F_thresh_fp=0.00"] = threshs[0]
-        highest_region["detected_fp=0.00"] = detections[0]
+        highest_region["F_thresh_fp=0.01"] = threshs[0]
+        highest_region["detected_fp=0.01"] = detections[0]
         highest_region["F_thresh_fp=0.05"] = threshs[1]
         highest_region["detected_fp=0.05"] = detections[1]
         highest_region["F_thresh_fp=0.10"] = threshs[2]
