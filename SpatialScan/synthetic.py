@@ -208,14 +208,28 @@ def simulate_outbreak(synthetic_data, severity, k_min, k_max, outbreak_duration=
     return outbreak_df, detector_df, start
 
 
+def is_outbreak_detected(hist_sim_data, todays_highest_score, fp_rate):
+
+    prop = np.count_nonzero(todays_highest_score < hist_sim_data["l_score_EBP"]) / len(
+        hist_sim_data["l_score_EBP"]
+    )
+
+    if prop < fp_rate:
+        return True
+    return False
+
+
 def results_builder(
     outbreak_df: pd.DataFrame,
     outbreak_detectors: pd.DataFrame,
+    outbreak_start,
+    hist_sim_data,
     days_in_past: int,
     days_in_future: int,
     method: str,
     grid_partition: int,
     scan_type: str,
+    show_plots=True,
 ):
 
     """Builds daily results from the scan up over a number of days, determined by
@@ -227,8 +241,9 @@ def results_builder(
 
     Args:
         outbreak_dataframe: simulated from `simulate_outbreak()`
-        detectors_data: dataframe of affected detectors
-        start_time: outbreak_start time
+        outbreak_detectors: dataframe of affected detectors
+        outbreak_start: outbreak_start time
+        hist_sim_data: Dataframe of F(S) scores from historic data
         days_in_past: as in count_baseline
         days_in_future: as in count_baseline
         method: as in count_baseline
@@ -265,6 +280,14 @@ def results_builder(
         )
     )
 
+    print("Outbreak begins at {}.".format(outbreak_start))
+
+    # False-Positive rates to check
+    fps = [0.0, 0.05, 0.10, 0.25, 0.50]
+
+    # Threshold of EBP score required to be detected
+    threshs = [np.percentile(hist_sim_data["l_score_EBP"], 100 * (1 - x)) for x in fps]
+
     dataframe_list = []
 
     daily_highest_scoring_regions = {}
@@ -290,11 +313,15 @@ def results_builder(
 
         forecast_df = cleanse_forecast_data(forecast_df)
 
-        CB_plot(forecast_df)
+        if show_plots:
+            CB_plot(forecast_df)
 
         res_df = scan(forecast_df, grid_partition=grid_partition, scan_type=scan_type)
 
-        plot_region_by_rank(0, res_df, forecast_df, plot_type="count", add_legend=False)
+        if show_plots:
+            plot_region_by_rank(
+                0, res_df, forecast_df, plot_type="count", add_legend=False
+            )
 
         #  Return Highest Scoring region here
         highest_region = res_df.iloc[0][
@@ -352,10 +379,35 @@ def results_builder(
         highest_region["recall"] = recall
         highest_region["day"] = today
 
+        # =================================
+        # How significant is today's score?
+        # =================================
+        highest_region["days_since_outbreak"] = (today - outbreak_start).days
+
+        # XXX - There is a much better way of doing this!
+        detections = [
+            is_outbreak_detected(
+                hist_sim_data, highest_region["l_score_EBP"], fp_rate=x
+            )
+            for x in fps
+        ]
+        highest_region["F_thresh_fp=0.00"] = threshs[0]
+        highest_region["detected_fp=0.00"] = detections[0]
+        highest_region["F_thresh_fp=0.05"] = threshs[1]
+        highest_region["detected_fp=0.05"] = detections[1]
+        highest_region["F_thresh_fp=0.10"] = threshs[2]
+        highest_region["detected_fp=0.10"] = detections[2]
+        highest_region["F_thresh_fp=0.25"] = threshs[3]
+        highest_region["detected_fp=0.25"] = detections[3]
+        highest_region["F_thresh_fp=0.50"] = threshs[4]
+        highest_region["detected_fp=0.50"] = detections[4]
+
         # Append to list of dataframes
         daily_highest_scoring_regions[i] = highest_region
 
-        # Send results to database
+        #  =========================
+        # Simulate Database Storage
+        #  =========================
         database_df = database_results(res_df)
 
         # Updates data correctly with most reliable average likelihood scores.
