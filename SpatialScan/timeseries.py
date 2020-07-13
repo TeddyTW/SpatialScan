@@ -692,7 +692,7 @@ def GP_forecast(
         kern_pW = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
         kern_SE = gpflow.kernels.SquaredExponential()
         kern_W = gpflow.kernels.White()
-        kern_M = gpflow.kernels.Matern52()
+        #kern_M = gpflow.kernels.Matern52()
 
         kern_pD.period.assign(24.0)
         #kern_pD.base_kernel.variance.assign(10)
