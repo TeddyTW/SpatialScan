@@ -32,7 +32,8 @@ def synthetic_detector(
         np.percentile(Y, 90)
         * abs((np.sin((np.pi * X / 24)) ** 2 + noise))
         * ((dow_percentage / 100) * np.sin((np.pi * X / 168)) ** 2 + 1)
-    + np.percentile(Y, 3)).astype(int)
+        + np.percentile(Y, 3)
+    ).astype(int)
     return S
 
 
@@ -57,6 +58,7 @@ def synthetic_SCOOT(
     DF["n_vehicles_in_interval"] = np.hstack(X.to_numpy())
     DF = DF.reset_index()
     return DF
+
 
 def select_detectors(
     detector_locations: pd.DataFrame, k: int, s_center_lon: float, s_center_lat: float
@@ -206,13 +208,28 @@ def simulate_outbreak(synthetic_data, severity, k_min, k_max, outbreak_duration=
     return outbreak_df, detector_df, start
 
 
+def is_outbreak_detected(hist_sim_data, todays_highest_score, fp_rate):
+
+    prop = np.count_nonzero(todays_highest_score < hist_sim_data["l_score_EBP"]) / len(
+        hist_sim_data["l_score_EBP"]
+    )
+
+    if prop < fp_rate:
+        return True
+    return False
+
+
 def results_builder(
-    outbreak_dataframe: pd.DataFrame,
+    outbreak_df: pd.DataFrame,
+    outbreak_detectors: pd.DataFrame,
+    outbreak_start,
+    hist_sim_data,
     days_in_past: int,
     days_in_future: int,
     method: str,
     grid_partition: int,
     scan_type: str,
+    show_plots=True,
 ):
 
     """Builds daily results from the scan up over a number of days, determined by
@@ -224,8 +241,9 @@ def results_builder(
 
     Args:
         outbreak_dataframe: simulated from `simulate_outbreak()`
-        detectors_data: dataframe of affected detectors
-        start_time: outbreak_start time
+        outbreak_detectors: dataframe of affected detectors
+        outbreak_start: outbreak_start time
+        hist_sim_data: Dataframe of F(S) scores from historic data
         days_in_past: as in count_baseline
         days_in_future: as in count_baseline
         method: as in count_baseline
@@ -237,8 +255,15 @@ def results_builder(
         Dataframe of highest scoring regions per day
         """
 
-    t_min = outbreak_dataframe["measurement_start_utc"].min()
-    t_max = outbreak_dataframe["measurement_end_utc"].max()
+    t_min = outbreak_df["measurement_start_utc"].min()
+    t_max = outbreak_df["measurement_end_utc"].max()
+
+    # Get outbreak characteristics
+    num_outbreak_detectors = len(set(outbreak_detectors["detector_id"]))
+    ob_x_min = outbreak_detectors["lon"].min()
+    ob_x_max = outbreak_detectors["lon"].max()
+    ob_y_min = outbreak_detectors["lat"].min()
+    ob_y_max = outbreak_detectors["lat"].max()
 
     total_num_days = (t_max - t_min).days
     print("Total number of days in dataframe: ", total_num_days)
@@ -255,6 +280,14 @@ def results_builder(
         )
     )
 
+    print("Outbreak begins at {}.".format(outbreak_start))
+
+    # False-Positive rates to check
+    fps = [0.0, 0.05, 0.10, 0.25, 0.50]
+
+    # Threshold of EBP score required to be detected
+    threshs = [np.percentile(hist_sim_data["l_score_EBP"], 100 * (1 - x)) for x in fps]
+
     dataframe_list = []
 
     daily_highest_scoring_regions = {}
@@ -267,8 +300,8 @@ def results_builder(
             )
         )
 
-        available_today = outbreak_dataframe[
-            outbreak_dataframe["measurement_end_utc"] <= today
+        available_today = outbreak_df[
+            outbreak_df["measurement_end_utc"] <= today
         ].copy()
 
         forecast_df = count_baseline(
@@ -280,13 +313,15 @@ def results_builder(
 
         forecast_df = cleanse_forecast_data(forecast_df)
 
-        CB_plot(forecast_df)
+        if show_plots:
+            CB_plot(forecast_df)
 
         res_df = scan(forecast_df, grid_partition=grid_partition, scan_type=scan_type)
 
-        plot_region_by_rank(
-            0, res_df, forecast_df, plot_type="count", add_legend=False
-        )
+        if show_plots:
+            plot_region_by_rank(
+                0, res_df, forecast_df, plot_type="count", add_legend=False
+            )
 
         #  Return Highest Scoring region here
         highest_region = res_df.iloc[0][
@@ -297,17 +332,82 @@ def results_builder(
                 "y_max",
                 "t_min",
                 "t_max",
-                "l_score_basic",
+                "l_score_EBP",
                 "l_score_000",
                 "l_score_025",
                 "l_score_050",
-                "l_score_075",
-                "l_score_100",
+                "posterior_bbayes",
             ]
         ].to_dict()
+
+        # Add some Spatial analysis
+        x_min = highest_region["x_min"]
+        x_max = highest_region["x_max"]
+        y_min = highest_region["y_min"]
+        y_max = highest_region["y_max"]
+
+        num_detectors_in_highest_region = len(
+            set(
+                outbreak_df[
+                    (outbreak_df["lon"].between(x_min, x_max))
+                    & (outbreak_df["lat"].between(y_min, y_max))
+                ].detector_id
+            )
+        )
+
+        overlap_x_min = max([x_min, ob_x_min])
+        overlap_x_max = min([x_max, ob_x_max])
+        overlap_y_min = max([y_min, ob_y_min])
+        overlap_y_max = min([y_max, ob_y_max])
+
+        num_detectors_in_highest_region_and_true = len(
+            set(
+                outbreak_df[
+                    (outbreak_df["lon"].between(overlap_x_min, overlap_x_max))
+                    & (outbreak_df["lat"].between(overlap_y_min, overlap_y_max))
+                ].detector_id
+            )
+        )
+
+        # Calculate Spatial Precision and Recall
+        precision = (
+            num_detectors_in_highest_region_and_true / num_detectors_in_highest_region
+        )
+        recall = num_detectors_in_highest_region_and_true / num_outbreak_detectors
+
+        highest_region["precision"] = precision
+        highest_region["recall"] = recall
         highest_region["day"] = today
+
+        # =================================
+        # How significant is today's score?
+        # =================================
+        highest_region["days_since_outbreak"] = (today - outbreak_start).days
+
+        # XXX - There is a much better way of doing this!
+        detections = [
+            is_outbreak_detected(
+                hist_sim_data, highest_region["l_score_EBP"], fp_rate=x
+            )
+            for x in fps
+        ]
+        highest_region["F_thresh_fp=0.00"] = threshs[0]
+        highest_region["detected_fp=0.00"] = detections[0]
+        highest_region["F_thresh_fp=0.05"] = threshs[1]
+        highest_region["detected_fp=0.05"] = detections[1]
+        highest_region["F_thresh_fp=0.10"] = threshs[2]
+        highest_region["detected_fp=0.10"] = detections[2]
+        highest_region["F_thresh_fp=0.25"] = threshs[3]
+        highest_region["detected_fp=0.25"] = detections[3]
+        highest_region["F_thresh_fp=0.50"] = threshs[4]
+        highest_region["detected_fp=0.50"] = detections[4]
+
+        # Append to list of dataframes
         daily_highest_scoring_regions[i] = highest_region
 
+        #  =========================
+        # Simulate Database Storage
+        #  =========================
         database_df = database_results(res_df)
 
         # Updates data correctly with most reliable average likelihood scores.
