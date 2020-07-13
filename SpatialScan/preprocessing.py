@@ -160,7 +160,7 @@ def data_preprocessor(
         )
 
     df = df.sort_values(["detector_id", "measurement_end_utc"])
-    
+
     for r in range(0, repeats):
 
         df["rolling_threshold"] = (
@@ -406,10 +406,22 @@ def plot_processing(
     t_proc = processed_scoot_df[processed_scoot_df["detector_id"] == detector][
         "measurement_end_utc"
     ].to_numpy()
+    global_thresh = processed_scoot_df[processed_scoot_df["detector_id"] == detector][
+        "global_threshold"
+    ].to_numpy()
+    rolling_thresh = processed_scoot_df[processed_scoot_df["detector_id"] == detector][
+        "rolling_threshold"
+    ].to_numpy()
 
     fig, ax = plt.subplots(figsize=(20, 6))
     plt.plot(t_scoot, d_scoot, label="Raw")
     plt.plot(t_proc, d_proc, label="Processed")
+    plt.plot(
+        t_proc, global_thresh, label="Global Threshold", linestyle="dashed", alpha=0.5
+    )
+    plt.plot(
+        t_proc, rolling_thresh, label="Rolling Threshold", linestyle="dashed", alpha=0.5
+    )
     plt.xlabel("Date")
     plt.ylabel("Vehicle Count")
     plt.legend()
