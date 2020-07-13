@@ -426,3 +426,82 @@ def plot_processing(
     plt.ylabel("Vehicle Count")
     plt.legend()
     return
+
+def jam_preprocessor(
+    df: pd.DataFrame,
+    percentage_missing: float = 20,
+    max_anom: int = 30,
+    N_sigma: float = 3,
+    repeats: int = 1,
+    rolling_hours: int = 24,
+    global_threshold: bool = False) -> pd.DataFrame: 
+
+    """Function takes a JamCam dataframe, performs anomaly removal, fill_and_drop, and then
+    interpolates missing values. 
+
+    Args:
+        df: Dataframe of SCOOT data
+        N_sigma: Number of standard deviations to set threshold
+        percentage_missing: float percentage of missing values, above which drop detector
+
+    Returns:
+        Dataframe of interpolated values with detectors dropped for too many missing values.
+
+        """
+
+    #reindex
+
+    start_date = pd.to_datetime(df["measurement_end_utc"].min())
+    end_date = pd.to_datetime(df["measurement_end_utc"].max())
+    N_days=(end_date-start_date).days
+    T = pd.date_range(start=start_date, periods=20-start_date.hour, freq="H")
+    start_of_day = T[-1] + np.timedelta64(9, "h")
+    t=pd.date_range(start=start_of_day, end=start_of_day+np.timedelta64(15, "h"), freq="H")
+    df["measurement_end_utc"]=df["measurement_end_utc"].astype('datetime64[ns]')
+    for d in range(0, N_days):
+        t = pd.date_range(start=start_of_day, end=start_of_day+np.timedelta64(15, "h"), freq="H").to_numpy()
+
+        T=np.append(T, t)
+        start_of_day= start_of_day + np.timedelta64(1, "D")
+
+    T = np.array(T)
+    T=pd.DatetimeIndex(T)
+    dets=df["detector_id"].unique()
+    mux = pd.MultiIndex.from_product(
+            [dets, T], names=("detector_id", "measurement_end_utc")
+        )
+    df = df.set_index(["detector_id", "measurement_end_utc"])
+    df=df.reindex(mux)
+
+    # T = pd.date_range(start=start_date, end=end_date, freq="H",)
+
+    # mux = pd.MultiIndex.from_product(
+    #     [dets, T], names=("detector_id", "measurement_end_utc")
+    # )
+
+
+    #interpolate
+
+    df["measurement_start_utc"] = df.index.get_level_values(
+    "measurement_end_utc"
+    ) - np.timedelta64(1, "h")
+    df["n_vehicles_in_interval"] = df["n_vehicles_in_interval"].astype("float").interpolate(
+        method="linear", limit_direction="both", axis=0
+    )
+
+    # T = pd.date_range(start=start_date, end=end_date, freq="H",)
+
+    # mux = pd.MultiIndex.from_product(
+    #     [dets, T], names=("detector_id", "measurement_end_utc")
+    # )
+
+    #df=df.reindex(mux)
+    df = df.reset_index()
+
+    df.sort_values(["detector_id", "measurement_end_utc"], inplace=True)
+
+    df["lon"] = df["lon"].interpolate(method="pad", limit_direction="both", axis=0)
+    df["lat"] = df["lat"].interpolate(method="pad", limit_direction="both", axis=0)
+    df["measurement_start_utc"] = df["measurement_end_utc"] - np.timedelta64(1, "h")
+
+    return df
