@@ -12,11 +12,11 @@ from tensorflow.keras.layers import LSTM
 from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
 
-# import tensorflow as tf
+import tensorflow as tf
 from scipy.optimize import minimize
 
-# import gpflow
-# from gpflow.utilities import print_summary
+import gpflow
+from gpflow.utilities import print_summary
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
