@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib
 from tensorflow.keras.backend import clear_session
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
@@ -320,9 +322,10 @@ def count_baseline(
     days_in_future: int,
     method: str = "HW",
     detectors: list = None,
-    alpha: float = 0.06,
-    beta: float = 0.02,
-    gamma: float = 0.6,
+    alpha: float = 0.1,
+    beta: float = 0.1,
+    gamma: float = 0.1,
+    kern = None
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -411,6 +414,7 @@ def count_baseline(
             days_in_past=days_in_past,
             days_in_future=days_in_future,
             detectors=detectors,
+            kern = kern
         )
 
     sd = []
@@ -456,17 +460,17 @@ def forecast_plot(df: pd.DataFrame, detector: str = None):
         detector = detectors.sample(n=1).to_numpy()[0]
 
     df_d = df[df["detector_id"] == detector]
-
     print(detector)
-    df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    df_d = df_d.sort_values("measurement_end_utc")
+    ax=df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
     if "prediction_variance" in df_d.columns:
         plt.fill_between(
             df_d["measurement_end_utc"],
-            df_d["baseline"] + np.sqrt(df_d["prediction_variance"]),
-            df_d["baseline"] - np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] + 2*np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] - 2*np.sqrt(df_d["prediction_variance"]),
             color="C0",
-            alpha=0.2,
-        )
+            alpha=0.5, label= "2$\sigma$")
+    plt.legend()
 
     plt.show()
 
@@ -667,6 +671,7 @@ def GP_forecast(
     days_in_past: int = 2,
     days_in_future: int = 1,
     detectors: list = None,
+    kern = None
 ) -> pd.DataFrame:
 
     """Forecast using Gaussian Processes 
@@ -700,18 +705,22 @@ def GP_forecast(
         scaler = MinMaxScaler(feature_range=(-1, 1))
         y = scaler.fit_transform(Y)
 
-        kern_pD = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
-        kern_pW = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
-        kern_SE = gpflow.kernels.SquaredExponential()
-        kern_W = gpflow.kernels.White()
-        #kern_M = gpflow.kernels.Matern52()
+        if(kern is None):
 
-        kern_pD.period.assign(24.0)
-        # kern_pD.base_kernel.variance.assign(10)
-        kern_pW.period.assign(168.0)
-        # kern_pW.base_kernel.variance.assign(10)
+            kern_pD = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+            kern_pW = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+            kern_SE = gpflow.kernels.SquaredExponential()
+            kern_W = gpflow.kernels.White()
+            #kern_M = gpflow.kernels.Matern52()
 
-        k = kern_pD * kern_pW + kern_SE + kern_W
+            kern_pD.period.assign(24.0)
+            # kern_pD.base_kernel.variance.assign(10)
+            kern_pW.period.assign(168.0)
+            # kern_pW.base_kernel.variance.assign(10)
+
+            k = kern_pD * kern_pW + kern_SE + kern_W
+        else:
+            k=kern
 
         m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
         opt = gpflow.optimizers.Scipy()

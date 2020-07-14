@@ -3,23 +3,19 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from tensorflow.keras.backend import clear_session
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from scipy.optimize import minimize
 import gpflow
 from gpflow.utilities import print_summary
 
+
 def holt_wintersJ(
     df: pd.DataFrame,
     days_in_past: int,
     days_in_future: int,
-    alpha: float = 0.05, 
-    beta: float = 0.05, 
+    alpha: float = 0.05,
+    beta: float = 0.05,
     gamma: float = 0.4,
     display: bool = False,
     detectors: list = None,
@@ -36,7 +32,7 @@ def holt_wintersJ(
         alpha, beta, gamma: optimisation parameters
 
     Returns:
-        Dataframe forecast in same format as SCOOT input dataframe
+        Dataframe forecast in same format as JamCam input dataframe
 
         """
 
@@ -62,12 +58,14 @@ def holt_wintersJ(
         baseline = []
         endtime = []
         starttime = []
-        shift=1
+        shift = 1
         for j in range(0, days_in_future * 16):
             h = j % 16
-            if h==0:
-                shift+=8
-            end = df["measurement_end_utc"].to_numpy()[-1] + np.timedelta64(j + shift, "h")
+            if h == 0:
+                shift += 8
+            end = df["measurement_end_utc"].to_numpy()[-1] + np.timedelta64(
+                j + shift, "h"
+            )
             start = df["measurement_start_utc"].to_numpy()[-1] + np.timedelta64(
                 j + shift, "h"
             )
@@ -109,9 +107,9 @@ def count_baselineJ(
     days_in_future: int,
     method: str = "HW",
     detectors: list = None,
-    alpha: float = 0.05, 
-    beta: float = 0.05, 
-    gamma: float = 0.4,
+    alpha: float = 0.1,
+    beta: float = 0.1,
+    gamma: float = 0.2,
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -121,7 +119,7 @@ def count_baselineJ(
         df: Dataframe of JamCam data
         days_in_past: Integer past days to train forecast one
         days_in_future: Days in future produce a baseline too and record count for
-        method: Forecast method to use for baseline, default is "HW" for Holt-Winters, option for MLAD
+        method: Forecast method to use for baseline, default is "HW" for Holt-Winters, option for GP
         detectors: List of detectors to look at
 
     Returns:
@@ -170,7 +168,14 @@ def count_baselineJ(
             detectors=detectors,
         )
 
-   
+    if method == "GP":
+        y = GP_forecast(
+            train_data,
+            days_in_past=days_in_past,
+            days_in_future=days_in_future,
+            detectors=detectors,
+        )
+
     sd = []
 
     print("Forecasting complete.")
@@ -198,15 +203,193 @@ def count_baselineJ(
             "n_vehicles_in_interval_y": "count",
         }
     )
-    
-    T = pd.date_range(start=Y["measurement_end_utc"].min() - np.timedelta64(3, "h"), end=Y["measurement_end_utc"].max() + np.timedelta64(5, "h"), freq="H",)
-    dets=Y["detector_id"].unique()
+
+    T = pd.date_range(
+        start=Y["measurement_end_utc"].min() - np.timedelta64(3, "h"),
+        end=Y["measurement_end_utc"].max() + np.timedelta64(5, "h"),
+        freq="H",
+    )
+    dets = Y["detector_id"].unique()
     mux = pd.MultiIndex.from_product(
-            [dets, T], names=("detector_id", "measurement_end_utc")
-        )
+        [dets, T], names=("detector_id", "measurement_end_utc")
+    )
     Y = Y.set_index(["detector_id", "measurement_end_utc"])
-    Y=Y.reindex(mux)
+    Y = Y.reindex(mux)
 
     Y = Y.reset_index()
-    
+
     return Y
+
+
+def CB_plotJ(df: pd.DataFrame):
+
+    """Function that plots Counts/Baseline as a 3D plot  with detector locations. Counts are 
+        shown by size of point, and C/B is shown using a colourmap
+        
+        Args:
+            Dataframe with Time, Count and Baseline columns
+            """
+
+    df_format = df
+
+    forecast_t_min = df_format["measurement_start_utc"].min()
+    forecast_t_max = df_format["measurement_end_utc"].max()
+
+    df_format["C/B"] = df_format["count"] / df_format["baseline"]
+    df_format["hour_from_start"] = (
+        df_format["measurement_end_utc"] - df_format["measurement_end_utc"].min()
+    )
+    df_format["hour_from_start"] = df_format["hour_from_start"].astype(
+        dtype="timedelta64[h]"
+    )
+    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
+    fig = plt.figure(figsize=(20, 10))
+    ax = fig.add_subplot(111, projection="3d")
+    p = ax.scatter(
+        df_format["lon"],
+        df_format["lat"],
+        df_format["hour_from_start"],
+        c=df_format["C/B"],
+        s=df_format["count"] * 0.1,
+        norm=offset,
+        cmap="coolwarm",
+    )
+    ax.set_xlabel("lon")
+    ax.set_ylabel("lat")
+    ax.set_zlabel("Hours")
+    fig.colorbar(p)
+    fig.suptitle("Forecast from {} to {}".format(forecast_t_min, forecast_t_max))
+    plt.show()
+
+
+def GP_forecast(
+    df: pd.DataFrame,
+    days_in_past: int = 2,
+    days_in_future: int = 1,
+    detectors: list = None,
+) -> pd.DataFrame:
+
+    """Forecast using Gaussian Processes 
+    Args: 
+        df: Dataframe of JamCam data
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+        detectors: List of detectors to look at
+
+
+    Returns:
+        Dataframe forecast in same format as JamCam input dataframe
+
+        """
+
+    # extract numpy array of detector ID's
+    if detectors is None:
+        detectors = df["detector_id"].drop_duplicates().to_numpy()
+    framelist = []
+
+    i = 0
+    for detector in detectors:
+        i += 1
+
+        dataset = df[df["detector_id"] == detector].tail(n=16 * days_in_past)
+
+        Y = dataset["n_vehicles_in_interval"].to_numpy().reshape(-1, 1)
+        Y = Y.astype(float)
+        X = np.arange(1, len(Y) + 1, dtype=float).reshape(-1, 1)
+
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        y = scaler.fit_transform(Y)
+
+        kern_pD = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+        kern_pW = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+        kern_SE = gpflow.kernels.SquaredExponential()
+        kern_W = gpflow.kernels.White()
+        # kern_M = gpflow.kernels.Matern52()
+
+        kern_pD.period.assign(16.0)
+        # kern_pD.base_kernel.variance.assign(10)
+        kern_pW.period.assign(112.0)
+        # kern_pW.base_kernel.variance.assign(10)
+
+        k = kern_pD * kern_pW + kern_SE + kern_W
+
+        m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
+        opt = gpflow.optimizers.Scipy()
+        opt_logs = opt.minimize(
+            m.training_loss, m.trainable_variables, options=dict(maxiter=100)
+        )
+
+        print("please wait: ", i, "/", len(detectors), end="\r")
+
+        ## generate test points for prediction
+        xx = np.linspace(
+            len(Y) + 1, len(Y) + (days_in_future * 16) + 1, (days_in_future * 16)
+        ).reshape(
+            (days_in_future * 16), 1
+        )  # test points must be of shape (N, D)
+
+        ## predict mean and variance of latent GP at test points
+        mean, var = m.predict_f(xx)
+
+        # reverse min_max scaler
+        testPredict = scaler.inverse_transform(mean)
+        testVar = scaler.inverse_transform(var)
+
+        # find the time period for our testPredictions
+        start_date = dataset["measurement_end_utc"].max() + np.timedelta64(8, "h")
+        end_date = (start_date + np.timedelta64(16 + (24 * (days_in_future - 1)), "h"),)
+
+        # print(start_date, end_date)
+        N_days = days_in_future
+        T = pd.date_range(start=start_date, periods=16, freq="H")
+        start_of_day = start_date + np.timedelta64(1, "D")
+        for d in range(0, N_days - 1):
+            t = pd.date_range(
+                start=start_of_day, end=start_of_day + np.timedelta64(15, "h"), freq="H"
+            ).to_numpy()
+
+            T = np.append(T, t)
+            start_of_day = start_of_day + np.timedelta64(1, "D")
+
+        T = np.array(T)
+
+        # organise data into dataframe similar to the SCOOT outputs
+        df2 = pd.DataFrame(
+            {
+                "detector_id": detector,
+                "lon": df[df["detector_id"] == detector]["lon"].iloc[0],
+                "lat": df[df["detector_id"] == detector]["lat"].iloc[0],
+                "measurement_start_utc": T,
+                "measurement_end_utc": T + np.timedelta64(1, "h"),
+                "n_vehicles_in_interval": testPredict.flatten(),
+                "prediction_variance": testVar.flatten(),
+            }
+        )
+
+        framelist.append(df2)
+
+    return pd.concat(framelist)
+
+def forecast_plotJ(df: pd.DataFrame, detector: str = None):
+    """Function that plots the Count against the forecasted Baseline
+        
+        Args:
+            df: Dataframe with Time, Count and Baseline columns
+            detector: String of detector name, if none detector chosen at random"""
+
+    detectors = df["detector_id"].drop_duplicates()
+    if detector is None:
+        detector = detectors.sample(n=1).to_numpy()[0]
+
+    df_d = df[df["detector_id"] == detector]
+    print(detector)
+    df_d = df_d.sort_values("measurement_end_utc")
+    ax=df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    if "prediction_variance" in df_d.columns:
+        plt.fill_between(
+            df_d["measurement_end_utc"],
+            df_d["baseline"] + 2*np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] - 2*np.sqrt(df_d["prediction_variance"]),
+            color="C0",
+            alpha=0.5, label= "2$\sigma$")
+    plt.legend()
