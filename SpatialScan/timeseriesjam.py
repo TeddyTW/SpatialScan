@@ -3,11 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from tensorflow.keras.backend import clear_session
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from scipy.optimize import minimize
@@ -112,9 +107,9 @@ def count_baselineJ(
     days_in_future: int,
     method: str = "HW",
     detectors: list = None,
-    alpha: float = 0.05,
-    beta: float = 0.05,
-    gamma: float = 0.4,
+    alpha: float = 0.1,
+    beta: float = 0.1,
+    gamma: float = 0.2,
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -226,7 +221,7 @@ def count_baselineJ(
     return Y
 
 
-def CB_plot(df: pd.DataFrame):
+def CB_plotJ(df: pd.DataFrame):
 
     """Function that plots Counts/Baseline as a 3D plot  with detector locations. Counts are 
         shown by size of point, and C/B is shown using a colourmap
@@ -247,7 +242,7 @@ def CB_plot(df: pd.DataFrame):
     df_format["hour_from_start"] = df_format["hour_from_start"].astype(
         dtype="timedelta64[h]"
     )
-    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection="3d")
     p = ax.scatter(

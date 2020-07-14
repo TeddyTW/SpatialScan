@@ -433,7 +433,7 @@ def jam_preprocessor(
     max_anom: int = 30,
     N_sigma: float = 3,
     repeats: int = 1,
-    rolling_hours: int = 24,
+    rolling_hours: int = 16,
     global_threshold: bool = False) -> pd.DataFrame: 
 
     """Function takes a JamCam dataframe, performs anomaly removal, fill_and_drop, and then
@@ -453,6 +453,9 @@ def jam_preprocessor(
 
     start_date = pd.to_datetime(df["measurement_end_utc"].min())
     end_date = pd.to_datetime(df["measurement_end_utc"].max())
+
+    num_days = (end_date - start_date).days
+
     N_days=(end_date-start_date).days
     T = pd.date_range(start=start_date, periods=20-start_date.hour, freq="H")
     start_of_day = T[-1] + np.timedelta64(9, "h")
@@ -470,14 +473,121 @@ def jam_preprocessor(
     mux = pd.MultiIndex.from_product(
             [dets, T], names=("detector_id", "measurement_end_utc")
         )
+    
     df = df.set_index(["detector_id", "measurement_end_utc"])
+    
+    if global_threshold:
+        print(
+            "Using the global median over {} days to remove outliers ...".format(
+                num_days
+            )
+        )
+        print(
+            "Using {} iteration(s) to remove points outside of {} sigma from the global median ...".format(
+                repeats, N_sigma
+            )
+        )
+    else:
+        print("Using the {}-day rolling median to remove outliers ...".format(rolling_hours))
+        print(
+            "Using {} iterations to remove points outside of {} sigma from the rolling median ...".format(
+                repeats, N_sigma
+            )
+        )
+
+    df = df.sort_values(["detector_id", "measurement_end_utc"])
+
+    for r in range(0, repeats):
+
+        df["rolling_threshold"] = (
+            df.groupby(level="detector_id")["n_vehicles_in_interval"]
+            .rolling(window=rolling_hours)
+            .median()
+            .values
+            + N_sigma
+            * df.groupby(level="detector_id")["n_vehicles_in_interval"]
+            .rolling(window=rolling_hours)
+            .std()
+            .values
+        )
+
+        #         df.loc[:, "rolling_threshold"] = (
+        #             df["n_vehicles_in_interval"].rolling(rolling_hours).median()
+        #             + N_sigma * df["n_vehicles_in_interval"].std()
+        #         )
+
+        df = df.join(
+            df.median(level="detector_id")["n_vehicles_in_interval"]
+            + N_sigma * (df.std(level="detector_id")["n_vehicles_in_interval"]),
+            on=["detector_id"],
+            rsuffix="anom",
+        )
+
+        df["global_threshold"] = df["n_vehicles_in_intervalanom"]
+        df = df.drop(["n_vehicles_in_intervalanom"], axis=1)
+
+        df["rolling_threshold"] = df["rolling_threshold"].fillna(df["global_threshold"])
+        if global_threshold:
+            df["rolling_threshold"] = df["global_threshold"]
+
+        df.loc[
+            df["n_vehicles_in_interval"] > df["rolling_threshold"],
+            ["n_vehicles_in_interval"],
+        ] = float("NaN")
+        print(
+            "Calculating threshold(s): Iteration {} of {}...".format(r + 1, repeats),
+            end="\r",
+        )
+
+    print("\nThreshold(s) calculated.\n")
+
+    df = df.join(
+        df.isna().astype(int).sum(level="detector_id")["n_vehicles_in_interval"],
+        on=["detector_id"],
+        rsuffix="NaN",
+    )
+
+    df["Num_Anom"] = df["n_vehicles_in_intervalNaN"]
+    df = df.drop(["n_vehicles_in_intervalNaN"], axis=1)
+
+    orig_set = set(df.index.get_level_values("detector_id"))
+    orig_length = len(orig_set)
+
+    print("Dropping detectors with more than {} anomalies...".format(max_anom))
+    df = df.drop(df[df["Num_Anom"] > max_anom].index)
+
+
     df=df.reindex(mux)
+    
+    x = []
+    for d in df.index.get_level_values("detector_id").unique():
+        x.append([df.loc[d]["n_vehicles_in_interval"].isna().sum()] * len(df.loc[d]))
+
+    x = np.array(x)
+    x = x.flatten()
+
+    df["Num_Missing"] = x
 
     # T = pd.date_range(start=start_date, end=end_date, freq="H",)
 
     # mux = pd.MultiIndex.from_product(
     #     [dets, T], names=("detector_id", "measurement_end_utc")
     # )
+    
+    print(
+        "Dropping detectors with sufficiently high amounts of missing data (>{}%)...".format(
+            percentage_missing
+        )
+    )
+    df = df.drop(df[df["Num_Missing"] > ((len(T) * percentage_missing) / 100)].index)
+
+    curr_set = set(df.index.get_level_values("detector_id"))
+    curr_length = len(curr_set)
+    print(
+        "{} detectors dropped: {}\n".format(
+            orig_length - curr_length, orig_set.difference(curr_set)
+        )
+    )
 
 
     #interpolate
