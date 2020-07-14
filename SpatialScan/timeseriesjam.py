@@ -369,3 +369,27 @@ def GP_forecast(
         framelist.append(df2)
 
     return pd.concat(framelist)
+
+def forecast_plotJ(df: pd.DataFrame, detector: str = None):
+    """Function that plots the Count against the forecasted Baseline
+        
+        Args:
+            df: Dataframe with Time, Count and Baseline columns
+            detector: String of detector name, if none detector chosen at random"""
+
+    detectors = df["detector_id"].drop_duplicates()
+    if detector is None:
+        detector = detectors.sample(n=1).to_numpy()[0]
+
+    df_d = df[df["detector_id"] == detector]
+    print(detector)
+    df_d = df_d.sort_values("measurement_end_utc")
+    ax=df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    if "prediction_variance" in df_d.columns:
+        plt.fill_between(
+            df_d["measurement_end_utc"],
+            df_d["baseline"] + 2*np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] - 2*np.sqrt(df_d["prediction_variance"]),
+            color="C0",
+            alpha=0.5, label= "2$\sigma$")
+    plt.legend()
