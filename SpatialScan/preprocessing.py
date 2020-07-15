@@ -175,8 +175,10 @@ def data_preprocessor(
     df["lon"] = df["lon"].interpolate(method="pad", limit_direction="both", axis=0)
     df["lat"] = df["lat"].interpolate(method="pad", limit_direction="both", axis=0)
 
+
+
     print("Data processing complete.\n")
-    return df
+    return df.fillna(method='bfill')
 
 
 def plot_processing(
