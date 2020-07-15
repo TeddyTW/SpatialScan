@@ -110,6 +110,7 @@ def count_baselineJ(
     alpha: float = 0.1,
     beta: float = 0.1,
     gamma: float = 0.2,
+    kern = None
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -174,6 +175,7 @@ def count_baselineJ(
             days_in_past=days_in_past,
             days_in_future=days_in_future,
             detectors=detectors,
+            kern = kern,
         )
 
     sd = []
@@ -204,19 +206,19 @@ def count_baselineJ(
         }
     )
 
-    T = pd.date_range(
-        start=Y["measurement_end_utc"].min() - np.timedelta64(3, "h"),
-        end=Y["measurement_end_utc"].max() + np.timedelta64(5, "h"),
-        freq="H",
-    )
-    dets = Y["detector_id"].unique()
-    mux = pd.MultiIndex.from_product(
-        [dets, T], names=("detector_id", "measurement_end_utc")
-    )
-    Y = Y.set_index(["detector_id", "measurement_end_utc"])
-    Y = Y.reindex(mux)
+    # T = pd.date_range(
+    #     start=Y["measurement_end_utc"].min() - np.timedelta64(3, "h"),
+    #     end=Y["measurement_end_utc"].max() + np.timedelta64(5, "h"),
+    #     freq="H",
+    # )
+    # dets = Y["detector_id"].unique()
+    # mux = pd.MultiIndex.from_product(
+    #     [dets, T], names=("detector_id", "measurement_end_utc")
+    # )
+    # Y = Y.set_index(["detector_id", "measurement_end_utc"])
+    # Y = Y.reindex(mux)
 
-    Y = Y.reset_index()
+    # Y = Y.reset_index()
 
     return Y
 
@@ -242,7 +244,7 @@ def CB_plotJ(df: pd.DataFrame):
     df_format["hour_from_start"] = df_format["hour_from_start"].astype(
         dtype="timedelta64[h]"
     )
-    offset = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=2)
+    offset = colors.DivergingNorm(vmin=0.5, vcenter=1, vmax=2)
     fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111, projection="3d")
     p = ax.scatter(
@@ -262,7 +264,7 @@ def CB_plotJ(df: pd.DataFrame):
     plt.show()
 
 
-def GP_forecast(
+def GP_forecast_gaps(
     df: pd.DataFrame,
     days_in_past: int = 2,
     days_in_future: int = 1,
@@ -393,3 +395,105 @@ def forecast_plotJ(df: pd.DataFrame, detector: str = None):
             color="C0",
             alpha=0.5, label= "2$\sigma$")
     plt.legend()
+
+
+def GP_forecast(
+    df: pd.DataFrame,
+    days_in_past: int = 2,
+    days_in_future: int = 1,
+    detectors: list = None,
+    kern = None
+) -> pd.DataFrame:
+
+    """Forecast using Gaussian Processes 
+    Args: 
+        df: Dataframe of JamCam data
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+        detectors: List of detectors to look at
+
+
+    Returns:
+        Dataframe forecast in same format as JamCam input dataframe
+
+        """
+
+    # extract numpy array of detector ID's
+    if detectors is None:
+        detectors = df["detector_id"].drop_duplicates().to_numpy()
+    framelist = []
+
+    i = 0
+    for detector in detectors:
+        i += 1
+
+        dataset = df[df["detector_id"] == detector].tail(n=26* days_in_past)
+
+        Y = dataset["n_vehicles_in_interval"].to_numpy().reshape(-1, 1)
+        Y = Y.astype(float)
+        X = (dataset["measurement_end_utc"]-dataset["measurement_end_utc"].min()).astype("timedelta64[h]").to_numpy().reshape(-1, 1)
+
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        y = scaler.fit_transform(Y)
+
+        if(kern is None):
+
+            kern_pD = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+            kern_pW = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
+            kern_SE = gpflow.kernels.SquaredExponential()
+            kern_W = gpflow.kernels.White()
+            kern_M = gpflow.kernels.Matern32()
+
+            kern_pD.period.assign(24.0)
+            # kern_pD.base_kernel.variance.assign(10)
+            kern_pW.period.assign(168.0)
+            # kern_pW.base_kernel.variance.assign(10)
+
+            k = kern_pD + kern_M
+        else:
+            k=kern
+
+        m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
+        opt = gpflow.optimizers.Scipy()
+        opt_logs = opt.minimize(
+            m.training_loss, m.trainable_variables, options=dict(maxiter=100)
+        )
+
+        print("please wait: ", i, "/", len(detectors), end="\r")
+
+        ## generate test points for prediction
+        xx = np.linspace(
+            X.max() + 1, X.max() + (days_in_future * 24) + 1, (days_in_future * 24)
+        ).reshape(
+            (days_in_future * 24), 1
+        )  # test points must be of shape (N, D)
+
+        ## predict mean and variance of latent GP at test points
+        mean, var = m.predict_f(xx)
+
+        # reverse min_max scaler
+        testPredict = scaler.inverse_transform(mean)
+        testVar = scaler.inverse_transform(var)
+
+        # find the time period for our testPredictions
+        start_date = dataset["measurement_end_utc"].max()
+        end_date = start_date + np.timedelta64(24 * (days_in_future) -1, "h")
+
+        T = pd.date_range(start_date, end_date, freq="H")
+
+        # organise data into dataframe similar to the SCOOT outputs
+        df2 = pd.DataFrame(
+            {
+                "detector_id": detector,
+                "lon": df[df["detector_id"] == detector]["lon"].iloc[0],
+                "lat": df[df["detector_id"] == detector]["lat"].iloc[0],
+                "measurement_start_utc": T,
+                "measurement_end_utc": T + np.timedelta64(1, "h"),
+                "n_vehicles_in_interval": testPredict.flatten(),
+                "prediction_variance": testVar.flatten(),
+            }
+        )
+
+        framelist.append(df2)
+
+    return pd.concat(framelist)
