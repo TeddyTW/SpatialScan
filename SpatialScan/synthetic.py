@@ -29,7 +29,7 @@ def synthetic_detector(
     if days is None:
         X = np.arange(0, len(Y))
     else:
-        X= np.arange(0, 24*days +1)
+        X= np.arange(0, 24*days)
     noise = normal(0, noise_percentage / 100, len(X))
     S = (
         np.percentile(Y, 90)
@@ -54,10 +54,14 @@ def synthetic_SCOOT(
 
     start_date = df["measurement_end_utc"].min()
 
-    T = pd.date_range(start=start_date, end=start_date + np.timedelta64(days, "D"), freq="H",)
+    T = pd.date_range(start=start_date, end=start_date + np.timedelta64(days, "D") - np.timedelta64(1, "h"), freq="H",)
     mux = pd.MultiIndex.from_product(
             [df["detector_id"].unique(), T], names=("detector_id", "measurement_end_utc")
         )
+    if(days):
+        print("Please wait, creating synthetic data for {} days...".format(days))
+    else:
+        print("Please wait, creating synthetic data with same format as input dataframe...")
 
 
     DF = df.set_index(["detector_id", "measurement_end_utc"])
@@ -70,8 +74,7 @@ def synthetic_SCOOT(
     if days:
         DF=DF.reindex(mux)
         DF["measurement_start_utc"] = DF.index.get_level_values("measurement_end_utc") - np.timedelta64(1, "h")
-    print(len(DF))
-    print(len(np.hstack(X.to_numpy())))   
+  
     DF["n_vehicles_in_interval"] = np.hstack(X.to_numpy())
     DF = DF.reset_index()
 
