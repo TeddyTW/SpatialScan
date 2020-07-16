@@ -181,10 +181,8 @@ def data_preprocessor(
               'measurement_end_utc', 'n_vehicles_in_interval',
               'rolling_threshold', 'global_threshold']]
 
-
-
     print("Data processing complete.\n")
-    return df.fillna(method='bfill')
+    return df
 
 
 def plot_processing(
