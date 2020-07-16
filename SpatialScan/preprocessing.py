@@ -122,8 +122,16 @@ def data_preprocessor(
         Dataframe of interpolated values with detectors dropped for too many missing values.
 
         """
+    columns = ['detector_id', 'lon', 'lat', 'measurement_start_utc',
+               'measurement_end_utc', 'n_vehicles_in_interval']
+    assert set(columns) <= set(df.columns)
+    assert percentage_missing >= 0
+    assert max_anom_per_day >= 0
+    assert N_sigma >= 0
+    assert repeats >= 0
+    assert rolling_hours > 0 if not global_threshold else True
 
-    assert set(['measurement_start_utc', 'measurement_end_utc']) <= set(df.columns)
+    # Convert dates to useful format
     df['measurement_start_utc'] = pd.to_datetime(df['measurement_start_utc'])
     df['measurement_end_utc'] = pd.to_datetime(df['measurement_end_utc'])
 
@@ -244,7 +252,8 @@ def data_preprocessor(
         )
     )
 
-    # Linearly interpolate missing vehicle counts
+    # Linearly interpolate missing vehicle counts whilst still using multi_index
+    # Fills backwards and forwards
     print(
         "Linearly interpolating between missing vehicle counts for remaining detectors ",
         "with less than {}% missing data...".format(percentage_missing),
@@ -257,8 +266,9 @@ def data_preprocessor(
     df["measurement_start_utc"] = df.index.get_level_values("measurement_end_utc") - np.timedelta64(1, "h")
     df = df.reset_index()
     df.sort_values(["detector_id", "measurement_end_utc"], inplace=True)
-    df["lon"] = df["lon"].interpolate(method="pad", limit_direction="both", axis=0)
-    df["lat"] = df["lat"].interpolate(method="pad", limit_direction="both", axis=0)
+
+    # Fill missing lon, lat, rolling, global columns with existing values
+    df = df.groupby('detector_id').apply(lambda x: x.ffill().bfill())
 
     # Re-Order Columns
     df = df[['detector_id', 'lon', 'lat', 'measurement_start_utc',
