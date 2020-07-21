@@ -11,8 +11,10 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
+
 import tensorflow as tf
 from scipy.optimize import minimize
+
 import gpflow
 from gpflow.utilities import print_summary
 from sklearn.metrics import mean_squared_error
@@ -134,32 +136,45 @@ def holt_winters(
     detectors: list = None,
 ) -> pd.DataFrame:
 
-    """Average forecast using Holt-Winters method
+    """Time series forecast using Holt-Winters method.
 
-    Args: 
-        df: Dataframe of SCOOT data
-        detectors: List of detectors to look at
+    Args:
+        df: Dataframe of 'processed' SCOOT data
         days_in_past: Integer number of previous days to use for forecast
         days_in_future: Days in future produce a for forecast for
-        display: boolean which determines whether to plot forecast
-        alpha, beta, gamma: optimisation parameters
+        alpha: Optimisation parameter
+        beta: Optimisation parameter
+        gamma: Optimisation parameter
+        display: Boolean which determines whether to plot forecast.
+        detectors: List of detectors to look at. Defaults to all.
 
     Returns:
-        Dataframe forecast in same format as SCOOT input dataframe
+        Dataframe forecast in same format as SCOOT input dataframe, with baseline
+        counts instead of actual counts.
+    """
 
-        """
+    # Check parameter values
+    assert 0 <= alpha <= 1
+    assert 0 <= beta <= 1
+    assert 0 <= gamma <= 1
 
+    # Get default detectors
     if detectors is None:
         detectors = df["detector_id"].drop_duplicates().to_numpy()
 
     framelist = []
     for detector in detectors:
+        # Notation as in Expectation-Based Scan Statistic paper
         S = 1
         T = 1
         I = np.ones(24)
-        one_D = df[df["detector_id"] == detector]
-        one_D = one_D.sort_values(by=["measurement_end_utc"])
-        past = one_D.tail(n=24 * days_in_past)
+        one_det = df[df["detector_id"] == detector]
+
+        # Use most recent days in the past to produce forecast
+        one_det = one_det.sort_values(by=["measurement_end_utc"])
+        past = one_det.tail(n=24 * days_in_past)
+
+        # HW algorithm
         for i in range(0, len(past)):
             h = i % 24
             c = past["n_vehicles_in_interval"].iloc[i]
@@ -171,11 +186,13 @@ def holt_winters(
         baseline = []
         endtime = []
         starttime = []
+
+        last_training_time = df["measurement_end_utc"].max()
         for j in range(0, days_in_future * 24):
-            end = df["measurement_end_utc"].to_numpy()[-1] + np.timedelta64(j + 1, "h")
-            start = df["measurement_start_utc"].to_numpy()[-1] + np.timedelta64(
-                j + 1, "h"
-            )
+
+            start = last_training_time + np.timedelta64(j, "h")
+            end = last_training_time + np.timedelta64(j + 1, "h")
+
             h = j % 24
             b = (S + T) * I[h]
             baseline.append(b)
@@ -190,22 +207,22 @@ def holt_winters(
         df2 = pd.DataFrame(
             {
                 "detector_id": detector,
-                "lon": one_D[one_D["detector_id"] == detector]["lon"].iloc[0],
-                "lat": one_D[one_D["detector_id"] == detector]["lat"].iloc[0],
+                "lon": one_det[one_det["detector_id"] == detector]["lon"].iloc[0],
+                "lat": one_det[one_det["detector_id"] == detector]["lat"].iloc[0],
                 "measurement_start_utc": starttime,
                 "measurement_end_utc": endtime,
                 "n_vehicles_in_interval": baseline,
             }
         )
         framelist.append(df2)
-    DF = pd.concat(framelist)
+    forecasts = pd.concat(framelist)
 
     if display:
-        df_plot = DF.set_index("measurement_end_utc")
+        df_plot = forecasts.set_index("measurement_end_utc")
         for detector in detectors:
             df_plot[df_plot["detector_id"] == detector]["n_vehicles_in_interval"].plot()
 
-    return DF
+    return forecasts
 
 def HW_RSME(
     params: list, df: pd.DataFrame, days_in_past: int, days_in_future:int, detectors: list = None,
@@ -401,27 +418,36 @@ def count_baseline(
     alpha: float = 0.1,
     beta: float = 0.1,
     gamma: float = 0.1,
-    kern = None
+    kern=None
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
         in scan statistics
 
     Args:
-        df: Dataframe of SCOOT data
-        days_in_past: Integer past days to train forecast one
-        days_in_future: Days in future produce a baseline too and record count for
-        method: Forecast method to use for baseline, default is "HW" for Holt-Winters, option for MLAD
-        detectors: List of detectors to look at
+        df: Dataframe of processed SCOOT data.
+        days_in_past: Integer past days to train forecast on
+        days_in_future: Days in future to produce a baseline estimate for
+        method: Forecast method to use for baseline, default is "HW" for Holt-Winters.
+                Options: "HW", "HWO", "MALD", "GP", "LSTM"
+        detectors: List of detectors to look produce forecasts for. Default behaviour
+                   produces forecasts for all detectors present in input dataframe.
+        alpha: Holt-Winter parameter
+        beta: Holt-winters parameter
+        gamma: Holt-winters parameter
+        kern: GP kernel if method="GP" used. Default available.
 
     Returns:
-        Dataframe of counts and baseline along with detector data
+        forecast_df: Dataframe of SCOOT vehicle counts and baseline estimates
+    """
 
-        """
-
+    # Drop useless columns
+    assert set(['rolling_threshold', 'global_threshold']) <= set(df.columns)
     df = df.drop(
-        ["rolling_threshold", "global_threshold", "Num_Anom", "Num_Missing"], axis=1
+        ["rolling_threshold", "global_threshold"], axis=1
     )
+    assert days_in_future > 0
+    assert days_in_past > 0
 
     t_min = df["measurement_start_utc"].min()
     t_max = df["measurement_end_utc"].max()
@@ -431,14 +457,15 @@ def count_baseline(
     if detectors is None:
         detectors = df["detector_id"].drop_duplicates().to_numpy()
 
-    # Previously assumed sorted
+    # Organise dates of train/forecast/analysis
     prediction_start = t_max - np.timedelta64(days_in_future * 24, "h")
 
     train_data = df[df["measurement_end_utc"] <= prediction_start]
-    test_data = df[df["measurement_end_utc"] > prediction_start]
+    actual_counts = df[df["measurement_end_utc"] > prediction_start]
 
-    # Relies on data being pre-processed
-    avail_past_days = int(len(train_data["measurement_end_utc"].unique()) / 24)
+    avail_past_days = (prediction_start - t_min).days
+
+    # Print sanity checks
     if avail_past_days < days_in_past:
         print(
             "Input dataframe only contains {} days worth of data before the prediction period.".format(
@@ -450,15 +477,16 @@ def count_baseline(
     else:
         forecast_data_start = prediction_start - np.timedelta64(days_in_past, "D")
 
-    print(
-        "Using data from {} to {}, to forecast counts\n".format(
-            forecast_data_start, prediction_start
-        ),
-        "between {} and {} for {} detectors using {} method...".format(
-            prediction_start, t_max, len(detectors), method
-        ),
+    print("Using data from {} to {}, to build {} forecasting model.\n".format(
+            forecast_data_start, prediction_start, method
+        )
+    )
+    print("Forecasting counts between {} and {} for {} detectors.".format(
+            prediction_start, t_max, len(detectors)
+        )
     )
 
+    # Select forecasting method
     if method == "HW":
         y = holt_winters(
             train_data,
@@ -492,36 +520,44 @@ def count_baseline(
             detectors=detectors,
             kern = kern
         )
-
-    sd = []
-
     print("Forecasting complete.")
 
-    for detector in detectors:
-
-        sd.append(test_data[test_data["detector_id"] == detector])
-
-    sample_test_data = pd.concat(sd)
-
-    Y = y.merge(
-        sample_test_data,
+    # Merge actual_count dataframe with forecast dataframe, carry out checks
+    # and return.
+    forecast_df = y.merge(
+        actual_counts,
         on=[
+            "detector_id",
             "lon",
             "lat",
-            "measurement_end_utc",
-            "detector_id",
             "measurement_start_utc",
+            "measurement_end_utc",
         ],
         how="left",
     )
-    Y = Y.rename(
+    forecast_df.rename(
         columns={
             "n_vehicles_in_interval_x": "baseline",
             "n_vehicles_in_interval_y": "count",
-        }
+        },
+        inplace=True,
     )
 
-    return Y
+    # Add check for Nans cleanse
+    count_nans = forecast_df["count"].isnull().sum(axis=0)
+    baseline_nans = forecast_df["baseline"].isnull().sum(axis=0)
+    assert count_nans == 0
+    assert baseline_nans == 0
+
+    # Make Baseline Values Non-Negative
+    negative= len(forecast_df[forecast_df["baseline"] < 0]["baseline"])
+    if negative > 0:
+        print("Setting {} negative baseline values to zero.\n".format(negative))
+        forecast_df["baseline"] = forecast_df["baseline"].apply(
+            lambda x: np.max([0, x])
+        )
+
+    return forecast_df
 
 
 def forecast_plot(df: pd.DataFrame, detector: str = None):

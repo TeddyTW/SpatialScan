@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 def data_preprocessor(
     df: pd.DataFrame,
     percentage_missing: float = 20,
-    max_anom: int = 30,
+    max_anom_per_day: int = 1,
     N_sigma: float = 3,
     repeats: int = 1,
     rolling_hours: int = 24,
@@ -19,7 +19,7 @@ def data_preprocessor(
         df: Dataframe of SCOOT data
         percentage_missing: float percentage of missing values, above which drop detector
         N_sigma: Number of standard deviations to set threshold
-        repeats: integer number of repeats for which to recalcualte thresholds once previous anomallys
+        repeats: integer number of repeats for which to recalculate thresholds once previous anomallys
                 have been removed, default 1
         rolling_hours: interger number of hours over which to calculate rolling median for threshold
         global_threshold: if True, global median used for threshold instead of rolling median
@@ -28,18 +28,30 @@ def data_preprocessor(
         Dataframe of interpolated values with detectors dropped for too many missing values.
 
         """
+    columns = ['detector_id', 'lon', 'lat', 'measurement_start_utc',
+               'measurement_end_utc', 'n_vehicles_in_interval']
+    assert set(columns) <= set(df.columns)
+    assert percentage_missing >= 0
+    assert max_anom_per_day >= 0
+    assert N_sigma >= 0
+    assert repeats >= 0
+    assert rolling_hours > 0 if not global_threshold else True
 
-    start_date = df["measurement_end_utc"].min()
+    # Convert dates to useful format
+    df['measurement_start_utc'] = pd.to_datetime(df['measurement_start_utc'])
+    df['measurement_end_utc'] = pd.to_datetime(df['measurement_end_utc'])
+
+    start_date = df["measurement_start_utc"].min()
     end_date = df["measurement_end_utc"].max()
-
     num_days = (end_date - start_date).days
 
-    T = pd.date_range(start=start_date, end=end_date, freq="H",)
+    # Max allowable amount of anomalies without detector disposal
+    max_anom = max_anom_per_day * num_days
 
-    mux = pd.MultiIndex.from_product(
-        [df["detector_id"].unique(), T], names=("detector_id", "measurement_end_utc")
-    )
+    # Create array of times for which we want data
+    end_times = pd.date_range(start=start_date + np.timedelta64(1, 'h'), end=end_date, freq="H",)
 
+    # Create Multi-index dataframe
     df = df.set_index(["detector_id", "measurement_end_utc"])
 
     if global_threshold:
@@ -48,22 +60,17 @@ def data_preprocessor(
                 num_days
             )
         )
-        print(
-            "Using {} iteration(s) to remove points outside of {} sigma from the global median ...".format(
-                repeats, N_sigma
-            )
-        )
     else:
         print(
             "Using the {}-day rolling median to remove outliers ...".format(
                 rolling_hours
             )
         )
-        print(
-            "Using {} iterations to remove points outside of {} sigma from the rolling median ...".format(
-                repeats, N_sigma
-            )
+    print(
+        "Using {} iterations to remove points outside of {} sigma from the median ...".format(
+            repeats, N_sigma
         )
+    )
 
     df = df.sort_values(["detector_id", "measurement_end_utc"])
 
@@ -81,11 +88,6 @@ def data_preprocessor(
             .values
         )
 
-        #         df.loc[:, "rolling_threshold"] = (
-        #             df["n_vehicles_in_interval"].rolling(rolling_hours).median()
-        #             + N_sigma * df["n_vehicles_in_interval"].std()
-        #         )
-
         df = df.join(
             df.median(level="detector_id")["n_vehicles_in_interval"]
             + N_sigma * (df.std(level="detector_id")["n_vehicles_in_interval"]),
@@ -97,6 +99,7 @@ def data_preprocessor(
         df = df.drop(["n_vehicles_in_intervalanom"], axis=1)
 
         df["rolling_threshold"] = df["rolling_threshold"].fillna(df["global_threshold"])
+
         if global_threshold:
             df["rolling_threshold"] = df["global_threshold"]
 
@@ -104,47 +107,49 @@ def data_preprocessor(
             df["n_vehicles_in_interval"] > df["rolling_threshold"],
             ["n_vehicles_in_interval"],
         ] = float("NaN")
+
         print(
             "Calculating threshold(s): Iteration {} of {}...".format(r + 1, repeats),
             end="\r",
         )
 
-    print("\nThreshold(s) calculated.\n")
-
+    # Calculate number of anomalies per detector
     df = df.join(
         df.isna().astype(int).sum(level="detector_id")["n_vehicles_in_interval"],
         on=["detector_id"],
         rsuffix="NaN",
     )
+    df.rename({'n_vehicles_in_intervalNaN': 'num_anom'}, axis=1, inplace=True)
 
-    df["Num_Anom"] = df["n_vehicles_in_intervalNaN"]
-    df = df.drop(["n_vehicles_in_intervalNaN"], axis=1)
-
+    # Calculate original num of detectors inputted by user
     orig_set = set(df.index.get_level_values("detector_id"))
     orig_length = len(orig_set)
 
-    print("Dropping detectors with more than {} anomalies...".format(max_anom))
-    df = df.drop(df[df["Num_Anom"] > max_anom].index)
+    # Drop detectors with too many anomalies
+    print("\nDropping detectors with more than {} anomalies...".format(max_anom))
+    df = df.drop(df[df["num_anom"] > max_anom].index)
 
-    print("Filling in missing dates and times. Reindexing on date ...")
+    print("Filling in missing dates and times ...")
+    remaining_detectors = df.index.get_level_values("detector_id").unique()
+    mux = pd.MultiIndex.from_product(
+        [remaining_detectors, end_times], names=("detector_id", "measurement_end_utc")
+    )
     df = df.reindex(mux)
 
-    x = []
-    for d in df.index.get_level_values("detector_id").unique():
-        x.append([df.loc[d]["n_vehicles_in_interval"].isna().sum()] * len(df.loc[d]))
-
-    x = np.array(x)
-    x = x.flatten()
-
-    df["Num_Missing"] = x
+    # Find detectors with too much missing data
+    detectors_to_drop = []
+    for det in remaining_detectors:
+        if df.loc[det]["n_vehicles_in_interval"].isna().sum() > len(end_times) * 0.01 * percentage_missing:
+            detectors_to_drop.append(det)
 
     print(
         "Dropping detectors with sufficiently high amounts of missing data (>{}%)...".format(
             percentage_missing
         )
     )
-    df = df.drop(df[df["Num_Missing"] > ((len(T) * percentage_missing) / 100)].index)
+    df.drop(detectors_to_drop, level='detector_id', inplace=True)
 
+    # Return drop information to user
     curr_set = set(df.index.get_level_values("detector_id"))
     curr_length = len(curr_set)
     print(
@@ -153,12 +158,8 @@ def data_preprocessor(
         )
     )
 
-    # df["detector_id"]=df.index.get_level_values('detector_id')
-    # df["measurement_end_utc"]=df.index.get_level_values('measurement_end_utc')
-    df["measurement_start_utc"] = df.index.get_level_values(
-        "measurement_end_utc"
-    ) - np.timedelta64(1, "h")
-
+    # Linearly interpolate missing vehicle counts whilst still using multi_index
+    # Fills backwards and forwards
     print(
         "Linearly interpolating between missing vehicle counts for remaining detectors ",
         "with less than {}% missing data...".format(percentage_missing),
@@ -166,19 +167,22 @@ def data_preprocessor(
     df["n_vehicles_in_interval"] = df["n_vehicles_in_interval"].interpolate(
         method="linear", limit_direction="both", axis=0
     )
-    print("Interpolation complete.\n")
 
-    print("Filling missing lon and lats...")
+    # Create the remaining columns/fill missing row values
+    df["measurement_start_utc"] = df.index.get_level_values("measurement_end_utc") - np.timedelta64(1, "h")
     df = df.reset_index()
     df.sort_values(["detector_id", "measurement_end_utc"], inplace=True)
 
-    df["lon"] = df["lon"].interpolate(method="pad", limit_direction="both", axis=0)
-    df["lat"] = df["lat"].interpolate(method="pad", limit_direction="both", axis=0)
+    # Fill missing lon, lat, rolling, global columns with existing values
+    df = df.groupby('detector_id').apply(lambda x: x.ffill().bfill())
 
-
+    # Re-Order Columns
+    df = df[['detector_id', 'lon', 'lat', 'measurement_start_utc',
+              'measurement_end_utc', 'n_vehicles_in_interval',
+              'rolling_threshold', 'global_threshold']]
 
     print("Data processing complete.\n")
-    return df.fillna(method='bfill')
+    return df
 
 
 def plot_processing(
