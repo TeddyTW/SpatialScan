@@ -580,7 +580,7 @@ def forecast_plot(df: pd.DataFrame, detector: str = None):
 
         #df_d["measurement_end_utc"]=df_d["measurement_end_utc"].astype('O')
         ax.plot(df_d["measurement_end_utc"], df_d["baseline"], label="baseline")
-        ax.plot(df_d["measurement_end_utc"], df_d["count"], label="count")
+        ax.plot(df_d["measurement_end_utc"], df_d["count"], "^", label="count")
         ax.fill_between(
             df_d["measurement_end_utc"],
             df_d["baseline"] + 3*np.sqrt(df_d["prediction_variance"]),
@@ -844,9 +844,15 @@ def GP_forecast(
 
         m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
         opt = gpflow.optimizers.Scipy()
-        opt_logs = opt.minimize(
-            m.training_loss, m.trainable_variables, options=dict(maxiter=100)
-        )
+
+        try:
+            opt_logs = opt.minimize(
+                m.training_loss, m.trainable_variables, options=dict(maxiter=100)
+            )
+        except:
+            print(detector, " Matrix not invertible, skipping to next detector")
+            del m
+            continue
 
         print("please wait: ", i, "/", len(detectors), end="\r")
 
@@ -889,5 +895,7 @@ def GP_forecast(
         )
 
         framelist.append(df2)
+
+        del m
 
     return pd.concat(framelist)
