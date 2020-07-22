@@ -253,7 +253,7 @@ def HW_RSME(
     framelist = []
     count=[]
     baseline=[]
-    for detector in detectors:
+    for d, detector in enumerate(detectors, 1):
         S = 1
         T = 1
         I = np.ones(24)
@@ -285,7 +285,8 @@ def HW_RSME(
             T = beta * (Snew - S) + (1 - beta) * T
             I[h] = gamma * (c / Snew) + (1 - gamma) * I[h]
             S = Snew
-            
+        
+        print(d, "/", len(detectors), end="\r")
 
     RSME = np.sqrt(mean_squared_error(count, baseline))
 
