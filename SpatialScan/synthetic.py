@@ -462,3 +462,4 @@ def results_builder(
         pd.concat(dataframe_list, ignore_index=True),
         pd.DataFrame.from_dict(daily_highest_scoring_regions, "index"),
     )
+

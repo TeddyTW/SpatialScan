@@ -4,7 +4,7 @@ methods of timeseries analysis from `scanstat.timeseries`"""
 import pandas as pd
 import numpy as np
 
-from .timeseries import holt_winters
+from .timeseries import *
 
 
 def forecast(
@@ -16,7 +16,6 @@ def forecast(
     alpha: float = 0.1,
     beta: float = 0.1,
     gamma: float = 0.1,
-    # kern=None,
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -96,22 +95,21 @@ def forecast(
             detectors=detectors,
         )
 
-    #    if method == "LSTM":
-    #       y = LSTM_forecast(
-    #            df,
-    #            days_in_past=days_in_past,
-    #            days_in_future=days_in_future,
-    #            detectors=detectors,
-    #        )
+    if method == "LSTM":
+        y = lstm_forecast(
+            proc_df,
+            days_in_past=days_in_past,
+            days_in_future=days_in_future,
+            detectors=detectors,
+        )
 
-    #    if method == "GP":
-    #        y = GP_forecast(
-    #            train_data,
-    #            days_in_future=days_in_future,
-    #            detectors=detectors,
-    #            days_in_past=days_in_past,
-    #            kern=kern,
-    #        )
+    if method == "GP":
+        y = gp_forecast(
+            train_data,
+            days_in_future=days_in_future,
+            detectors=detectors,
+            days_in_past=days_in_past,
+        )
     print("Forecasting complete.")
 
     # Merge actual_count dataframe with forecast dataframe, carry out checks

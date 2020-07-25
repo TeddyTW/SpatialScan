@@ -17,6 +17,10 @@ from scipy.optimize import minimize
 
 import gpflow
 from gpflow.utilities import print_summary
+from sklearn.metrics import mean_squared_error
+import matplotlib.dates as mdates
+from datetime import datetime
+
 
 
 def MA(df: pd.DataFrame, detector: str, past_days: int) -> float:
@@ -220,9 +224,8 @@ def holt_winters(
 
     return forecasts
 
-
 def HW_RSME(
-    params: list, df: pd.DataFrame, days_in_past: int, detectors: list = None,
+    params: list, df: pd.DataFrame, days_in_past: int, days_in_future:int, detectors: list = None,
 ) -> float:
 
     """Calcualte Root-Mean Squared error on historical training data for holt winters.
@@ -248,33 +251,107 @@ def HW_RSME(
         detectors = df["detector_id"].drop_duplicates().to_numpy()
 
     framelist = []
-    for detector in detectors:
+    count=[]
+    baseline=[]
+    for d, detector in enumerate(detectors, 1):
         S = 1
         T = 1
         I = np.ones(24)
         one_D = df[df["detector_id"] == detector]
         one_D = one_D.sort_values(by=["measurement_end_utc"])
-        past = one_D.tail(n=24 * days_in_past)
+        past = one_D
         RSME = []
         for i in range(0, len(past) - 1):
             h = i % 24
 
-            if i > len(past) - 24 * 8:
-                RSME = np.append(
-                    RSME,
-                    (past["n_vehicles_in_interval"].iloc[i + 1] - ((S + T) * I[h]))
-                    ** 2,
-                )
+            r = i % (24*days_in_future)
+            
+
+            if(r==0):
+                Sf=S
+                Tf=T
+                If=I
+            if ((i > 24*days_in_past) and i < len(past)-24*days_in_future):
+                b = (Sf + Tf) * If[h]
+                baseline.append(b)
+                count.append(past["n_vehicles_in_interval"].iloc[i])
+                Snew = (alpha * (b / If[h])) + (1 - alpha) * (Sf + Tf)
+                T = beta * (Snew - Sf) + (1 - beta) * Tf
+                I[h] = gamma * (b / Snew) + (1 - gamma) * If[h]
+                Sf = Snew
 
             c = past["n_vehicles_in_interval"].iloc[i]
             Snew = (alpha * (c / I[h])) + (1 - alpha) * (S + T)
             T = beta * (Snew - S) + (1 - beta) * T
             I[h] = gamma * (c / Snew) + (1 - gamma) * I[h]
             S = Snew
+        
+        print(d, "/", len(detectors), end="\r")
 
-        RSME = np.sqrt(RSME.mean())
+    RSME = np.sqrt(mean_squared_error(count, baseline))
 
-        return RSME
+    return RSME
+
+
+def HW_SFE(
+    params,
+    df: pd.DataFrame,
+    days_in_past: int,
+    days_in_future: int,
+
+    detectors: list = None,
+) -> pd.DataFrame:
+    
+    alpha = params[0]
+    beta = params[1]
+    gamma = params[2]
+
+    """Average forecast using Holt-Winters method
+
+    Args: 
+        df: Dataframe of SCOOT data
+        detectors: List of detectors to look at
+        days_in_past: Integer number of previous days to use for forecast
+        days_in_future: Days in future produce a for forecast for
+        display: boolean which determines whether to plot forecast
+        alpha, beta, gamma: optimisation parameters
+
+    Returns:
+        Dataframe forecast in same format as SCOOT input dataframe
+
+        """
+    t_min = df["measurement_start_utc"].min()
+    t_max = df["measurement_end_utc"].max()
+    validation_start = t_min + np.timedelta64(days_in_past +1, "D")
+    
+    RSME=[]
+    
+    while(validation_start < t_max-np.timedelta64(days_in_future, "D")):
+        
+        #print(validation_start, t_max, end ="\r")
+
+        if detectors is None:
+            detectors = df["detector_id"].drop_duplicates().to_numpy()
+
+        train_data = df[df["measurement_end_utc"] <= validation_start + np.timedelta64(days_in_future, "D")]
+        validation_data = train_data[train_data["measurement_end_utc"] > validation_start]
+
+        train_data = train_data[train_data["measurement_end_utc"] <= validation_start]
+
+        y = holt_winters(
+                train_data,
+                days_in_past,
+                days_in_future,
+                alpha=alpha,
+                beta=beta,
+                gamma=gamma,
+                detectors=detectors)
+        
+        validation_data= validation_data[validation_data["detector_id"].isin(detectors)]
+        RSME.append(np.sqrt(mean_squared_error(validation_data["n_vehicles_in_interval"], y["n_vehicles_in_interval"])))
+        validation_start = validation_start + np.timedelta64(1, "D")
+    return np.array(RSME).mean()
+
 
 
 def HW_opt(
@@ -304,17 +381,17 @@ def HW_opt(
 
         one_D = df[df["detector_id"] == detector]
 
-        a = 0.1
-        b = 0.1
-        c = 0.1
+        a = 0.06
+        b = 0.02
+        c = 0.4
 
         params = minimize(
-            HW_RSME,
+            HW_SFE,
             [a, b, c],
-            args=(one_D, days_in_past),
-            method="SLSQP",
-            bounds=[(0, 1), (0, 1), (0, 1)],
-            options={"ftol": 3},
+            args=(one_D, days_in_past, days_in_future, [detector]),
+            method="L-BFGS-B",
+            bounds=[(0,0.15), (0, 0.15), (0.1, 0.5)],
+            options={"ftol": 10},
         )["x"]
 
         alpha = params[0]
@@ -498,14 +575,22 @@ def forecast_plot(df: pd.DataFrame, detector: str = None):
     df_d = df[df["detector_id"] == detector]
     print(detector)
     df_d = df_d.sort_values("measurement_end_utc")
-    ax=df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    fig= plt.figure(figsize=(15,8))
+    ax = fig.add_subplot()
     if "prediction_variance" in df_d.columns:
-        plt.fill_between(
+
+        #df_d["measurement_end_utc"]=df_d["measurement_end_utc"].astype('O')
+        ax.plot(df_d["measurement_end_utc"], df_d["baseline"], label="baseline")
+        ax.plot(df_d["measurement_end_utc"], df_d["count"], "^", label="count")
+        ax.fill_between(
             df_d["measurement_end_utc"],
-            df_d["baseline"] + 2*np.sqrt(df_d["prediction_variance"]),
-            df_d["baseline"] - 2*np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] + 3*np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] - 3*np.sqrt(df_d["prediction_variance"]),
             color="C0",
-            alpha=0.5, label= "2$\sigma$")
+            alpha=0.3, label= "3$\sigma$")
+        fig.autofmt_xdate()
+    else:
+        ax=df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
     plt.legend()
 
     plt.show()
@@ -760,9 +845,15 @@ def GP_forecast(
 
         m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
         opt = gpflow.optimizers.Scipy()
-        opt_logs = opt.minimize(
-            m.training_loss, m.trainable_variables, options=dict(maxiter=100)
-        )
+
+        try:
+            opt_logs = opt.minimize(
+                m.training_loss, m.trainable_variables, options=dict(maxiter=100)
+            )
+        except:
+            print(detector, " Matrix not invertible, skipping to next detector")
+            del m
+            continue
 
         print("please wait: ", i, "/", len(detectors), end="\r")
 
@@ -798,10 +889,14 @@ def GP_forecast(
                 "measurement_start_utc": t,
                 "measurement_end_utc": t + np.timedelta64(1, "h"),
                 "n_vehicles_in_interval": testPredict.flatten(),
-                "prediction_variance": testVar.flatten(),
+                "prediction_variance" : testVar.flatten(),
+                "99_upper": 3*np.sqrt(testVar.flatten()) + testPredict.flatten(),
+                "99_lower": 3*np.sqrt(testVar.flatten()) - testPredict.flatten(),
             }
         )
 
         framelist.append(df2)
+
+        del m
 
     return pd.concat(framelist)
