@@ -1,11 +1,12 @@
 """Module containing utility functionality to convert Jamcam data into usable format
 with the remaining code."""
-import pandas as pd
-import numpy as np
-import requests
-import json
+
 from json import JSONDecodeError
 import datetime
+
+import requests
+import pandas as pd
+import numpy as np
 
 
 def get_raw_jamcam_data(
@@ -20,7 +21,7 @@ def get_raw_jamcam_data(
 ) -> pd.DataFrame:
     """Scrape API for raw data for camera given in jamcam_locations_df between
     the dats passed.
-    Args: 
+    Args:
         jamcam_locations_df: df with camera_ids, borough_names, and their locations
         start_date:
         end_date:
@@ -165,9 +166,11 @@ def jamcam_hourly_aggregate(raw_jamcam_df: pd.DataFrame):
     return agg_df
 
 
-def format_jamcam_hourly_average_data(
+def format_jamcam_hourly_average(
     jamcam_data: pd.DataFrame, jamcam_locs: pd.DataFrame
 ) -> pd.DataFrame:
+
+    """Get Jamcam data counts from hourly averages"""
 
     # First drop duplicates
     data = jamcam_data.copy()
@@ -180,12 +183,12 @@ def format_jamcam_hourly_average_data(
     print("Dropped {} duplicate rows.".format(orig_length - curr_length))
 
     # Convert jamcam data into average hourly counts
-    # XXX - 360 is clearly not the magic number here.
+    # 360 is clearly not the magic number here.
     data["n_vehicles_in_interval"] = data["avg"].apply(lambda x: int(360 * x))
 
     # Convert camera Ids into matching formats
     locs["short_id"] = locs["camera_id"].apply(lambda x: x[12:])
-    data["camera_id"] = data["camera_id"].apply(lambda x: "{:.5f}".format(x))
+    data["camera_id"] = "{:.5f}".format(data["camera_id"])
     locs = locs.drop("camera_id", axis=1)
 
     # Fine the dates of which the data spans
