@@ -1,4 +1,6 @@
 """Main Class for Scan Statistics"""
+
+import logging
 import pandas as pd
 
 from SpatialScan.preprocessing import data_preprocessor
@@ -32,4 +34,10 @@ class ScanStatistic:
         if isinstance(self.grid_results, pd.DataFrame):
             visualise_results_from_database(self.grid_results)
         else:
-            print("Call `run()` first.")
+            logging.info(" Results not populated. Call `run()` first.")
+
+    def highest_region(self):
+        """Return highest region"""
+        if isinstance(self.all_results, pd.DataFrame):
+            return self.all_results.iloc[0]
+        logging.info("Results not populated. Call `run()` first.")
