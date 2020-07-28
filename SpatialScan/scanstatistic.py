@@ -29,10 +29,10 @@ class ScanStatistic:
         self.all_results = scan(forecast, self.grid_resolution)
         self.grid_results = database_results(self.all_results)
 
-    def plot(self):
+    def plot(self, metric="av_lhd_score_EBP"):
         """Plot animation plot from results"""
         if isinstance(self.grid_results, pd.DataFrame):
-            visualise_results_from_database(self.grid_results)
+            visualise_results_from_database(self.grid_results, metric=metric)
         else:
             logging.info(" Results not populated. Call `run()` first.")
 
