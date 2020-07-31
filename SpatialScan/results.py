@@ -4,6 +4,9 @@ main Expectation-Based Scan Statistic Loop"""
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+from shapely.geometry import Point
+from shapely.ops import unary_union
+import geopandas as gpd
 
 
 def title_generator(scan_type: str, i: int, t_labels: np.ndarray) -> str:
@@ -397,3 +400,146 @@ def visualise_results_from_database(
     )
     fig.show()
     return {"max": c_max, "min": c_min}
+
+
+class MapboxPlot:
+    def __init__(self, database_df, london_gpd):
+        self.database_df = database_df
+        self.london_gpd = london_gpd
+        # Mapbox Token
+        self.token = "pk.eyJ1IjoiY2hhbmNlaGF5Y29jayIsImEiOiJja2Q0d25iNjMxYTgxMnNudzUzdm9veG5xIn0.MNo8CDYOo6z_g1lWiRM3vg"
+        self.london_results = None
+
+    def _preprocess_database_results(self):
+        # Add centroid
+        self.database_df["lon"] = (
+            self.database_df["x_min"] + self.database_df["x_max"]
+        ) / 2
+        self.database_df["lat"] = (
+            self.database_df["y_min"] + self.database_df["y_max"]
+        ) / 2
+
+        # Shapely formatting
+        self.database_df["location"] = self.database_df.apply(
+            lambda x: Point(x.lon, x.lat), axis=1
+        )
+
+        # Project the london boroughs to standard
+        self.london_gpd = self.london_gpd.to_crs(epsg=4326)
+
+        london_boundary = gpd.GeoSeries(unary_union(self.london_gpd.geometry))
+
+        # Does all time steps at the mo - inefficient
+        self.database_df["in_london"] = self.database_df.apply(
+            lambda x: london_boundary.contains(x.location), axis=1
+        )
+
+        self.london_results = self.database_df[self.database_df["in_london"]]
+
+    def display(self, metric, zmin=None, zmax=None):
+        if not isinstance(self.london_results, pd.DataFrame):
+            self._preprocess_database_results()
+
+        unique_times = self.london_results.drop_duplicates(
+            subset=["start_time_utc", "end_time_utc"]
+        )
+
+        t_min_ticks = unique_times["start_time_utc"]
+        t_max_ticks = unique_times["end_time_utc"]
+        t_min_labels = [x.strftime("%I%p, %d %b %y") for x in t_min_ticks]
+        t_max_labels = [x.strftime("%I%p, %d %b %y") for x in t_max_ticks]
+
+        global_min = self.london_results[metric].min()
+        global_max = self.london_results[metric].max()
+
+        zmin = global_min if zmin is None else zmin
+        zmax = global_max if zmax is None else zmax
+
+        start_time = unique_times["start_time_utc"].min()
+
+        fig = go.Figure(
+            data=go.Densitymapbox(
+                lon=self.london_results[
+                    self.london_results["start_time_utc"] == start_time
+                ]["lon"],
+                lat=self.london_results[
+                    self.london_results["start_time_utc"] == start_time
+                ]["lat"],
+                z=self.london_results[
+                    self.london_results["start_time_utc"] == start_time
+                ][metric],
+                colorscale="viridis",
+                radius=100,
+                opacity=0.5,
+                showscale=True,
+                zmin=global_min,
+                zmax=global_max,
+                colorbar={
+                    "tickcolor": "white",
+                    "tickfont": {"color": "white"},
+                    "title": {"text": "Score", "font": {"color": "white"}},
+                },
+            ),
+            layout=go.Layout(
+                title="{} to {}".format(t_min_labels[0], t_max_labels[0]),
+                updatemenus=[
+                    dict(
+                        type="buttons",
+                        buttons=[
+                            dict(label="Play", method="animate", args=[None]),
+                            dict(
+                                label="Pause",
+                                method="animate",
+                                args=[
+                                    None,
+                                    {
+                                        "frame": {"duration": 0, "redraw": False},
+                                        "mode": "immediate",
+                                        "transition": {"duration": 0},
+                                    },
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            frames=[
+                go.Frame(
+                    data=[
+                        go.Densitymapbox(
+                            lon=self.london_results[
+                                self.london_results["start_time_utc"]
+                                == start_time + np.timedelta64(i, "h")
+                            ]["lon"],
+                            lat=self.london_results[
+                                self.london_results["start_time_utc"]
+                                == start_time + np.timedelta64(i, "h")
+                            ]["lat"],
+                            z=self.london_results[
+                                self.london_results["start_time_utc"]
+                                == start_time + np.timedelta64(i, "h")
+                            ][metric],
+                        )
+                    ],
+                    layout=go.Layout(
+                        title="{} to {}".format(t_min_labels[i], t_max_labels[i])
+                    ),
+                )
+                for i in range(0, len(t_min_labels))
+            ],
+        )
+        fig.update_layout(
+            mapbox_style="dark",
+            mapbox_accesstoken=self.token,
+            margin={"l": 0, "r": 0, "b": 0, "t": 60},
+            mapbox={"center": {"lon": -0.09, "lat": 51.495}, "zoom": 9.7},
+            autosize=False,
+            width=1600,
+            height=900,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            # paper_bgcolor='black',
+            title_font_color="white",
+        )
+        fig.show()
+        return {"max": zmax, "min": zmin}
