@@ -1,6 +1,22 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from astropy.timeseries import LombScargle
+
+def frequency_alarm(df_d: pd.DataFrame) -> float:
+    """Function that returns the false alarm probability for a given detector, for use in groupbys
+    Args: 
+        df_d: dataframe for single detector
+    Returns:
+        false alarm probability as float"""
+    X=df_d.reset_index()
+    X=X.drop(columns=["detector_id", "measurement_end_utc"])
+    x=X.index.to_numpy()
+    y=X.to_numpy().flatten()
+    ls=LombScargle(x, y)
+    period=np.linspace(15, 30, 300)
+    pmax=ls.power(1/period).max()
+    return ls.false_alarm_probability(pmax)
 
 def data_preprocessor(
     df: pd.DataFrame,
@@ -9,6 +25,7 @@ def data_preprocessor(
     N_sigma: float = 3,
     repeats: int = 1,
     rolling_hours: int = 24,
+    fap_max = float = 1e-40,
     global_threshold: bool = False,
 ) -> pd.DataFrame:
 
@@ -149,15 +166,6 @@ def data_preprocessor(
     )
     df.drop(detectors_to_drop, level='detector_id', inplace=True)
 
-    # Return drop information to user
-    curr_set = set(df.index.get_level_values("detector_id"))
-    curr_length = len(curr_set)
-    print(
-        "{} detectors dropped: {}\n".format(
-            orig_length - curr_length, orig_set.difference(curr_set)
-        )
-    )
-
     # Linearly interpolate missing vehicle counts whilst still using multi_index
     # Fills backwards and forwards
     print(
@@ -168,6 +176,26 @@ def data_preprocessor(
         method="linear", limit_direction="both", axis=0
     )
 
+    df = df.join(df.groupby(level="detector_id")["n_vehicles_in_interval"].apply(lambda x: frequency_alarm(x)),
+            on=["detector_id"],
+            rsuffix="X")
+
+    df.rename({'n_vehicles_in_intervalX': 'fap'}, axis=1, inplace=True)
+
+    print("\nDropping detectors with low periodicity...")
+    df = df.drop(df[df["fap"] > fap_max].index)
+
+    # Return drop information to user
+    curr_set = set(df.index.get_level_values("detector_id"))
+    curr_length = len(curr_set)
+    print(
+        "{} detectors dropped: {}\n".format(
+            orig_length - curr_length, orig_set.difference(curr_set)
+        )
+    )
+
+    # print(ls)
+
     # Create the remaining columns/fill missing row values
     df["measurement_start_utc"] = df.index.get_level_values("measurement_end_utc") - np.timedelta64(1, "h")
     df = df.reset_index()
@@ -176,10 +204,12 @@ def data_preprocessor(
     # Fill missing lon, lat, rolling, global columns with existing values
     df = df.groupby('detector_id').apply(lambda x: x.ffill().bfill())
 
+
+
     # Re-Order Columns
     df = df[['detector_id', 'lon', 'lat', 'measurement_start_utc',
               'measurement_end_utc', 'n_vehicles_in_interval',
-              'rolling_threshold', 'global_threshold']]
+              'rolling_threshold', 'global_threshold', 'fap']]
 
     print("Data processing complete.\n")
     return df

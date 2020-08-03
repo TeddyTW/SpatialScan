@@ -11,6 +11,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
+import astropy as ap
 
 import tensorflow as tf
 from scipy.optimize import minimize
@@ -705,11 +706,11 @@ def count_baseline(
         inplace=True,
     )
 
-    # Add check for Nans cleanse
-    count_nans = forecast_df["count"].isnull().sum(axis=0)
-    baseline_nans = forecast_df["baseline"].isnull().sum(axis=0)
-    assert count_nans == 0
-    assert baseline_nans == 0
+    # # Add check for Nans cleanse
+    # count_nans = forecast_df["count"].isnull().sum(axis=0)
+    # baseline_nans = forecast_df["baseline"].isnull().sum(axis=0)
+    # assert count_nans == 0
+    # assert baseline_nans == 0
 
     # Make Baseline Values Non-Negative
     negative= len(forecast_df[forecast_df["baseline"] < 0]["baseline"])
