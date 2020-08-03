@@ -11,6 +11,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
+import astropy as ap
 
 import tensorflow as tf
 from scipy.optimize import minimize
