@@ -18,7 +18,8 @@ class GPLandscape:
 
     def __init__(self):
         self.models = None
-        self.model_last_update = None
+        self.model_last_update_start = None
+        self.model_last_update_end = None
         self.model_detector_id = None
         self.scalers = None
 
@@ -33,7 +34,7 @@ class GPLandscape:
             detector: detector_id as string
             kern: Optional kernel choice
         Returns:
-            last_update: date for which the detector was trained
+            last_update_start: date for which the detector was trained
             det: name of detector
         """
 
@@ -45,7 +46,8 @@ class GPLandscape:
             .to_numpy()
             .reshape(-1, 1)
         )
-        last_update = scoot_df["measurement_end_utc"].tail(n=24 * days_in_past).min()
+        last_update_start = scoot_df["measurement_end_utc"].tail(n=24 * days_in_past).min()
+        last_update_end = scoot_df["measurement_end_utc"].tail(n=24 * days_in_past).max()
         Y = Y.astype(float)
         X = np.arange(1, len(Y) + 1, dtype=float).reshape(-1, 1)
 
@@ -92,7 +94,7 @@ class GPLandscape:
         scaler_filename = str(save_dir + "scaler.gz")
         joblib.dump(scaler, scaler_filename)
 
-        return last_update, det
+        return last_update_start, last_update_end, det
 
     def train_save_landscape(self, scoot_df: pd.DataFrame, days_in_past: int):
         """Trains GPs to multiple detectors passed to it in SCOOT dataframe format. Trained models are
@@ -105,7 +107,8 @@ class GPLandscape:
 
         detectors = scoot_df["detector_id"].unique()
 
-        last_updates = []
+        last_update_starts = []
+        last_update_ends = []
         saved_detectors = []
 
         for i, detector in enumerate(detectors, 1):
@@ -119,12 +122,12 @@ class GPLandscape:
                 print(detector, " Matrix not invertible")
                 continue
 
-            last_updates.append(date)
+            last_update_starts.append(date)
             saved_detectors.append(det)
             print("please wait: ", i, "/", len(detectors), end="\r")
 
         pd.DataFrame(
-            {"detectors": saved_detectors, "last_update": last_updates}
+            {"detectors": saved_detectors, "last_update_start": last_update_starts, "last_update_end": last_update_ends}
         ).to_csv("gp_models/det_date.csv", index=False)
 
     def load_landscape(self):
@@ -136,7 +139,8 @@ class GPLandscape:
 
         det_date = pd.read_csv("gp_models/det_date.csv", index_col=False)
         detectors = det_date["detectors"].to_numpy()
-        dates = det_date["last_update"].astype("datetime64[h]").to_numpy()
+        dates = det_date["last_update_start"].astype("datetime64[h]").to_numpy()
+        end_dates = det_date["last_update_start"].astype("datetime64[h]").to_numpy()
 
         for i, detector in enumerate(detectors, 1):
 
@@ -148,7 +152,8 @@ class GPLandscape:
 
         self.models = models
         self.model_detector_id = detectors
-        self.model_last_update = dates
+        self.model_last_update_start = dates
+        self.model_last_update_end = end_dates
         self.scalers = scalers
 
     def count_baseline(
@@ -177,7 +182,7 @@ class GPLandscape:
 
             one_detector_df = scoot_df.loc[scoot_df["detector_id"] == detector]
 
-            start_of_trained_data = self.model_last_update[
+            start_of_trained_data = self.model_last_update_start[
                 np.where(self.model_detector_id == detector)
             ]
 
