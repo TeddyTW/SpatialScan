@@ -25,7 +25,7 @@ def data_preprocessor(
     N_sigma: float = 3,
     repeats: int = 1,
     rolling_hours: int = 24,
-    fap_max = float = 1e-40,
+    fap_max : float = 1e-40,
     global_threshold: bool = False,
 ) -> pd.DataFrame:
 
