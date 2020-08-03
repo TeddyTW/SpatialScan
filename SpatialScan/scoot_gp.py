@@ -115,7 +115,7 @@ class GPLandscape:
             single_detector_df = scoot_df[scoot_df["detector_id"] == detector]
 
             try:
-                date, det = self.train_save_detector(
+                date, end_date, det = self.train_save_detector(
                     single_detector_df, days_in_past, detector
                 )
             except:
@@ -123,6 +123,7 @@ class GPLandscape:
                 continue
 
             last_update_starts.append(date)
+            last_update_ends.append(end_date)
             saved_detectors.append(det)
             print("please wait: ", i, "/", len(detectors), end="\r")
 
