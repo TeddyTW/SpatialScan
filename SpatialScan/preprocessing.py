@@ -209,7 +209,7 @@ def data_preprocessor(
     # Re-Order Columns
     df = df[['detector_id', 'lon', 'lat', 'measurement_start_utc',
               'measurement_end_utc', 'n_vehicles_in_interval',
-              'rolling_threshold', 'global_threshold', 'fap']]
+              'rolling_threshold', 'global_threshold']]
 
     print("Data processing complete.\n")
     return df

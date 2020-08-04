@@ -237,10 +237,18 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
 
                 means = sub_df[
                     [
+                        "l_score_EBP_lower",
                         "l_score_EBP",
+                        "l_score_EBP_upper",
+                        "l_score_000_lower",
                         "l_score_000",
+                        "l_score_000_upper",
+                        "l_score_025_lower",
                         "l_score_025",
+                        "l_score_025_upper",
+                        "l_score_050_lower",
                         "l_score_050",
+                        "l_score_050_upper",
                         "posterior_bbayes",
                     ]
                 ].mean()
@@ -257,10 +265,18 @@ def database_results(res_df: pd.DataFrame) -> pd.DataFrame:
                     "y_max": y_ticks[j + 1],
                     "observed_count": C,
                     "forecasted_count": B,
+                    "av_lhd_score_EBP_lower": means["l_score_EBP_lower"],
                     "av_lhd_score_EBP": means["l_score_EBP"],
+                    "av_lhd_score_EBP_upper": means["l_score_EBP_upper"],
+                    "av_lhd_score_eps_000_lower": means["l_score_000_lower"],
                     "av_lhd_score_eps_000": means["l_score_000"],
+                    "av_lhd_score_eps_000_upper": means["l_score_000_upper"],
+                    "av_lhd_score_eps_025_lower": means["l_score_025_lower"],
                     "av_lhd_score_eps_025": means["l_score_025"],
+                    "av_lhd_score_eps_025_upper": means["l_score_025_upper"],
+                    "av_lhd_score_eps_050_lower": means["l_score_050_lower"],
                     "av_lhd_score_eps_050": means["l_score_050"],
+                    "av_lhd_score_eps_050_upper": means["l_score_050_upper"],
                     "av_posterior_bbayes": means["posterior_bbayes"],
                 }
 
