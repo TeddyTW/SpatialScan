@@ -1,0 +1,1238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.4" />
+<title>SpatialScan.synthetic API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>SpatialScan.synthetic</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import numpy as np
+import pandas as pd
+from numpy.random import normal
+import random
+
+from SpatialScan.scan import scan
+from SpatialScan.timeseries import count_baseline, CB_plot
+from SpatialScan.region import cleanse_forecast_data, plot_region_by_rank
+from SpatialScan.results import database_results
+
+
+def synthetic_detector(
+    Y: pd.Series, days: int = None, noise_percentage: float = 10, dow_percentage: float = 5
+) -&gt; np.array:
+    &#34;&#34;&#34;
+    Creates a synthetic count based on real counts for the means of simualting outbreak. Takes
+    in the counts for a single detectors, and outputs a 24 hour periodic trace, with amplitude equal 
+    to the 90th percentile of actual count data with added noise. Also includes day of the week component
+    
+    Args:
+        Y: Series of count data for a given detector
+        noise_percentage: percentage of random noise to add to the snthetic data, default 10%
+        dow_percentage: strength of day of week component. 10% default means it varies trace by 10%
+
+    Returns: np.array of synthetic counts
+    &#34;&#34;&#34;
+
+    Y = Y.to_numpy()
+    if days is None:
+        X = np.arange(0, len(Y))
+    else:
+        X= np.arange(0, 24*days)
+    noise = normal(0, noise_percentage / 100, len(X))
+    S = (
+        np.percentile(Y, 90)
+        * abs((np.sin((np.pi * X / 24)) ** 2 + noise))
+        * ((dow_percentage / 100) * np.sin((np.pi * X / 168)) ** 2 + 1)
+        + np.percentile(Y, 3)
+    ).astype(int)
+    return S
+
+
+def synthetic_SCOOT(
+    df: pd.DataFrame, days: int = None, noise_percentage: float = 10, dow_percentage: float = 10
+) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;
+    Creates a synthetic SCOOT dataframe based on a real input dataframe.
+    Args:
+        df: input SCOOT dataframe (preprocessed for best results)
+        noise_percentage: percentage of random noise to add to the snthetic data, default 10%
+        dow_percentage: strength of day of week component. 10% default means it varies trace by 10%
+
+    Returns: Dataframe in SCOOT format, with synthetic data&#34;&#34;&#34;
+
+    start_date = df[&#34;measurement_end_utc&#34;].min()
+
+    T = pd.date_range(start=start_date, end=start_date + np.timedelta64(days, &#34;D&#34;) - np.timedelta64(1, &#34;h&#34;), freq=&#34;H&#34;,)
+    mux = pd.MultiIndex.from_product(
+            [df[&#34;detector_id&#34;].unique(), T], names=(&#34;detector_id&#34;, &#34;measurement_end_utc&#34;)
+        )
+    if(days):
+        print(&#34;Please wait, creating synthetic data for {} days...&#34;.format(days))
+    else:
+        print(&#34;Please wait, creating synthetic data with same format as input dataframe...&#34;)
+
+
+    DF = df.set_index([&#34;detector_id&#34;, &#34;measurement_end_utc&#34;])
+    X = DF.groupby(level=&#34;detector_id&#34;)[&#34;n_vehicles_in_interval&#34;].apply(
+        lambda x: synthetic_detector(
+            x, days=days, noise_percentage=noise_percentage, dow_percentage=dow_percentage
+        )
+    )
+
+    if days:
+        DF=DF.reindex(mux)
+        DF[&#34;measurement_start_utc&#34;] = DF.index.get_level_values(&#34;measurement_end_utc&#34;) - np.timedelta64(1, &#34;h&#34;)
+  
+    DF[&#34;n_vehicles_in_interval&#34;] = np.hstack(X.to_numpy())
+    DF = DF.reset_index()
+
+    DF.sort_values([&#34;detector_id&#34;, &#34;measurement_end_utc&#34;], inplace=True)
+
+    if days:
+        DF[&#34;lon&#34;] = DF[&#34;lon&#34;].interpolate(method=&#34;pad&#34;, limit_direction=&#34;both&#34;, axis=0)
+        DF[&#34;lat&#34;] = DF[&#34;lat&#34;].interpolate(method=&#34;pad&#34;, limit_direction=&#34;both&#34;, axis=0)
+
+    return DF
+
+
+def select_detectors(
+    detector_locations: pd.DataFrame, k: int, s_center_lon: float, s_center_lat: float
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Selects detectors for outbreak
+    Args:
+        detector_locations: dataframe of detector locations
+        k: number of detectors affected
+        s_center_lon: lon co-ordinate of outbreak centre
+        s_center_lat: lat co-ordinate of outbreak centre
+    Returns:
+        Dataframe of k detectors and their locations.
+        &#34;&#34;&#34;
+
+    detector_locations[&#34;dist&#34;] = detector_locations.apply(
+        lambda x: (x.lon - s_center_lon) ** 2 + (x.lat - s_center_lat) ** 2, axis=1
+    )
+    detector_locations.sort_values(&#34;dist&#34;, axis=0, inplace=True)
+
+    return detector_locations.head(k)
+
+
+def add_outbreak(
+    synthetic_data: pd.DataFrame,
+    outbreak_detectors: np.ndarray,
+    severity: float,
+    outbreak_duration: int,
+) -&gt; tuple:
+
+    &#34;&#34;&#34;Manipulates the synthetic data by adding an outbreak to certain specified detectors
+
+    Args:
+        synthetic_data: Generated from `synthetic_SCOOT()`
+        outbreak_detectors: Detectors chosen to increase/decrease in signal
+        severity: Controls the gradient of activity change
+        outbreak_duration: Number of most recent days in synthetic_data to manipulate
+    Returns
+        manipulated dataframe
+        Timestamp of start of outbreak
+    &#34;&#34;&#34;
+
+    t_max = synthetic_data[&#34;measurement_end_utc&#34;].max()
+    outbreak_start = t_max - np.timedelta64(outbreak_duration, &#34;D&#34;)
+
+    print(&#34;Start of outbreak: {}&#34;.format(outbreak_start))
+
+    affected = synthetic_data[
+        (synthetic_data[&#34;detector_id&#34;].isin(outbreak_detectors))
+        &amp; (synthetic_data[&#34;measurement_start_utc&#34;] &gt;= outbreak_start)
+    ].copy()
+
+    affected[&#34;hours_since_outbreak&#34;] = affected[&#34;measurement_end_utc&#34;].apply(
+        lambda x: (x - outbreak_start).days * 24 + (x - outbreak_start).seconds // 3600
+    )
+
+    weights_dict = (
+        affected.groupby([&#34;detector_id&#34;]).n_vehicles_in_interval.sum().to_dict()
+    )
+
+    norm = sum(weights_dict.values())
+
+    weights_dict.update((x, y / norm) for x, y in weights_dict.items())
+
+    # print(weights_dict)
+    assert np.isclose(sum(weights_dict.values()), 1)
+
+    affected[&#34;simulated_count&#34;] = affected.apply(
+        lambda x: np.random.poisson(
+            x.n_vehicles_in_interval
+            * (
+                1
+                + severity / 100 * x.hours_since_outbreak * weights_dict[x.detector_id]
+            )
+        ),
+        axis=1,
+    )
+
+    res_df = synthetic_data.merge(
+        affected,
+        how=&#34;left&#34;,
+        on=[
+            &#34;detector_id&#34;,
+            &#34;measurement_start_utc&#34;,
+            &#34;measurement_end_utc&#34;,
+            &#34;n_vehicles_in_interval&#34;,
+            &#34;lon&#34;,
+            &#34;lat&#34;,
+            &#34;rolling_threshold&#34;,
+            &#34;global_threshold&#34;,
+            &#34;Num_Anom&#34;,
+            &#34;Num_Missing&#34;,
+        ],
+    )
+
+    res_df[&#34;simulated_count&#34;].fillna(res_df[&#34;n_vehicles_in_interval&#34;], inplace=True)
+
+    res_df[&#34;n_vehicles_in_interval&#34;] = res_df[&#34;simulated_count&#34;]
+
+    res_df.drop([&#34;hours_since_outbreak&#34;, &#34;simulated_count&#34;], axis=1, inplace=True)
+
+    return res_df, outbreak_start
+
+
+def simulate_outbreak(synthetic_data, severity, k_min, k_max, outbreak_duration=7):
+
+    &#34;&#34;&#34;Main function for simulating the outbreak. Randomly chooses epicentre, severity
+    and size.
+
+    Args:
+        synthetic_data: synthetic data
+        severity:
+        k_min: lower bound of affected detectors
+        k_max: upper_bound of affected detectors
+    Returns:
+        outbreak_df
+        dataframe of affected detectors
+        start of outbreak
+    &#34;&#34;&#34;
+
+    detector_locations = synthetic_data.drop_duplicates(subset=&#34;detector_id&#34;)[
+        [&#34;detector_id&#34;, &#34;lon&#34;, &#34;lat&#34;]
+    ]
+    num_rows = len(detector_locations)
+
+    random.seed(0)
+
+    k = random.randint(k_min, k_max)
+    rand_row = detector_locations.iloc[random.randint(1, num_rows)]
+
+    s_center_lon = rand_row.lon
+    s_center_lat = rand_row.lat
+    print(
+        &#34;Outbreak centred at ({}, {}) affecting {} detectors&#34;.format(
+            s_center_lon, s_center_lat, k
+        )
+    )
+
+    detector_df = select_detectors(detector_locations, k, s_center_lon, s_center_lat)
+    detectors = detector_df[&#34;detector_id&#34;].to_numpy()
+    print(detectors)
+
+    outbreak_df, start = add_outbreak(
+        synthetic_data, detectors, severity, outbreak_duration=outbreak_duration
+    )
+
+    return outbreak_df, detector_df, start
+
+
+def is_outbreak_detected(hist_sim_data, todays_highest_score, fp_rate):
+
+    prop = np.count_nonzero(todays_highest_score &lt; hist_sim_data[&#34;l_score_EBP&#34;]) / len(
+        hist_sim_data[&#34;l_score_EBP&#34;]
+    )
+
+    if prop &lt; fp_rate:
+        return True
+    return False
+
+
+def results_builder(
+    outbreak_df: pd.DataFrame,
+    outbreak_detectors: pd.DataFrame,
+    outbreak_start,
+    hist_sim_data,
+    days_in_past: int,
+    days_in_future: int,
+    method: str,
+    grid_partition: int,
+    scan_type: str,
+    show_plots=True,
+):
+
+    &#34;&#34;&#34;Builds daily results from the scan up over a number of days, determined by
+    the size of outbreak_dataframe. e.g. if outbreak_dataframe has N days worth of
+    data, the first `days_in_past` number of days will be dedicated to forecasting.
+    This function will then return scan results for the remaining N - `days_in_past`
+    days, using the settings described below. Basically - simulating what will be stored
+    in the database over a period of time.
+
+    Args:
+        outbreak_dataframe: simulated from `simulate_outbreak()`
+        outbreak_detectors: dataframe of affected detectors
+        outbreak_start: outbreak_start time
+        hist_sim_data: Dataframe of F(S) scores from historic data
+        days_in_past: as in count_baseline
+        days_in_future: as in count_baseline
+        method: as in count_baseline
+        grid_partition: as in scan()
+        scan_type as in scan()
+
+    Returns:
+        Dataframe of results spanning (len(outbreak_dataframe) - days_in_past) days worth of analysis
+        Dataframe of highest scoring regions per day
+        &#34;&#34;&#34;
+
+    t_min = outbreak_df[&#34;measurement_start_utc&#34;].min()
+    t_max = outbreak_df[&#34;measurement_end_utc&#34;].max()
+
+    # Get outbreak characteristics
+    num_outbreak_detectors = len(set(outbreak_detectors[&#34;detector_id&#34;]))
+    ob_x_min = outbreak_detectors[&#34;lon&#34;].min()
+    ob_x_max = outbreak_detectors[&#34;lon&#34;].max()
+    ob_y_min = outbreak_detectors[&#34;lat&#34;].min()
+    ob_y_max = outbreak_detectors[&#34;lat&#34;].max()
+
+    total_num_days = (t_max - t_min).days
+    print(&#34;Total number of days in dataframe: &#34;, total_num_days)
+
+    first_analysis_day = (
+        t_min + np.timedelta64(days_in_past, &#34;D&#34;) + np.timedelta64(days_in_future, &#34;D&#34;)
+    )
+
+    num_forecast_days = (t_max - first_analysis_day).days + 1
+
+    print(
+        &#34;Producing forecasts and scans for {} days in total.\n&#34;.format(
+            num_forecast_days
+        )
+    )
+
+    print(&#34;Outbreak begins at {}.&#34;.format(outbreak_start))
+
+    # False-Positive rates to check
+    fps = [0.01, 0.05, 0.10, 0.25, 0.50]
+
+    # Threshold of EBP score required to be detected
+    threshs = [np.percentile(hist_sim_data[&#34;l_score_EBP&#34;], 100 * (1 - x)) for x in fps]
+
+    dataframe_list = []
+
+    daily_highest_scoring_regions = {}
+    today = first_analysis_day
+    for i in range(num_forecast_days):
+
+        print(
+            &#34;\nAnalysis day: {}. Looking back at last {} hours.&#34;.format(
+                today, 24 * days_in_future
+            )
+        )
+
+        available_today = outbreak_df[
+            outbreak_df[&#34;measurement_end_utc&#34;] &lt;= today
+        ].copy()
+
+        forecast_df = count_baseline(
+            available_today,
+            days_in_past=days_in_past,
+            days_in_future=days_in_future,
+            method=method,
+        )
+
+        forecast_df = cleanse_forecast_data(forecast_df)
+
+        if show_plots:
+            CB_plot(forecast_df)
+
+        res_df = scan(forecast_df, grid_partition=grid_partition, scan_type=scan_type)
+
+        if show_plots:
+            plot_region_by_rank(
+                0, res_df, forecast_df, plot_type=&#34;count&#34;, add_legend=False
+            )
+
+        #  Return Highest Scoring region here
+        highest_region = res_df.iloc[0][
+            [
+                &#34;x_min&#34;,
+                &#34;x_max&#34;,
+                &#34;y_min&#34;,
+                &#34;y_max&#34;,
+                &#34;t_min&#34;,
+                &#34;t_max&#34;,
+                &#34;l_score_EBP&#34;,
+                &#34;l_score_000&#34;,
+                &#34;l_score_025&#34;,
+                &#34;l_score_050&#34;,
+                &#34;posterior_bbayes&#34;,
+            ]
+        ].to_dict()
+
+        # Add some Spatial analysis
+        x_min = highest_region[&#34;x_min&#34;]
+        x_max = highest_region[&#34;x_max&#34;]
+        y_min = highest_region[&#34;y_min&#34;]
+        y_max = highest_region[&#34;y_max&#34;]
+
+        num_detectors_in_highest_region = len(
+            set(
+                outbreak_df[
+                    (outbreak_df[&#34;lon&#34;].between(x_min, x_max))
+                    &amp; (outbreak_df[&#34;lat&#34;].between(y_min, y_max))
+                ].detector_id
+            )
+        )
+
+        overlap_x_min = max([x_min, ob_x_min])
+        overlap_x_max = min([x_max, ob_x_max])
+        overlap_y_min = max([y_min, ob_y_min])
+        overlap_y_max = min([y_max, ob_y_max])
+
+        num_detectors_in_highest_region_and_true = len(
+            set(
+                outbreak_df[
+                    (outbreak_df[&#34;lon&#34;].between(overlap_x_min, overlap_x_max))
+                    &amp; (outbreak_df[&#34;lat&#34;].between(overlap_y_min, overlap_y_max))
+                ].detector_id
+            )
+        )
+
+        # Calculate Spatial Precision and Recall
+        precision = (
+            num_detectors_in_highest_region_and_true / num_detectors_in_highest_region
+        )
+        recall = num_detectors_in_highest_region_and_true / num_outbreak_detectors
+
+        highest_region[&#34;precision&#34;] = precision
+        highest_region[&#34;recall&#34;] = recall
+        highest_region[&#34;day&#34;] = today
+
+        # =================================
+        # How significant is today&#39;s score?
+        # =================================
+        highest_region[&#34;days_since_outbreak&#34;] = (today - outbreak_start).days
+
+        # XXX - There is a much better way of doing this!
+        detections = [
+            is_outbreak_detected(
+                hist_sim_data, highest_region[&#34;l_score_EBP&#34;], fp_rate=x
+            )
+            for x in fps
+        ]
+        highest_region[&#34;F_thresh_fp=0.01&#34;] = threshs[0]
+        highest_region[&#34;detected_fp=0.01&#34;] = detections[0]
+        highest_region[&#34;F_thresh_fp=0.05&#34;] = threshs[1]
+        highest_region[&#34;detected_fp=0.05&#34;] = detections[1]
+        highest_region[&#34;F_thresh_fp=0.10&#34;] = threshs[2]
+        highest_region[&#34;detected_fp=0.10&#34;] = detections[2]
+        highest_region[&#34;F_thresh_fp=0.25&#34;] = threshs[3]
+        highest_region[&#34;detected_fp=0.25&#34;] = detections[3]
+        highest_region[&#34;F_thresh_fp=0.50&#34;] = threshs[4]
+        highest_region[&#34;detected_fp=0.50&#34;] = detections[4]
+
+        # Append to list of dataframes
+        daily_highest_scoring_regions[i] = highest_region
+
+        #  =========================
+        # Simulate Database Storage
+        #  =========================
+        database_df = database_results(res_df)
+
+        # Updates data correctly with most reliable average likelihood scores.
+        # i.e. today is wednesday, and days_in_future = 2
+        # We are getting scores for monday and tuesday, and append it in a list.
+        # Now, the next day, we get scores for tuesday and wednesday. We throw away the old tuesday,
+        # and keep the new one.
+        if len(dataframe_list) - (days_in_future - 1) &gt;= 0:
+            dataframe_list = dataframe_list[
+                : len(dataframe_list) - (days_in_future - 1)
+            ]
+
+        days_dict = dict(
+            iter(database_df.groupby(database_df[&#34;start_time_utc&#34;].dt.day))
+        )
+
+        for j in range(days_in_future):
+            forecast_day = (today - np.timedelta64(days_in_future - j, &#34;D&#34;)).day
+            dataframe_list.append(days_dict[forecast_day])
+
+        today += np.timedelta64(1, &#34;D&#34;)
+
+    # Return list of highest scoring regions too - add to plot?
+    return (
+        pd.concat(dataframe_list, ignore_index=True),
+        pd.DataFrame.from_dict(daily_highest_scoring_regions, &#34;index&#34;),
+    )</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="SpatialScan.synthetic.add_outbreak"><code class="name flex">
+<span>def <span class="ident">add_outbreak</span></span>(<span>synthetic_data: pandas.core.frame.DataFrame, outbreak_detectors: numpy.ndarray, severity: float, outbreak_duration: int) ‑> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Manipulates the synthetic data by adding an outbreak to certain specified detectors</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>synthetic_data</code></strong></dt>
+<dd>Generated from <code><a title="SpatialScan.synthetic.synthetic_SCOOT" href="#SpatialScan.synthetic.synthetic_SCOOT">synthetic_SCOOT()</a></code></dd>
+<dt><strong><code>outbreak_detectors</code></strong></dt>
+<dd>Detectors chosen to increase/decrease in signal</dd>
+<dt><strong><code>severity</code></strong></dt>
+<dd>Controls the gradient of activity change</dd>
+<dt><strong><code>outbreak_duration</code></strong></dt>
+<dd>Number of most recent days in synthetic_data to manipulate</dd>
+</dl>
+<p>Returns
+manipulated dataframe
+Timestamp of start of outbreak</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_outbreak(
+    synthetic_data: pd.DataFrame,
+    outbreak_detectors: np.ndarray,
+    severity: float,
+    outbreak_duration: int,
+) -&gt; tuple:
+
+    &#34;&#34;&#34;Manipulates the synthetic data by adding an outbreak to certain specified detectors
+
+    Args:
+        synthetic_data: Generated from `synthetic_SCOOT()`
+        outbreak_detectors: Detectors chosen to increase/decrease in signal
+        severity: Controls the gradient of activity change
+        outbreak_duration: Number of most recent days in synthetic_data to manipulate
+    Returns
+        manipulated dataframe
+        Timestamp of start of outbreak
+    &#34;&#34;&#34;
+
+    t_max = synthetic_data[&#34;measurement_end_utc&#34;].max()
+    outbreak_start = t_max - np.timedelta64(outbreak_duration, &#34;D&#34;)
+
+    print(&#34;Start of outbreak: {}&#34;.format(outbreak_start))
+
+    affected = synthetic_data[
+        (synthetic_data[&#34;detector_id&#34;].isin(outbreak_detectors))
+        &amp; (synthetic_data[&#34;measurement_start_utc&#34;] &gt;= outbreak_start)
+    ].copy()
+
+    affected[&#34;hours_since_outbreak&#34;] = affected[&#34;measurement_end_utc&#34;].apply(
+        lambda x: (x - outbreak_start).days * 24 + (x - outbreak_start).seconds // 3600
+    )
+
+    weights_dict = (
+        affected.groupby([&#34;detector_id&#34;]).n_vehicles_in_interval.sum().to_dict()
+    )
+
+    norm = sum(weights_dict.values())
+
+    weights_dict.update((x, y / norm) for x, y in weights_dict.items())
+
+    # print(weights_dict)
+    assert np.isclose(sum(weights_dict.values()), 1)
+
+    affected[&#34;simulated_count&#34;] = affected.apply(
+        lambda x: np.random.poisson(
+            x.n_vehicles_in_interval
+            * (
+                1
+                + severity / 100 * x.hours_since_outbreak * weights_dict[x.detector_id]
+            )
+        ),
+        axis=1,
+    )
+
+    res_df = synthetic_data.merge(
+        affected,
+        how=&#34;left&#34;,
+        on=[
+            &#34;detector_id&#34;,
+            &#34;measurement_start_utc&#34;,
+            &#34;measurement_end_utc&#34;,
+            &#34;n_vehicles_in_interval&#34;,
+            &#34;lon&#34;,
+            &#34;lat&#34;,
+            &#34;rolling_threshold&#34;,
+            &#34;global_threshold&#34;,
+            &#34;Num_Anom&#34;,
+            &#34;Num_Missing&#34;,
+        ],
+    )
+
+    res_df[&#34;simulated_count&#34;].fillna(res_df[&#34;n_vehicles_in_interval&#34;], inplace=True)
+
+    res_df[&#34;n_vehicles_in_interval&#34;] = res_df[&#34;simulated_count&#34;]
+
+    res_df.drop([&#34;hours_since_outbreak&#34;, &#34;simulated_count&#34;], axis=1, inplace=True)
+
+    return res_df, outbreak_start</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.synthetic.is_outbreak_detected"><code class="name flex">
+<span>def <span class="ident">is_outbreak_detected</span></span>(<span>hist_sim_data, todays_highest_score, fp_rate)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def is_outbreak_detected(hist_sim_data, todays_highest_score, fp_rate):
+
+    prop = np.count_nonzero(todays_highest_score &lt; hist_sim_data[&#34;l_score_EBP&#34;]) / len(
+        hist_sim_data[&#34;l_score_EBP&#34;]
+    )
+
+    if prop &lt; fp_rate:
+        return True
+    return False</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.synthetic.normal"><code class="name flex">
+<span>def <span class="ident">normal</span></span>(<span>loc=0.0, scale=1.0, size=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Draw random samples from a normal (Gaussian) distribution.</p>
+<p>The probability density function of the normal distribution, first
+derived by De Moivre and 200 years later by both Gauss and Laplace
+independently [2]_, is often called the bell curve because of
+its characteristic shape (see the example below).</p>
+<p>The normal distributions occurs often in nature.
+For example, it
+describes the commonly occurring distribution of samples influenced
+by a large number of tiny, random disturbances, each with its own
+unique distribution [2]_.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>New code should use the <code><a title="SpatialScan.synthetic.normal" href="#SpatialScan.synthetic.normal">RandomState.normal()</a></code> method of a <code>default_rng()</code>
+instance instead; see <code>random-quick-start</code>.</p>
+</div>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>loc</code></strong> :&ensp;<code>float</code> or <code>array_like</code> of <code>floats</code></dt>
+<dd>Mean ("centre") of the distribution.</dd>
+<dt><strong><code>scale</code></strong> :&ensp;<code>float</code> or <code>array_like</code> of <code>floats</code></dt>
+<dd>Standard deviation (spread or "width") of the distribution. Must be
+non-negative.</dd>
+<dt><strong><code>size</code></strong> :&ensp;<code>int</code> or <code>tuple</code> of <code>ints</code>, optional</dt>
+<dd>Output shape.
+If the given shape is, e.g., <code>(m, n, k)</code>, then
+<code>m * n * k</code> samples are drawn.
+If size is <code>None</code> (default),
+a single value is returned if <code>loc</code> and <code>scale</code> are both scalars.
+Otherwise, <code>np.broadcast(loc, scale).size</code> samples are drawn.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>out</code></strong> :&ensp;<code>ndarray</code> or <code>scalar</code></dt>
+<dd>Drawn samples from the parameterized normal distribution.</dd>
+</dl>
+<h2 id="see-also">See Also</h2>
+<dl>
+<dt><code>scipy.stats.norm</code></dt>
+<dd>probability density function, distribution or cumulative density function, etc.</dd>
+<dt><code>Generator.normal</code></dt>
+<dd>which should be used for new code.</dd>
+</dl>
+<h2 id="notes">Notes</h2>
+<p>The probability density for the Gaussian distribution is</p>
+<p>[ e^{ - \frac{ (x - \mu)^2 } {2 \sigma^2} }, ]
+where :math:<code>\mu</code> is the mean and :math:<code>\sigma</code> the standard
+deviation. The square of the standard deviation, :math:<code>\sigma^2</code>,
+is called the variance.</p>
+<p>The function has its peak at the mean, and its "spread" increases with
+the standard deviation (the function reaches 0.607 times its maximum at
+:math:<code>x + \sigma</code> and :math:<code>x - \sigma</code> [2]_).
+This implies that
+normal is more likely to return samples lying close to the mean, rather
+than those far away.</p>
+<h2 id="references">References</h2>
+<p>.. [1] Wikipedia, "Normal distribution",
+<a href="https://en.wikipedia.org/wiki/Normal_distribution">https://en.wikipedia.org/wiki/Normal_distribution</a>
+.. [2] P. R. Peebles Jr., "Central Limit Theorem" in "Probability,
+Random Variables and Random Signal Principles", 4th ed., 2001,
+pp. 51, 51, 125.</p>
+<h2 id="examples">Examples</h2>
+<p>Draw samples from the distribution:</p>
+<pre><code class="python">&gt;&gt;&gt; mu, sigma = 0, 0.1 # mean and standard deviation
+&gt;&gt;&gt; s = np.random.normal(mu, sigma, 1000)
+</code></pre>
+<p>Verify the mean and the variance:</p>
+<pre><code class="python">&gt;&gt;&gt; abs(mu - np.mean(s))
+0.0  # may vary
+</code></pre>
+<pre><code class="python">&gt;&gt;&gt; abs(sigma - np.std(s, ddof=1))
+0.1  # may vary
+</code></pre>
+<p>Display the histogram of the samples, along with
+the probability density function:</p>
+<pre><code class="python">&gt;&gt;&gt; import matplotlib.pyplot as plt
+&gt;&gt;&gt; count, bins, ignored = plt.hist(s, 30, density=True)
+&gt;&gt;&gt; plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) *
+...                np.exp( - (bins - mu)**2 / (2 * sigma**2) ),
+...          linewidth=2, color='r')
+&gt;&gt;&gt; plt.show()
+</code></pre>
+<p>Two-by-four array of samples from N(3, 6.25):</p>
+<pre><code class="python">&gt;&gt;&gt; np.random.normal(3, 2.5, size=(2, 4))
+array([[-4.49401501,  4.00950034, -1.81814867,  7.29718677],   # random
+       [ 0.39924804,  4.68456316,  4.99394529,  4.84057254]])  # random
+</code></pre></div>
+</dd>
+<dt id="SpatialScan.synthetic.results_builder"><code class="name flex">
+<span>def <span class="ident">results_builder</span></span>(<span>outbreak_df: pandas.core.frame.DataFrame, outbreak_detectors: pandas.core.frame.DataFrame, outbreak_start, hist_sim_data, days_in_past: int, days_in_future: int, method: str, grid_partition: int, scan_type: str, show_plots=True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Builds daily results from the scan up over a number of days, determined by
+the size of outbreak_dataframe. e.g. if outbreak_dataframe has N days worth of
+data, the first <code>days_in_past</code> number of days will be dedicated to forecasting.
+This function will then return scan results for the remaining N - <code>days_in_past</code>
+days, using the settings described below. Basically - simulating what will be stored
+in the database over a period of time.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>outbreak_dataframe</code></strong></dt>
+<dd>simulated from <code><a title="SpatialScan.synthetic.simulate_outbreak" href="#SpatialScan.synthetic.simulate_outbreak">simulate_outbreak()</a></code></dd>
+<dt><strong><code>outbreak_detectors</code></strong></dt>
+<dd>dataframe of affected detectors</dd>
+<dt><strong><code>outbreak_start</code></strong></dt>
+<dd>outbreak_start time</dd>
+<dt><strong><code>hist_sim_data</code></strong></dt>
+<dd>Dataframe of F(S) scores from historic data</dd>
+<dt><strong><code>days_in_past</code></strong></dt>
+<dd>as in count_baseline</dd>
+<dt><strong><code>days_in_future</code></strong></dt>
+<dd>as in count_baseline</dd>
+<dt><strong><code>method</code></strong></dt>
+<dd>as in count_baseline</dd>
+<dt><strong><code>grid_partition</code></strong></dt>
+<dd>as in scan()</dd>
+</dl>
+<p>scan_type as in scan()</p>
+<h2 id="returns">Returns</h2>
+<p>Dataframe of results spanning (len(outbreak_dataframe) - days_in_past) days worth of analysis
+Dataframe of highest scoring regions per day</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def results_builder(
+    outbreak_df: pd.DataFrame,
+    outbreak_detectors: pd.DataFrame,
+    outbreak_start,
+    hist_sim_data,
+    days_in_past: int,
+    days_in_future: int,
+    method: str,
+    grid_partition: int,
+    scan_type: str,
+    show_plots=True,
+):
+
+    &#34;&#34;&#34;Builds daily results from the scan up over a number of days, determined by
+    the size of outbreak_dataframe. e.g. if outbreak_dataframe has N days worth of
+    data, the first `days_in_past` number of days will be dedicated to forecasting.
+    This function will then return scan results for the remaining N - `days_in_past`
+    days, using the settings described below. Basically - simulating what will be stored
+    in the database over a period of time.
+
+    Args:
+        outbreak_dataframe: simulated from `simulate_outbreak()`
+        outbreak_detectors: dataframe of affected detectors
+        outbreak_start: outbreak_start time
+        hist_sim_data: Dataframe of F(S) scores from historic data
+        days_in_past: as in count_baseline
+        days_in_future: as in count_baseline
+        method: as in count_baseline
+        grid_partition: as in scan()
+        scan_type as in scan()
+
+    Returns:
+        Dataframe of results spanning (len(outbreak_dataframe) - days_in_past) days worth of analysis
+        Dataframe of highest scoring regions per day
+        &#34;&#34;&#34;
+
+    t_min = outbreak_df[&#34;measurement_start_utc&#34;].min()
+    t_max = outbreak_df[&#34;measurement_end_utc&#34;].max()
+
+    # Get outbreak characteristics
+    num_outbreak_detectors = len(set(outbreak_detectors[&#34;detector_id&#34;]))
+    ob_x_min = outbreak_detectors[&#34;lon&#34;].min()
+    ob_x_max = outbreak_detectors[&#34;lon&#34;].max()
+    ob_y_min = outbreak_detectors[&#34;lat&#34;].min()
+    ob_y_max = outbreak_detectors[&#34;lat&#34;].max()
+
+    total_num_days = (t_max - t_min).days
+    print(&#34;Total number of days in dataframe: &#34;, total_num_days)
+
+    first_analysis_day = (
+        t_min + np.timedelta64(days_in_past, &#34;D&#34;) + np.timedelta64(days_in_future, &#34;D&#34;)
+    )
+
+    num_forecast_days = (t_max - first_analysis_day).days + 1
+
+    print(
+        &#34;Producing forecasts and scans for {} days in total.\n&#34;.format(
+            num_forecast_days
+        )
+    )
+
+    print(&#34;Outbreak begins at {}.&#34;.format(outbreak_start))
+
+    # False-Positive rates to check
+    fps = [0.01, 0.05, 0.10, 0.25, 0.50]
+
+    # Threshold of EBP score required to be detected
+    threshs = [np.percentile(hist_sim_data[&#34;l_score_EBP&#34;], 100 * (1 - x)) for x in fps]
+
+    dataframe_list = []
+
+    daily_highest_scoring_regions = {}
+    today = first_analysis_day
+    for i in range(num_forecast_days):
+
+        print(
+            &#34;\nAnalysis day: {}. Looking back at last {} hours.&#34;.format(
+                today, 24 * days_in_future
+            )
+        )
+
+        available_today = outbreak_df[
+            outbreak_df[&#34;measurement_end_utc&#34;] &lt;= today
+        ].copy()
+
+        forecast_df = count_baseline(
+            available_today,
+            days_in_past=days_in_past,
+            days_in_future=days_in_future,
+            method=method,
+        )
+
+        forecast_df = cleanse_forecast_data(forecast_df)
+
+        if show_plots:
+            CB_plot(forecast_df)
+
+        res_df = scan(forecast_df, grid_partition=grid_partition, scan_type=scan_type)
+
+        if show_plots:
+            plot_region_by_rank(
+                0, res_df, forecast_df, plot_type=&#34;count&#34;, add_legend=False
+            )
+
+        #  Return Highest Scoring region here
+        highest_region = res_df.iloc[0][
+            [
+                &#34;x_min&#34;,
+                &#34;x_max&#34;,
+                &#34;y_min&#34;,
+                &#34;y_max&#34;,
+                &#34;t_min&#34;,
+                &#34;t_max&#34;,
+                &#34;l_score_EBP&#34;,
+                &#34;l_score_000&#34;,
+                &#34;l_score_025&#34;,
+                &#34;l_score_050&#34;,
+                &#34;posterior_bbayes&#34;,
+            ]
+        ].to_dict()
+
+        # Add some Spatial analysis
+        x_min = highest_region[&#34;x_min&#34;]
+        x_max = highest_region[&#34;x_max&#34;]
+        y_min = highest_region[&#34;y_min&#34;]
+        y_max = highest_region[&#34;y_max&#34;]
+
+        num_detectors_in_highest_region = len(
+            set(
+                outbreak_df[
+                    (outbreak_df[&#34;lon&#34;].between(x_min, x_max))
+                    &amp; (outbreak_df[&#34;lat&#34;].between(y_min, y_max))
+                ].detector_id
+            )
+        )
+
+        overlap_x_min = max([x_min, ob_x_min])
+        overlap_x_max = min([x_max, ob_x_max])
+        overlap_y_min = max([y_min, ob_y_min])
+        overlap_y_max = min([y_max, ob_y_max])
+
+        num_detectors_in_highest_region_and_true = len(
+            set(
+                outbreak_df[
+                    (outbreak_df[&#34;lon&#34;].between(overlap_x_min, overlap_x_max))
+                    &amp; (outbreak_df[&#34;lat&#34;].between(overlap_y_min, overlap_y_max))
+                ].detector_id
+            )
+        )
+
+        # Calculate Spatial Precision and Recall
+        precision = (
+            num_detectors_in_highest_region_and_true / num_detectors_in_highest_region
+        )
+        recall = num_detectors_in_highest_region_and_true / num_outbreak_detectors
+
+        highest_region[&#34;precision&#34;] = precision
+        highest_region[&#34;recall&#34;] = recall
+        highest_region[&#34;day&#34;] = today
+
+        # =================================
+        # How significant is today&#39;s score?
+        # =================================
+        highest_region[&#34;days_since_outbreak&#34;] = (today - outbreak_start).days
+
+        # XXX - There is a much better way of doing this!
+        detections = [
+            is_outbreak_detected(
+                hist_sim_data, highest_region[&#34;l_score_EBP&#34;], fp_rate=x
+            )
+            for x in fps
+        ]
+        highest_region[&#34;F_thresh_fp=0.01&#34;] = threshs[0]
+        highest_region[&#34;detected_fp=0.01&#34;] = detections[0]
+        highest_region[&#34;F_thresh_fp=0.05&#34;] = threshs[1]
+        highest_region[&#34;detected_fp=0.05&#34;] = detections[1]
+        highest_region[&#34;F_thresh_fp=0.10&#34;] = threshs[2]
+        highest_region[&#34;detected_fp=0.10&#34;] = detections[2]
+        highest_region[&#34;F_thresh_fp=0.25&#34;] = threshs[3]
+        highest_region[&#34;detected_fp=0.25&#34;] = detections[3]
+        highest_region[&#34;F_thresh_fp=0.50&#34;] = threshs[4]
+        highest_region[&#34;detected_fp=0.50&#34;] = detections[4]
+
+        # Append to list of dataframes
+        daily_highest_scoring_regions[i] = highest_region
+
+        #  =========================
+        # Simulate Database Storage
+        #  =========================
+        database_df = database_results(res_df)
+
+        # Updates data correctly with most reliable average likelihood scores.
+        # i.e. today is wednesday, and days_in_future = 2
+        # We are getting scores for monday and tuesday, and append it in a list.
+        # Now, the next day, we get scores for tuesday and wednesday. We throw away the old tuesday,
+        # and keep the new one.
+        if len(dataframe_list) - (days_in_future - 1) &gt;= 0:
+            dataframe_list = dataframe_list[
+                : len(dataframe_list) - (days_in_future - 1)
+            ]
+
+        days_dict = dict(
+            iter(database_df.groupby(database_df[&#34;start_time_utc&#34;].dt.day))
+        )
+
+        for j in range(days_in_future):
+            forecast_day = (today - np.timedelta64(days_in_future - j, &#34;D&#34;)).day
+            dataframe_list.append(days_dict[forecast_day])
+
+        today += np.timedelta64(1, &#34;D&#34;)
+
+    # Return list of highest scoring regions too - add to plot?
+    return (
+        pd.concat(dataframe_list, ignore_index=True),
+        pd.DataFrame.from_dict(daily_highest_scoring_regions, &#34;index&#34;),
+    )</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.synthetic.select_detectors"><code class="name flex">
+<span>def <span class="ident">select_detectors</span></span>(<span>detector_locations: pandas.core.frame.DataFrame, k: int, s_center_lon: float, s_center_lat: float) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Selects detectors for outbreak</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>detector_locations</code></strong></dt>
+<dd>dataframe of detector locations</dd>
+<dt><strong><code>k</code></strong></dt>
+<dd>number of detectors affected</dd>
+<dt><strong><code>s_center_lon</code></strong></dt>
+<dd>lon co-ordinate of outbreak centre</dd>
+<dt><strong><code>s_center_lat</code></strong></dt>
+<dd>lat co-ordinate of outbreak centre</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Dataframe of k detectors and their locations.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def select_detectors(
+    detector_locations: pd.DataFrame, k: int, s_center_lon: float, s_center_lat: float
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Selects detectors for outbreak
+    Args:
+        detector_locations: dataframe of detector locations
+        k: number of detectors affected
+        s_center_lon: lon co-ordinate of outbreak centre
+        s_center_lat: lat co-ordinate of outbreak centre
+    Returns:
+        Dataframe of k detectors and their locations.
+        &#34;&#34;&#34;
+
+    detector_locations[&#34;dist&#34;] = detector_locations.apply(
+        lambda x: (x.lon - s_center_lon) ** 2 + (x.lat - s_center_lat) ** 2, axis=1
+    )
+    detector_locations.sort_values(&#34;dist&#34;, axis=0, inplace=True)
+
+    return detector_locations.head(k)</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.synthetic.simulate_outbreak"><code class="name flex">
+<span>def <span class="ident">simulate_outbreak</span></span>(<span>synthetic_data, severity, k_min, k_max, outbreak_duration=7)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Main function for simulating the outbreak. Randomly chooses epicentre, severity
+and size.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>synthetic_data</code></strong></dt>
+<dd>synthetic data</dd>
+<dt>severity:</dt>
+<dt><strong><code>k_min</code></strong></dt>
+<dd>lower bound of affected detectors</dd>
+<dt><strong><code>k_max</code></strong></dt>
+<dd>upper_bound of affected detectors</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>outbreak_df
+dataframe of affected detectors
+start of outbreak</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def simulate_outbreak(synthetic_data, severity, k_min, k_max, outbreak_duration=7):
+
+    &#34;&#34;&#34;Main function for simulating the outbreak. Randomly chooses epicentre, severity
+    and size.
+
+    Args:
+        synthetic_data: synthetic data
+        severity:
+        k_min: lower bound of affected detectors
+        k_max: upper_bound of affected detectors
+    Returns:
+        outbreak_df
+        dataframe of affected detectors
+        start of outbreak
+    &#34;&#34;&#34;
+
+    detector_locations = synthetic_data.drop_duplicates(subset=&#34;detector_id&#34;)[
+        [&#34;detector_id&#34;, &#34;lon&#34;, &#34;lat&#34;]
+    ]
+    num_rows = len(detector_locations)
+
+    random.seed(0)
+
+    k = random.randint(k_min, k_max)
+    rand_row = detector_locations.iloc[random.randint(1, num_rows)]
+
+    s_center_lon = rand_row.lon
+    s_center_lat = rand_row.lat
+    print(
+        &#34;Outbreak centred at ({}, {}) affecting {} detectors&#34;.format(
+            s_center_lon, s_center_lat, k
+        )
+    )
+
+    detector_df = select_detectors(detector_locations, k, s_center_lon, s_center_lat)
+    detectors = detector_df[&#34;detector_id&#34;].to_numpy()
+    print(detectors)
+
+    outbreak_df, start = add_outbreak(
+        synthetic_data, detectors, severity, outbreak_duration=outbreak_duration
+    )
+
+    return outbreak_df, detector_df, start</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.synthetic.synthetic_SCOOT"><code class="name flex">
+<span>def <span class="ident">synthetic_SCOOT</span></span>(<span>df: pandas.core.frame.DataFrame, days: int = None, noise_percentage: float = 10, dow_percentage: float = 10) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a synthetic SCOOT dataframe based on a real input dataframe.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>df</code></strong></dt>
+<dd>input SCOOT dataframe (preprocessed for best results)</dd>
+<dt><strong><code>noise_percentage</code></strong></dt>
+<dd>percentage of random noise to add to the snthetic data, default 10%</dd>
+<dt><strong><code>dow_percentage</code></strong></dt>
+<dd>strength of day of week component. 10% default means it varies trace by 10%</dd>
+</dl>
+<p>Returns: Dataframe in SCOOT format, with synthetic data</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def synthetic_SCOOT(
+    df: pd.DataFrame, days: int = None, noise_percentage: float = 10, dow_percentage: float = 10
+) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;
+    Creates a synthetic SCOOT dataframe based on a real input dataframe.
+    Args:
+        df: input SCOOT dataframe (preprocessed for best results)
+        noise_percentage: percentage of random noise to add to the snthetic data, default 10%
+        dow_percentage: strength of day of week component. 10% default means it varies trace by 10%
+
+    Returns: Dataframe in SCOOT format, with synthetic data&#34;&#34;&#34;
+
+    start_date = df[&#34;measurement_end_utc&#34;].min()
+
+    T = pd.date_range(start=start_date, end=start_date + np.timedelta64(days, &#34;D&#34;) - np.timedelta64(1, &#34;h&#34;), freq=&#34;H&#34;,)
+    mux = pd.MultiIndex.from_product(
+            [df[&#34;detector_id&#34;].unique(), T], names=(&#34;detector_id&#34;, &#34;measurement_end_utc&#34;)
+        )
+    if(days):
+        print(&#34;Please wait, creating synthetic data for {} days...&#34;.format(days))
+    else:
+        print(&#34;Please wait, creating synthetic data with same format as input dataframe...&#34;)
+
+
+    DF = df.set_index([&#34;detector_id&#34;, &#34;measurement_end_utc&#34;])
+    X = DF.groupby(level=&#34;detector_id&#34;)[&#34;n_vehicles_in_interval&#34;].apply(
+        lambda x: synthetic_detector(
+            x, days=days, noise_percentage=noise_percentage, dow_percentage=dow_percentage
+        )
+    )
+
+    if days:
+        DF=DF.reindex(mux)
+        DF[&#34;measurement_start_utc&#34;] = DF.index.get_level_values(&#34;measurement_end_utc&#34;) - np.timedelta64(1, &#34;h&#34;)
+  
+    DF[&#34;n_vehicles_in_interval&#34;] = np.hstack(X.to_numpy())
+    DF = DF.reset_index()
+
+    DF.sort_values([&#34;detector_id&#34;, &#34;measurement_end_utc&#34;], inplace=True)
+
+    if days:
+        DF[&#34;lon&#34;] = DF[&#34;lon&#34;].interpolate(method=&#34;pad&#34;, limit_direction=&#34;both&#34;, axis=0)
+        DF[&#34;lat&#34;] = DF[&#34;lat&#34;].interpolate(method=&#34;pad&#34;, limit_direction=&#34;both&#34;, axis=0)
+
+    return DF</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.synthetic.synthetic_detector"><code class="name flex">
+<span>def <span class="ident">synthetic_detector</span></span>(<span>Y: pandas.core.series.Series, days: int = None, noise_percentage: float = 10, dow_percentage: float = 5) ‑> <built-in function array></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a synthetic count based on real counts for the means of simualting outbreak. Takes
+in the counts for a single detectors, and outputs a 24 hour periodic trace, with amplitude equal
+to the 90th percentile of actual count data with added noise. Also includes day of the week component</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>Y</code></strong></dt>
+<dd>Series of count data for a given detector</dd>
+<dt><strong><code>noise_percentage</code></strong></dt>
+<dd>percentage of random noise to add to the snthetic data, default 10%</dd>
+<dt><strong><code>dow_percentage</code></strong></dt>
+<dd>strength of day of week component. 10% default means it varies trace by 10%</dd>
+</dl>
+<p>Returns: np.array of synthetic counts</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def synthetic_detector(
+    Y: pd.Series, days: int = None, noise_percentage: float = 10, dow_percentage: float = 5
+) -&gt; np.array:
+    &#34;&#34;&#34;
+    Creates a synthetic count based on real counts for the means of simualting outbreak. Takes
+    in the counts for a single detectors, and outputs a 24 hour periodic trace, with amplitude equal 
+    to the 90th percentile of actual count data with added noise. Also includes day of the week component
+    
+    Args:
+        Y: Series of count data for a given detector
+        noise_percentage: percentage of random noise to add to the snthetic data, default 10%
+        dow_percentage: strength of day of week component. 10% default means it varies trace by 10%
+
+    Returns: np.array of synthetic counts
+    &#34;&#34;&#34;
+
+    Y = Y.to_numpy()
+    if days is None:
+        X = np.arange(0, len(Y))
+    else:
+        X= np.arange(0, 24*days)
+    noise = normal(0, noise_percentage / 100, len(X))
+    S = (
+        np.percentile(Y, 90)
+        * abs((np.sin((np.pi * X / 24)) ** 2 + noise))
+        * ((dow_percentage / 100) * np.sin((np.pi * X / 168)) ** 2 + 1)
+        + np.percentile(Y, 3)
+    ).astype(int)
+    return S</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="SpatialScan" href="index.html">SpatialScan</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="SpatialScan.synthetic.add_outbreak" href="#SpatialScan.synthetic.add_outbreak">add_outbreak</a></code></li>
+<li><code><a title="SpatialScan.synthetic.is_outbreak_detected" href="#SpatialScan.synthetic.is_outbreak_detected">is_outbreak_detected</a></code></li>
+<li><code><a title="SpatialScan.synthetic.normal" href="#SpatialScan.synthetic.normal">normal</a></code></li>
+<li><code><a title="SpatialScan.synthetic.results_builder" href="#SpatialScan.synthetic.results_builder">results_builder</a></code></li>
+<li><code><a title="SpatialScan.synthetic.select_detectors" href="#SpatialScan.synthetic.select_detectors">select_detectors</a></code></li>
+<li><code><a title="SpatialScan.synthetic.simulate_outbreak" href="#SpatialScan.synthetic.simulate_outbreak">simulate_outbreak</a></code></li>
+<li><code><a title="SpatialScan.synthetic.synthetic_SCOOT" href="#SpatialScan.synthetic.synthetic_SCOOT">synthetic_SCOOT</a></code></li>
+<li><code><a title="SpatialScan.synthetic.synthetic_detector" href="#SpatialScan.synthetic.synthetic_detector">synthetic_detector</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
+</footer>
+</body>
+</html>

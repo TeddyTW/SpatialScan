@@ -3,15 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.8.1" />
+<meta name="generator" content="pdoc 0.8.4" />
 <title>SpatialScan.region API documentation</title>
 <meta name="description" content="Module to contain all region and grid-based construction code." />
-<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
-<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
-<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
 <style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
 <style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
 </head>
 <body>
 <main>
@@ -136,6 +138,8 @@ def aggregate_event_data(
                 ]
 
                 b_count = sub_df[&#34;baseline&#34;].sum()
+                b_upper_count = sub_df[&#34;baseline_upper&#34;].sum()
+                b_lower_count = sub_df[&#34;baseline_lower&#34;].sum()
                 c_count = sub_df[&#34;count&#34;].sum()
 
                 agg_dict[num_cells] = {
@@ -146,6 +150,8 @@ def aggregate_event_data(
                     &#34;t_min&#34;: t_min,
                     &#34;t_max&#34;: t_max,
                     &#34;baseline_agg&#34;: b_count,
+                    &#34;baseline_upper_agg&#34;: b_upper_count,
+                    &#34;baseline_lower_agg&#34;: b_lower_count,
                     &#34;count_agg&#34;: c_count,
                 }
                 num_cells += 1
@@ -153,7 +159,7 @@ def aggregate_event_data(
     return pd.DataFrame.from_dict(agg_dict, &#34;index&#34;)
 
 
-def event_count(S: Type[Region], agg_data: pd.DataFrame) -&gt; tuple:
+def event_count(S: Type[Region], agg_data: pd.DataFrame) -&gt; dict:
 
     &#34;&#34;&#34;Function to calculate both the expected (B) and actual (C) count
     (vehicles) within a given space-time region S from the grid-cell-level-aggregated.
@@ -189,8 +195,12 @@ def event_count(S: Type[Region], agg_data: pd.DataFrame) -&gt; tuple:
 
     S_df = agg_data.loc[region_mask]
     if S_df.empty:
-        return 0, 0
-    return S_df[&#34;baseline_agg&#34;].sum() / 1e6, S_df[&#34;count_agg&#34;].sum() / 1e6
+        return {&#39;baseline_agg&#39;: 0, &#39;count_agg&#39;: 0, &#39;baseline_upper_agg&#39;: 0, &#39;baseline_lower_agg&#39;: 0}
+    return {&#39;baseline&#39;: S_df[&#39;baseline_agg&#39;].sum() / 1e6,
+            &#39;count&#39;: S_df[&#39;count_agg&#39;].sum() / 1e6,
+            &#39;baseline_upper&#39;: S_df[&#39;baseline_upper_agg&#39;].sum() / 1e6,
+            &#39;baseline_lower&#39;: S_df[&#39;baseline_lower_agg&#39;].sum() / 1e6
+    }
 
 
 def simulate_event_count(S: Type[Region], forecast_data: pd.DataFrame) -&gt; tuple:
@@ -277,7 +287,11 @@ def plot_global_region(
     &#34;&#34;&#34;
 
     # Set defaults accordingly
-    time_slice = forecast_data[&#34;measurement_end_utc&#34;].iloc[0] if time_slice is None else time_slice
+    time_slice = (
+        forecast_data[&#34;measurement_end_utc&#34;].iloc[0]
+        if time_slice is None
+        else time_slice
+    )
     legend = &#34;brief&#34; if add_legend else False
 
     global_region = infer_global_region(forecast_data)
@@ -513,7 +527,7 @@ def cleanse_forecast_data(forecast_df: pd.DataFrame) -&gt; pd.DataFrame:
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="SpatialScan.region.aggregate_event_data"><code class="name flex">
-<span>def <span class="ident">aggregate_event_data</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, x_ticks: numpy.ndarray, y_ticks: numpy.ndarray, t_ticks: numpy.ndarray) -> pandas.core.frame.DataFrame</span>
+<span>def <span class="ident">aggregate_event_data</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, x_ticks: numpy.ndarray, y_ticks: numpy.ndarray, t_ticks: numpy.ndarray) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Functionality to aggregate data in forecast_data (each row represents
@@ -576,6 +590,8 @@ Clearly needs to be called after the grid is made.</p>
                 ]
 
                 b_count = sub_df[&#34;baseline&#34;].sum()
+                b_upper_count = sub_df[&#34;baseline_upper&#34;].sum()
+                b_lower_count = sub_df[&#34;baseline_lower&#34;].sum()
                 c_count = sub_df[&#34;count&#34;].sum()
 
                 agg_dict[num_cells] = {
@@ -586,6 +602,8 @@ Clearly needs to be called after the grid is made.</p>
                     &#34;t_min&#34;: t_min,
                     &#34;t_max&#34;: t_max,
                     &#34;baseline_agg&#34;: b_count,
+                    &#34;baseline_upper_agg&#34;: b_upper_count,
+                    &#34;baseline_lower_agg&#34;: b_lower_count,
                     &#34;count_agg&#34;: c_count,
                 }
                 num_cells += 1
@@ -594,7 +612,7 @@ Clearly needs to be called after the grid is made.</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.cleanse_forecast_data"><code class="name flex">
-<span>def <span class="ident">cleanse_forecast_data</span></span>(<span>forecast_df: pandas.core.frame.DataFrame) -> pandas.core.frame.DataFrame</span>
+<span>def <span class="ident">cleanse_forecast_data</span></span>(<span>forecast_df: pandas.core.frame.DataFrame) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Utility function to ensure that the forecast_df from <code>count_baseline()</code>
@@ -605,9 +623,9 @@ if required.</p>
 <dl>
 <dt><strong><code>forecast_df</code></strong></dt>
 <dd>Data frame from <code>count_baseline()</code></dd>
-<dt><strong><code>Returns</code></strong></dt>
-<dd>pd.DataFrame: Cleansed dataframe</dd>
-</dl></div>
+</dl>
+<p>Returns
+pd.DataFrame: Cleansed dataframe</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -681,7 +699,7 @@ if required.</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.convert_dates"><code class="name flex">
-<span>def <span class="ident">convert_dates</span></span>(<span>df: pandas.core.frame.DataFrame, date_start_label='measurement_start_utc', date_end_label='measurement_end_utc') -> pandas.core.frame.DataFrame</span>
+<span>def <span class="ident">convert_dates</span></span>(<span>df: pandas.core.frame.DataFrame, date_start_label='measurement_start_utc', date_end_label='measurement_end_utc') ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Utility functionality to convert dates in a dataframe from string to
@@ -698,10 +716,7 @@ date period.</dd>
 date period.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
-<dl>
-<dt><code>Dataframe with converted date columns</code></dt>
-<dd>&nbsp;</dd>
-</dl></div>
+<p>Dataframe with converted date columns</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -734,7 +749,7 @@ date period.</dd>
 </details>
 </dd>
 <dt id="SpatialScan.region.event_count"><code class="name flex">
-<span>def <span class="ident">event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], agg_data: pandas.core.frame.DataFrame) -> tuple</span>
+<span>def <span class="ident">event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], agg_data: pandas.core.frame.DataFrame) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Function to calculate both the expected (B) and actual (C) count
@@ -752,7 +767,7 @@ Used in the likelihood ratio statistic.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def event_count(S: Type[Region], agg_data: pd.DataFrame) -&gt; tuple:
+<pre><code class="python">def event_count(S: Type[Region], agg_data: pd.DataFrame) -&gt; dict:
 
     &#34;&#34;&#34;Function to calculate both the expected (B) and actual (C) count
     (vehicles) within a given space-time region S from the grid-cell-level-aggregated.
@@ -788,12 +803,16 @@ Used in the likelihood ratio statistic.</p>
 
     S_df = agg_data.loc[region_mask]
     if S_df.empty:
-        return 0, 0
-    return S_df[&#34;baseline_agg&#34;].sum() / 1e6, S_df[&#34;count_agg&#34;].sum() / 1e6</code></pre>
+        return {&#39;baseline_agg&#39;: 0, &#39;count_agg&#39;: 0, &#39;baseline_upper_agg&#39;: 0, &#39;baseline_lower_agg&#39;: 0}
+    return {&#39;baseline&#39;: S_df[&#39;baseline_agg&#39;].sum() / 1e6,
+            &#39;count&#39;: S_df[&#39;count_agg&#39;].sum() / 1e6,
+            &#39;baseline_upper&#39;: S_df[&#39;baseline_upper_agg&#39;].sum() / 1e6,
+            &#39;baseline_lower&#39;: S_df[&#39;baseline_lower_agg&#39;].sum() / 1e6
+    }</code></pre>
 </details>
 </dd>
 <dt id="SpatialScan.region.infer_global_region"><code class="name flex">
-<span>def <span class="ident">infer_global_region</span></span>(<span>data: pandas.core.frame.DataFrame) -> Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>]</span>
+<span>def <span class="ident">infer_global_region</span></span>(<span>data: pandas.core.frame.DataFrame) ‑> Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -813,7 +832,7 @@ Used in the likelihood ratio statistic.</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.make_grid"><code class="name flex">
-<span>def <span class="ident">make_grid</span></span>(<span>global_region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], N: int) -> tuple</span>
+<span>def <span class="ident">make_grid</span></span>(<span>global_region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], N: int) ‑> tuple</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Function to create grid arrays to iterate over in the main loop. Divides
@@ -861,7 +880,7 @@ grid is O(N^4 * W).</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.make_region_from_res"><code class="name flex">
-<span>def <span class="ident">make_region_from_res</span></span>(<span>res_df: pandas.core.frame.DataFrame, whole_prediction_period: bool = True, rank: int = 0) -> Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>]</span>
+<span>def <span class="ident">make_region_from_res</span></span>(<span>res_df: pandas.core.frame.DataFrame, whole_prediction_period: bool = True, rank: int = 0) ‑> Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>The output of the main spatial scan loop is a dataframe named <code>res_df</code>.
@@ -884,13 +903,9 @@ return the highest scoring space-time region.</dd>
 likelihood ratio scores as determined by the loop.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
-<dl>
-<dt><code>Space-Time region spanning the spatial region</code> of <code>interest. Time period</code></dt>
-<dd>&nbsp;</dd>
-<dt><code>either spans the whole prediction period,</code> or <code>just the highest scoring</code></dt>
-<dd>&nbsp;</dd>
-</dl>
-<p>slice as explained above.</p></div>
+<p>Space-Time region spanning the spatial region of interest. Time period
+either spans the whole prediction period, or just the highest scoring
+slice as explained above.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -933,7 +948,7 @@ likelihood ratio scores as determined by the loop.</dd>
 </details>
 </dd>
 <dt id="SpatialScan.region.plot_global_region"><code class="name flex">
-<span>def <span class="ident">plot_global_region</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, time_slice: datetime.datetime = None, overlay_grid: bool = True, grid_partition: int = 1, plot_type='count', add_legend: bool = True) -> NoneType</span>
+<span>def <span class="ident">plot_global_region</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, time_slice: datetime.datetime = None, overlay_grid: bool = True, grid_partition: int = 1, plot_type='count', add_legend: bool = True) ‑> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Functionality to plot the computational grid on a region of interest.
@@ -977,7 +992,11 @@ value.</p>
     &#34;&#34;&#34;
 
     # Set defaults accordingly
-    time_slice = forecast_data[&#34;measurement_end_utc&#34;].iloc[0] if time_slice is None else time_slice
+    time_slice = (
+        forecast_data[&#34;measurement_end_utc&#34;].iloc[0]
+        if time_slice is None
+        else time_slice
+    )
     legend = &#34;brief&#34; if add_legend else False
 
     global_region = infer_global_region(forecast_data)
@@ -1009,7 +1028,7 @@ value.</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.plot_region_by_rank"><code class="name flex">
-<span>def <span class="ident">plot_region_by_rank</span></span>(<span>rank: int, res_df: pandas.core.frame.DataFrame, forecast_df: pandas.core.frame.DataFrame, plot_type='count', add_legend: bool = False) -> NoneType</span>
+<span>def <span class="ident">plot_region_by_rank</span></span>(<span>rank: int, res_df: pandas.core.frame.DataFrame, forecast_df: pandas.core.frame.DataFrame, plot_type='count', add_legend: bool = False) ‑> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Functionality to plot the 'rank'ed region form the results dataframe
@@ -1076,7 +1095,7 @@ superposed with the global grid.</p>
 </details>
 </dd>
 <dt id="SpatialScan.region.plot_region_time_series"><code class="name flex">
-<span>def <span class="ident">plot_region_time_series</span></span>(<span>region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_df: pandas.core.frame.DataFrame, plot_type: str = 'count', add_legend: bool = False) -> NoneType</span>
+<span>def <span class="ident">plot_region_time_series</span></span>(<span>region: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_df: pandas.core.frame.DataFrame, plot_type: str = 'count', add_legend: bool = False) ‑> NoneType</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Plots all the time series associated with a space-time region. To be used
@@ -1142,7 +1161,7 @@ in conjunction with <code><a title="SpatialScan.region.make_region_from_res" hre
 </details>
 </dd>
 <dt id="SpatialScan.region.simulate_event_count"><code class="name flex">
-<span>def <span class="ident">simulate_event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_data: pandas.core.frame.DataFrame) -> tuple</span>
+<span>def <span class="ident">simulate_event_count</span></span>(<span>S: Type[<a title="SpatialScan.region.Region" href="#SpatialScan.region.Region">Region</a>], forecast_data: pandas.core.frame.DataFrame) ‑> tuple</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Function to simulate the count (vehicles) within a given
@@ -1328,9 +1347,7 @@ baseline forecast. Used in randomisation testing.</p>
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.1</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
 </footer>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-<script>hljs.initHighlightingOnLoad()</script>
 </body>
 </html>
