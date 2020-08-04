@@ -176,6 +176,13 @@ class GPLandscape:
         if detectors is None:
             detectors = scoot_df["detector_id"].drop_duplicates().to_numpy()
 
+        detectors_in=np.intersect1d(detectors, self.model_detector_id)
+        if(detectors_in!=detectors):
+            print("No saved models for: ", np.setdiff1d(detectors, detectors_in))
+            print("Calculating for remaining detectors...")
+            detectors=detectors_in
+
+
         framelist = []
 
         for i, detector in enumerate(detectors, 1):
