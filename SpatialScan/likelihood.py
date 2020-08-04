@@ -16,7 +16,7 @@ def likelihood_ratio(B: float, C: float) -> float:
     Returns:
         float
     """
-    if C < 0:
+    if C < 0 or B < 0:
         raise ValueError('Negative count value passed in scan')
 
     if B == 0 and C > 0:
@@ -50,7 +50,7 @@ def likelihood_ratio_kulgen(B: float, C: float, B_tot: float, C_tot: float, eps:
 
     sign = 1 if condition else -1
 
-    if B == 0 or C or B_tot or C_tot == 0:
+    if B == 0 or C == 0 or B_tot == 0 or C_tot == 0:
         return 0.0
     if C_tot == C: # and hence B_tot == B
         return sign * (

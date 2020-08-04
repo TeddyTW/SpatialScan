@@ -128,13 +128,13 @@ def scan(
                                 )  # General Kulldorf
                                 for eps in [0.0, 0.25, 0.50]
                             ]
-                            general_l_scores_upper = [
+                            general_l_scores_lower = [
                                 likelihood_ratio_kulgen(
                                     B_upper, C, B_upper_tot, C_tot, eps
                                 )  # General Kulldorf
                                 for eps in [0.0, 0.25, 0.50]
                             ]
-                            general_l_scores_lower = [
+                            general_l_scores_upper = [
                                 likelihood_ratio_kulgen(
                                     B_lower, C, B_lower_tot, C_tot, eps
                                 )  # General Kulldorf
