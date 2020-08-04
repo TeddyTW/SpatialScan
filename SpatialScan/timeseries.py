@@ -11,6 +11,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
+import astropy as ap
 
 import tensorflow as tf
 from scipy.optimize import minimize
@@ -20,6 +21,14 @@ from gpflow.utilities import print_summary
 from sklearn.metrics import mean_squared_error
 import matplotlib.dates as mdates
 from datetime import datetime
+
+from gpflow.monitor import (
+    ImageToTensorBoard,
+    ModelToTensorBoard,
+    Monitor,
+    MonitorTaskGroup,
+    ScalarToTensorBoard,
+)
 
 
 def holt_winters(
@@ -309,11 +318,22 @@ def gp_forecast(
         model = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
         opt = gpflow.optimizers.Scipy()
 
+        # training_loss = model.training_loss_closure() # compile=True (default): compiles using tf.function
+        # opt = tf.optimizers.Adam()
+
+        # for step in range(500):
+        #     opt.minimize(training_loss, model.trainable_variables)
+        #     print(model.maximum_log_likelihood_objective(), model.log_marginal_likelihood())
+
+        # #model=train_sensor_model(X, y, k, opt, maxiter=100)
+        # #simple_training_loop(X, y, model, opt, maxiter=100, logging_freq=10)
+
         try:
+            
             opt.minimize(
                 model.training_loss,
                 model.trainable_variables,
-                options=dict(maxiter=100),
+                options=dict(maxiter=500),
             )
         except:
             print(detector, " Covariance matrix not invertible, skipping to next detector")
@@ -775,3 +795,28 @@ def CB_plot(df: pd.DataFrame):
     fig.suptitle("Forecast from {} to {}".format(forecast_t_min, forecast_t_max))
     plt.show()
 
+
+def simple_training_loop(
+    x_train: tf.Tensor,
+    y_train: tf.Tensor,
+    model: gpflow.models.GPModel,
+    optimizer: tf.optimizers.Optimizer,
+    maxiter: int = 2000,
+    logging_freq: int = 10,
+):
+    ## Optimization functions - train the model for the given maxiter
+    def optimization_step(model: gpflow.models.GPR, x_train, y_train):
+        with tf.GradientTape(watch_accessed_variables=False) as tape:
+            tape.watch(model.trainable_variables)
+            obj = -model.elbo((x_train, y_train))
+            grads = tape.gradient(obj, model.trainable_variables)
+        optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
+
+    tf_optimization_step = tf.function(optimization_step)
+    for epoch in range(maxiter):
+        tf_optimization_step(model, x_train, y_train)
+
+        epoch_id = epoch + 1
+        if epoch_id % logging_freq == 0:
+            tf.print(f"Epoch {epoch_id}: ELBO (train) {model.elbo((x_train, y_train))}")
