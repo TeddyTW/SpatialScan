@@ -403,12 +403,13 @@ def visualise_results_from_database(
 
 
 class MapboxPlot:
-    def __init__(self, database_df, london_gpd):
+    def __init__(self, database_df, london_gpd, borough='all'):
         self.database_df = database_df
         self.london_gpd = london_gpd
+        self.borough = borough
         # Mapbox Token
         self.token = "pk.eyJ1IjoiY2hhbmNlaGF5Y29jayIsImEiOiJja2Q0d25iNjMxYTgxMnNudzUzdm9veG5xIn0.MNo8CDYOo6z_g1lWiRM3vg"
-        self.london_results = None
+        self.masked_results = None
 
     def _preprocess_database_results(self):
         # Add centroid
@@ -427,20 +428,23 @@ class MapboxPlot:
         # Project the london boroughs to standard
         self.london_gpd = self.london_gpd.to_crs(epsg=4326)
 
-        london_boundary = gpd.GeoSeries(unary_union(self.london_gpd.geometry))
+        if self.borough in ['All', 'all', 'London', 'london']:
+            boundary = gpd.GeoSeries(unary_union(self.london_gpd.geometry))
+        else:
+            boundary = self.london_gpd[self.london_gpd['NAME'] == self.borough]
 
         # Does all time steps at the mo - inefficient
-        self.database_df["in_london"] = self.database_df.apply(
-            lambda x: london_boundary.contains(x.location), axis=1
+        self.database_df["in_borough"] = self.database_df.apply(
+            lambda x: boundary.contains(x.location), axis=1
         )
 
-        self.london_results = self.database_df[self.database_df["in_london"]]
+        self.masked_results = self.database_df[self.database_df["in_borough"]]
 
     def display(self, metric, zmin=None, zmax=None):
-        if not isinstance(self.london_results, pd.DataFrame):
+        if not isinstance(self.masked_results, pd.DataFrame):
             self._preprocess_database_results()
 
-        unique_times = self.london_results.drop_duplicates(
+        unique_times = self.masked_results.drop_duplicates(
             subset=["start_time_utc", "end_time_utc"]
         )
 
@@ -449,8 +453,8 @@ class MapboxPlot:
         t_min_labels = [x.strftime("%I%p, %d %b %y") for x in t_min_ticks]
         t_max_labels = [x.strftime("%I%p, %d %b %y") for x in t_max_ticks]
 
-        global_min = self.london_results[metric].min()
-        global_max = self.london_results[metric].max()
+        global_min = self.masked_results[metric].min()
+        global_max = self.masked_results[metric].max()
 
         zmin = global_min if zmin is None else zmin
         zmax = global_max if zmax is None else zmax
@@ -459,14 +463,14 @@ class MapboxPlot:
 
         fig = go.Figure(
             data=go.Densitymapbox(
-                lon=self.london_results[
-                    self.london_results["start_time_utc"] == start_time
+                lon=self.masked_results[
+                    self.masked_results["start_time_utc"] == start_time
                 ]["lon"],
-                lat=self.london_results[
-                    self.london_results["start_time_utc"] == start_time
+                lat=self.masked_results[
+                    self.masked_results["start_time_utc"] == start_time
                 ]["lat"],
-                z=self.london_results[
-                    self.london_results["start_time_utc"] == start_time
+                z=self.masked_results[
+                    self.masked_results["start_time_utc"] == start_time
                 ][metric],
                 colorscale="viridis",
                 radius=100,
@@ -507,16 +511,16 @@ class MapboxPlot:
                 go.Frame(
                     data=[
                         go.Densitymapbox(
-                            lon=self.london_results[
-                                self.london_results["start_time_utc"]
+                            lon=self.masked_results[
+                                self.masked_results["start_time_utc"]
                                 == start_time + np.timedelta64(i, "h")
                             ]["lon"],
-                            lat=self.london_results[
-                                self.london_results["start_time_utc"]
+                            lat=self.masked_results[
+                                self.masked_results["start_time_utc"]
                                 == start_time + np.timedelta64(i, "h")
                             ]["lat"],
-                            z=self.london_results[
-                                self.london_results["start_time_utc"]
+                            z=self.masked_results[
+                                self.masked_results["start_time_utc"]
                                 == start_time + np.timedelta64(i, "h")
                             ][metric],
                         )
