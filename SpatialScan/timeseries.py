@@ -17,6 +17,46 @@ from sklearn.metrics import mean_squared_error
 from scipy.optimize import minimize
 
 
+class Forecast:
+    """Base class for forecasting"""
+
+    def __init__(
+        self,
+        days_in_past,
+        days_in_future,
+        ts_method,
+        alpha=0.03869791,
+        beta=0.0128993,
+        gamma=0.29348953,
+        kernel=None,
+    ):
+        self.days_in_past = days_in_past
+        self.days_in_future = days_in_future
+        self.ts_method = ts_method
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.kernel = kernel
+
+    def predict(self, processed):
+        return count_baseline(
+            processed,
+            self.days_in_past,
+            self.days_in_future,
+            self.ts_method,
+            alpha=self.alpha,
+            beta=self.beta,
+            gamma=self.gamma,
+        )
+
+
+#    def plot(self, detector=None):
+#        if isinstance(self.forecast, pd.DataFrame):
+#            forecast_plot(self.forecast, detector=detector)
+#        else:
+#            raise TypeError("Populate forecast by running predict() first.")
+
+
 def holt_winters(
     proc_df: pd.DataFrame,
     days_in_past: int,

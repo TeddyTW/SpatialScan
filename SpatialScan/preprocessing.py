@@ -4,6 +4,64 @@ import matplotlib.pyplot as plt
 from astropy.timeseries import LombScargle
 
 
+class Preprocessor:
+    """Base Class for preprocessing"""
+
+    def __init__(
+        self,
+        percentage_missing=20,
+        max_anom_per_day=1,
+        N_sigma=3,
+        repeats=1,
+        rolling_hours=24,
+        fap_threshold=1e-40,
+        consecutive_missing_threshold=3,
+        global_threshold=False,
+        drop_sparse=True,
+        drop_anomalous=True,
+        drop_aperiodic=True,
+        drop_consecutives=True,
+        data_type="scoot",
+    ):
+        self.percentage_missing = percentage_missing
+        self.max_anom_per_day = max_anom_per_day
+        self.N_sigma = N_sigma
+        self.repeats = repeats
+        self.rolling_hours = rolling_hours
+        self.fap_threshold = fap_threshold
+        self.consecutive_missing_threshold = consecutive_missing_threshold
+        self.global_threshold = global_threshold
+        self.drop_sparse = drop_sparse
+        self.drop_anomalous = drop_anomalous
+        self.drop_aperiodic = drop_aperiodic
+        self.drop_consecutives = drop_consecutives
+        self.data_type = data_type
+
+    def process(self, readings):
+        return data_preprocessor(
+            readings,
+            self.percentage_missing,
+            self.max_anom_per_day,
+            self.N_sigma,
+            self.repeats,
+            self.rolling_hours,
+            self.fap_threshold,
+            self.consecutive_missing_threshold,
+            self.global_threshold,
+            self.drop_sparse,
+            self.drop_anomalous,
+            self.drop_aperiodic,
+            self.drop_consecutives,
+        )
+
+
+#    def plot(self, readings, processed):
+#        if isinstance(processed, pd.DataFrame):
+#            plot_processing(self.readings, self.processed)
+#        else:
+#            raise ValueError("Run process() first.")
+
+
 def frequency_alarm(df_d: pd.DataFrame) -> float:
     """Function that returns the false alarm probability for a given detector, for use in groupbys
     Args: 
@@ -28,8 +86,12 @@ def data_preprocessor(
     repeats: int = 1,
     rolling_hours: int = 24,
     fap_threshold: float = 1e-40,
-    consecutive_missing_threshold: int = 3,
+    consecutive_missing_threshold: int = 100,
     global_threshold: bool = False,
+    drop_sparse: bool = True,
+    drop_anomalous: bool = True,
+    drop_aperiodic: bool = False,
+    drop_consecutives: bool = True,
 ) -> pd.DataFrame:
 
     """Function takes a SCOOT dataframe, performs anomaly removal, fill_and_drop, and then
@@ -157,8 +219,9 @@ def data_preprocessor(
     orig_length = len(orig_set)
 
     # Drop detectors with too many anomalies
-    print("\nDropping detectors with more than {} anomalies...".format(max_anom))
-    df = df.drop(df[df["num_anom"] > max_anom].index)
+    if drop_anomalous:
+        print("\nDropping detectors with more than {} anomalies...".format(max_anom))
+        df = df.drop(df[df["num_anom"] > max_anom].index)
 
     print("Filling in missing dates and times ...")
     remaining_detectors = df.index.get_level_values("detector_id").unique()
@@ -185,7 +248,9 @@ def data_preprocessor(
 
         is_missing_consecutive = max_missing_consecutive > consecutive_missing_threshold
 
-        if is_sparse or is_missing_consecutive:
+        if (is_sparse and drop_sparse) or (
+            is_missing_consecutive and drop_consecutives
+        ):
             detectors_to_drop.append(det)
 
     print(
@@ -215,8 +280,12 @@ def data_preprocessor(
 
     df.rename({"n_vehicles_in_intervalX": "fap"}, axis=1, inplace=True)
 
-    print("\nDropping detectors with low periodicity...")
-    df = df[df["fap"] < fap_threshold]
+    if drop_aperiodic:
+        print("\nDropping detectors with low periodicity...")
+        df = df[df["fap"] < fap_threshold]
+
+    if df.empty:
+        raise ValueError("Dataframe has no detector readings remaining.")
 
     # Return drop information to user
     curr_set = set(df.index.get_level_values("detector_id"))

@@ -3,20 +3,29 @@
 import logging
 import pandas as pd
 
-from SpatialScan.preprocessing import data_preprocessor
-from SpatialScan.timeseries import count_baseline
+from SpatialScan.preprocessing import Preprocessor
+from SpatialScan.timeseries import Forecast
 from SpatialScan.scan import scan
 from SpatialScan.results import database_results, visualise_results_from_database
 
 
-class ScanStatistic:
+class ScanStatistic(Preprocessor, Forecast):
     """Simple helper class to reduce number of function calls when modelling"""
-    def __init__(self, data, grid_resolution, days_in_past, days_in_future, ts_method):
-        self.data = data
+
+    def __init__(
+        self,
+        readings,
+        grid_resolution,
+        days_in_past,
+        days_in_future,
+        ts_method,
+        *args,
+        **kwargs
+    ):
+        Preprocessor.__init__(self)
+        Forecast.__init__(self, days_in_past, days_in_future, ts_method)
         self.grid_resolution = grid_resolution
-        self.days_in_past = days_in_past
-        self.days_in_future = days_in_future
-        self.ts_method = ts_method
+        self.readings = readings
         self.processed = None
         self.forecast = None
         self.all_results = None
@@ -24,10 +33,8 @@ class ScanStatistic:
 
     def run(self):
         """Build scan results"""
-        self.processed = data_preprocessor(self.data)
-        self.forecast = count_baseline(
-            self.processed, self.days_in_past, self.days_in_future, self.ts_method
-        )
+        self.processed = self.process(self.readings)
+        self.forecast = self.predict(self.processed)
         self.all_results = scan(self.forecast, self.grid_resolution)
         self.grid_results = database_results(self.all_results)
 
