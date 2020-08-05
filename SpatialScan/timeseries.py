@@ -329,7 +329,6 @@ def gp_forecast(
         # #simple_training_loop(X, y, model, opt, maxiter=100, logging_freq=10)
 
         try:
-            
             opt.minimize(
                 model.training_loss,
                 model.trainable_variables,
@@ -375,7 +374,7 @@ def gp_forecast(
                 "measurement_end_utc": forecast_period + np.timedelta64(1, "h"),
                 "n_vehicles_in_interval": test_predict.flatten(),
                 "prediction_variance": test_var.flatten(),
-                "baseline_upper": 3 * np.sqrt(test_var.flatten()) + test_predict.flatten(),
+                "baseline_upper": test_predict.flatten() + 3 * np.sqrt(test_var.flatten()),
                 "baseline_lower": test_predict.flatten() - 3 * np.sqrt(test_var.flatten()),
             }
         )
