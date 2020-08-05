@@ -124,4 +124,8 @@ class ScanStatistic:
     def model_settings(self):
         settings = self.__dict__
         del settings['readings']
+        del settings['processed']
+        del settings['forecast']
+        del settings['all_results']
+        del settings['grid_results']
         print(settings)
