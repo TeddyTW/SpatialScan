@@ -69,6 +69,8 @@ def scan(
     agg_df = aggregate_event_data(forecast_data, x_ticks, y_ticks, t_ticks)
 
     B_tot = agg_df["baseline_agg"].sum() / 1e6
+    B_upper_tot = agg_df['baseline_upper_agg'].sum() / 1e6
+    B_lower_tot = agg_df['baseline_lower_agg'].sum() / 1e6
     C_tot = agg_df["count_agg"].sum() / 1e6
 
     # Compute Blind Bayes null likelihood
@@ -109,13 +111,32 @@ def scan(
                             )
 
                             # Count the events within the region
-                            B, C = event_count(test_region, agg_df)
+                            counts = event_count(test_region, agg_df)
+                            B = counts['baseline']
+                            C = counts['count']
+                            B_upper = counts['baseline_upper']
+                            B_lower = counts['baseline_lower']
 
                             # Compute Metrics
                             ebp_l_score = likelihood_ratio(B, C)  # Normal EBP metric
+                            ebp_l_score_upper = likelihood_ratio(B_upper, C)  # Normal EBP metric
+                            ebp_l_score_lower = likelihood_ratio(B_lower, C)  # Normal EBP metric
+
                             general_l_scores = [
                                 likelihood_ratio_kulgen(
                                     B, C, B_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            general_l_scores_lower = [
+                                likelihood_ratio_kulgen(
+                                    B_upper, C, B_upper_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            general_l_scores_upper = [
+                                likelihood_ratio_kulgen(
+                                    B_lower, C, B_lower_tot, C_tot, eps
                                 )  # General Kulldorf
                                 for eps in [0.0, 0.25, 0.50]
                             ]
@@ -139,11 +160,19 @@ def scan(
                                 "C_out/B_out": (C_tot - C) / (B_tot - B)
                                 if B_tot != B
                                 else np.inf,
+                                "l_score_EBP_lower": ebp_l_score_lower,
                                 "l_score_EBP": ebp_l_score,
-                                "p_value_EBP": np.nan,
+                                "l_score_EBP_upper": ebp_l_score_upper,
+                                #"p_value_EBP": np.nan,
+                                "l_score_000_lower": general_l_scores_lower[0],
                                 "l_score_000": general_l_scores[0],
+                                "l_score_000_upper": general_l_scores_upper[0],
+                                "l_score_025_lower": general_l_scores_lower[1],
                                 "l_score_025": general_l_scores[1],
+                                "l_score_025_upper": general_l_scores_upper[1],
+                                "l_score_050_lower": general_l_scores_lower[2],
                                 "l_score_050": general_l_scores[2],
+                                "l_score_050_upper": general_l_scores_upper[2],
                                 "l_score_bbayes": bbayes_alt_score,
                             }
 

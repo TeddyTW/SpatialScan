@@ -15,6 +15,7 @@ import astropy as ap
 
 import tensorflow as tf
 from scipy.optimize import minimize
+from tensorflow.python.framework.errors import InvalidArgumentError
 
 import gpflow
 from gpflow.utilities import print_summary
@@ -116,8 +117,8 @@ def holt_winters(
                 "measurement_start_utc": starttime,
                 "measurement_end_utc": endtime,
                 "n_vehicles_in_interval": baseline,
-                "99_upper": baseline,
-                "99_lower": baseline,
+                "baseline_upper": baseline,
+                "baseline_lower": baseline,
             }
         )
         framelist.append(forecasts)
@@ -248,8 +249,8 @@ def lstm_forecast(
                 "measurement_start_utc": forecast_period,
                 "measurement_end_utc": forecast_period + np.timedelta64(1, "h"),
                 "n_vehicles_in_interval": test_predict.flatten(),
-                "99_upper": test_predict.flatten(),
-                "99_lower": test_predict.flatten(),
+                "baseline_upper": test_predict.flatten(),
+                "baseline_lower": test_predict.flatten(),
             }
         )
 
@@ -329,13 +330,12 @@ def gp_forecast(
         # #simple_training_loop(X, y, model, opt, maxiter=100, logging_freq=10)
 
         try:
-            
             opt.minimize(
                 model.training_loss,
                 model.trainable_variables,
                 options=dict(maxiter=500),
             )
-        except:
+        except InvalidArgumentError:
             print(detector, " Covariance matrix not invertible, skipping to next detector")
             del model
             continue
@@ -375,8 +375,8 @@ def gp_forecast(
                 "measurement_end_utc": forecast_period + np.timedelta64(1, "h"),
                 "n_vehicles_in_interval": test_predict.flatten(),
                 "prediction_variance": test_var.flatten(),
-                "99_upper": 3 * np.sqrt(test_var.flatten()) + test_predict.flatten(),
-                "99_lower": test_predict.flatten() - 3 * np.sqrt(test_var.flatten()),
+                "baseline_upper": test_predict.flatten() + 3 * np.sqrt(test_var.flatten()),
+                "baseline_lower": test_predict.flatten() - 3 * np.sqrt(test_var.flatten()),
             }
         )
 
@@ -581,9 +581,9 @@ def count_baseline(
     days_in_future: int,
     method: str = "HW",
     detectors: list = None,
-    alpha: float = 0.1,
-    beta: float = 0.1,
-    gamma: float = 0.1,
+    alpha: float = 0.03869791,
+    beta: float = 0.0128993,
+    gamma: float = 0.29348953,
     kern=None
 ) -> pd.DataFrame:
 
@@ -719,6 +719,12 @@ def count_baseline(
         forecast_df["baseline"] = forecast_df["baseline"].apply(
             lambda x: np.max([0, x])
         )
+        forecast_df["baseline_upper"] = forecast_df["baseline_upper"].apply(
+            lambda x: np.max([0, x])
+        )
+    forecast_df["baseline_lower"] = forecast_df["baseline_lower"].apply(
+        lambda x: np.max([0, x])
+    )
 
     return forecast_df
 

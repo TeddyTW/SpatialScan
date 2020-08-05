@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.4" />
+<title>SpatialScan.jamcam API documentation</title>
+<meta name="description" content="Module containing utility functionality to convert Jamcam data into usable format
+with the remaining code." />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>SpatialScan.jamcam</code></h1>
+</header>
+<section id="section-intro">
+<p>Module containing utility functionality to convert Jamcam data into usable format
+with the remaining code.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Module containing utility functionality to convert Jamcam data into usable format
+with the remaining code.&#34;&#34;&#34;
+
+from json import JSONDecodeError
+import datetime
+
+import requests
+import pandas as pd
+import numpy as np
+
+
+def get_raw_jamcam_data(
+    jamcam_locations_df: pd.DataFrame,
+    start_year: int = 2020,
+    start_month: int = 6,
+    start_day: int = 1,
+    end_year: int = 2020,
+    end_month: int = 6,
+    end_day: int = 2,
+    detection_class=&#34;all&#34;,
+) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Scrape API for raw data for camera given in jamcam_locations_df between
+    the dats passed.
+    Args:
+        jamcam_locations_df: df with camera_ids, borough_names, and their locations
+        start_date:
+        end_date:
+    Return:
+        Raw counts spanning start_date to end_date for cameras in input df.
+    &#34;&#34;&#34;
+
+    start = datetime.datetime(start_year, start_month, start_day)
+    end = datetime.datetime(end_year, end_month, end_day)
+
+    days = pd.date_range(start=start, end=end, freq=&#34;d&#34;)
+
+    ids = jamcam_locations_df[&#34;camera_id&#34;].apply(lambda x: x[8:])
+
+    res_dict = {}
+    num_entries = 0
+
+    print(
+        &#34;Fetching {} data for {} cameras between {} and {}&#34;.format(
+            detection_class, len(ids), start, end
+        )
+    )
+
+    for i in range(len(days) - 1):
+
+        start_y, start_m, start_d = days[i].year, days[i].month, days[i].day
+        end_y, end_m, end_d = days[i + 1].year, days[i + 1].month, days[i + 1].day
+
+        start_time_string = &#34;{0:04d}-{1:02d}-{2:02d}T00%3A00%3A00.000Z&#34;.format(
+            start_y, start_m, start_d
+        )
+        end_time_string = &#34;{0:04d}-{1:02d}-{2:02d}T00%3A00%3A00.000Z&#34;.format(
+            end_y, end_m, end_d
+        )
+
+        for cam_id in ids:
+            try:
+                jreq = requests.get(
+                    &#34;https://urbanair.turing.ac.uk/api/v1/jamcams/raw?camera_id={}&#34;.format(
+                        cam_id
+                    ),
+                    &#34;&amp;detection_class={}&amp;starttime={}&amp;endtime={}&#34;.format(
+                        detection_class, start_time_string, end_time_string
+                    ),
+                    auth=(&#34;admin&#34;, &#34;x7WBcuRtrgK8255rPZcB&#34;),
+                ).json()
+            except JSONDecodeError:
+                print(&#34;Could not get data.&#34;)
+                continue
+
+            lon, lat, borough_name = jamcam_locations_df[
+                jamcam_locations_df[&#34;camera_id&#34;] == &#34;JamCams_{}&#34;.format(cam_id)
+            ].iloc[0][[&#34;longitude&#34;, &#34;latitude&#34;, &#34;borough_name&#34;]]
+            size = len(jreq)
+            if not isinstance(jreq, list):
+                continue
+            else:
+                for j in range(0, size):
+                    res_dict[num_entries] = {
+                        &#34;camera_id&#34;: jreq[j][&#34;camera_id&#34;],
+                        &#34;lon&#34;: lon,
+                        &#34;lat&#34;: lat,
+                        &#34;counts&#34;: jreq[j][&#34;counts&#34;],
+                        &#34;detection_class&#34;: jreq[j][&#34;detection_class&#34;],
+                        &#34;measurement_start_utc&#34;: jreq[j][&#34;measurement_start_utc&#34;],
+                        &#34;borough_name&#34;: borough_name,
+                    }
+                    num_entries += 1
+
+    # Make huge dataframe
+    res_df = pd.DataFrame.from_dict(res_dict, &#34;index&#34;)
+
+    print(&#34;Complete.&#34;)
+
+    return res_df
+
+
+def jamcam_hourly_aggregate(raw_jamcam_df: pd.DataFrame):
+
+    &#34;&#34;&#34;Aggregate Raw dataframe from `get_raw_jamcam_data()` into hourly aggregates
+    for each detection class. Output format is same as SCOOT. Note that counts are given
+    as `n_vehicle_in_interval` even when referring to a person.
+
+    Args:
+        Raw Jamcam Dataframe
+    Returns:
+        Aggregated Jamcam Dataframe
+    &#34;&#34;&#34;
+
+    # Drop duplicates
+    orig_length = len(raw_jamcam_df[&#34;camera_id&#34;])
+    raw_jamcam_df.drop_duplicates(inplace=True)
+    curr_length = len(raw_jamcam_df[&#34;camera_id&#34;])
+
+    print(&#34;Dropped {} duplicate rows from raw data.&#34;.format(orig_length - curr_length))
+
+    # First, convert dates
+    raw_jamcam_df[&#34;measurement_start_utc&#34;] = pd.to_datetime(
+        raw_jamcam_df[&#34;measurement_start_utc&#34;]
+    )
+
+    # Set some new columns for the groupby step
+    raw_jamcam_df[&#34;year&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.year
+    raw_jamcam_df[&#34;month&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.month
+    raw_jamcam_df[&#34;day&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.day
+    raw_jamcam_df[&#34;hour&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.hour
+
+    # Aggregate the counts
+    agg_df = (
+        raw_jamcam_df.groupby(
+            [
+                &#34;camera_id&#34;,
+                &#34;year&#34;,
+                &#34;month&#34;,
+                &#34;day&#34;,
+                &#34;hour&#34;,
+                &#34;detection_class&#34;,
+                &#34;lon&#34;,
+                &#34;lat&#34;,
+                &#34;borough_name&#34;,
+            ]
+        )
+        .counts.sum()
+        .reset_index()
+    )
+
+    # Reconstruct the dates and drop the helper columns
+    agg_df[&#34;measurement_start_utc&#34;] = pd.to_datetime(
+        dict(year=agg_df.year, month=agg_df.month, day=agg_df.day, hour=agg_df.hour)
+    )
+    agg_df[&#34;measurement_end_utc&#34;] = agg_df[&#34;measurement_start_utc&#34;].apply(
+        lambda x: x + np.timedelta64(1, &#34;h&#34;)
+    )
+    agg_df.drop([&#34;year&#34;, &#34;month&#34;, &#34;day&#34;, &#34;hour&#34;], axis=1, inplace=True)
+
+    agg_df.rename(
+        {&#34;camera_id&#34;: &#34;detector_id&#34;, &#34;counts&#34;: &#34;n_vehicles_in_interval&#34;},
+        inplace=True,
+        axis=1,
+    )
+
+    return agg_df
+
+
+def format_jamcam_hourly_average(
+    jamcam_data: pd.DataFrame, jamcam_locs: pd.DataFrame
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Get Jamcam data counts from hourly averages&#34;&#34;&#34;
+
+    # First drop duplicates
+    data = jamcam_data.copy()
+    locs = jamcam_locs.copy()
+
+    orig_length = len(data[&#34;camera_id&#34;])
+    data.drop_duplicates(inplace=True)
+    curr_length = len(data[&#34;camera_id&#34;])
+
+    print(&#34;Dropped {} duplicate rows.&#34;.format(orig_length - curr_length))
+
+    # Convert jamcam data into average hourly counts
+    # 360 is clearly not the magic number here.
+    data[&#34;n_vehicles_in_interval&#34;] = data[&#34;avg&#34;].apply(lambda x: int(360 * x))
+
+    # Convert camera Ids into matching formats
+    locs[&#34;short_id&#34;] = locs[&#34;camera_id&#34;].apply(lambda x: x[12:])
+    data[&#34;camera_id&#34;] = &#34;{:.5f}&#34;.format(data[&#34;camera_id&#34;])
+    locs = locs.drop(&#34;camera_id&#34;, axis=1)
+
+    # Fine the dates of which the data spans
+    data[&#34;measurement_end_utc&#34;] = pd.to_datetime(data[&#34;date_trunc&#34;])
+    data[&#34;measurement_start_utc&#34;] = data[&#34;measurement_end_utc&#34;] - np.timedelta64(1, &#34;h&#34;)
+
+    # Drop useless columns
+    ss_df = data.drop([&#34;avg&#34;, &#34;date_trunc&#34;], axis=1)
+
+    # Merge with location data so that returned dataframe has lon, lat
+    ss_df = ss_df.merge(locs, how=&#34;left&#34;, left_on=&#34;camera_id&#34;, right_on=&#34;short_id&#34;)
+
+    # re-order columns
+    ss_df = ss_df[
+        [
+            &#34;camera_id&#34;,
+            &#34;longitude&#34;,
+            &#34;latitude&#34;,
+            &#34;measurement_start_utc&#34;,
+            &#34;measurement_end_utc&#34;,
+            &#34;detection_class&#34;,
+            &#34;n_vehicles_in_interval&#34;,
+            &#34;name&#34;,
+            &#34;borough_name&#34;,
+        ]
+    ]
+
+    ss_df.sort_values(&#34;measurement_end_utc&#34;, inplace=True)
+
+    # Rename for consitency with further work
+    ss_df.rename(
+        {&#34;camera_id&#34;: &#34;detector_id&#34;, &#34;latitude&#34;: &#34;lat&#34;, &#34;longitude&#34;: &#34;lon&#34;},
+        axis=1,
+        inplace=True,
+    )
+
+    return ss_df</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="SpatialScan.jamcam.format_jamcam_hourly_average"><code class="name flex">
+<span>def <span class="ident">format_jamcam_hourly_average</span></span>(<span>jamcam_data: pandas.core.frame.DataFrame, jamcam_locs: pandas.core.frame.DataFrame) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get Jamcam data counts from hourly averages</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def format_jamcam_hourly_average(
+    jamcam_data: pd.DataFrame, jamcam_locs: pd.DataFrame
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Get Jamcam data counts from hourly averages&#34;&#34;&#34;
+
+    # First drop duplicates
+    data = jamcam_data.copy()
+    locs = jamcam_locs.copy()
+
+    orig_length = len(data[&#34;camera_id&#34;])
+    data.drop_duplicates(inplace=True)
+    curr_length = len(data[&#34;camera_id&#34;])
+
+    print(&#34;Dropped {} duplicate rows.&#34;.format(orig_length - curr_length))
+
+    # Convert jamcam data into average hourly counts
+    # 360 is clearly not the magic number here.
+    data[&#34;n_vehicles_in_interval&#34;] = data[&#34;avg&#34;].apply(lambda x: int(360 * x))
+
+    # Convert camera Ids into matching formats
+    locs[&#34;short_id&#34;] = locs[&#34;camera_id&#34;].apply(lambda x: x[12:])
+    data[&#34;camera_id&#34;] = &#34;{:.5f}&#34;.format(data[&#34;camera_id&#34;])
+    locs = locs.drop(&#34;camera_id&#34;, axis=1)
+
+    # Fine the dates of which the data spans
+    data[&#34;measurement_end_utc&#34;] = pd.to_datetime(data[&#34;date_trunc&#34;])
+    data[&#34;measurement_start_utc&#34;] = data[&#34;measurement_end_utc&#34;] - np.timedelta64(1, &#34;h&#34;)
+
+    # Drop useless columns
+    ss_df = data.drop([&#34;avg&#34;, &#34;date_trunc&#34;], axis=1)
+
+    # Merge with location data so that returned dataframe has lon, lat
+    ss_df = ss_df.merge(locs, how=&#34;left&#34;, left_on=&#34;camera_id&#34;, right_on=&#34;short_id&#34;)
+
+    # re-order columns
+    ss_df = ss_df[
+        [
+            &#34;camera_id&#34;,
+            &#34;longitude&#34;,
+            &#34;latitude&#34;,
+            &#34;measurement_start_utc&#34;,
+            &#34;measurement_end_utc&#34;,
+            &#34;detection_class&#34;,
+            &#34;n_vehicles_in_interval&#34;,
+            &#34;name&#34;,
+            &#34;borough_name&#34;,
+        ]
+    ]
+
+    ss_df.sort_values(&#34;measurement_end_utc&#34;, inplace=True)
+
+    # Rename for consitency with further work
+    ss_df.rename(
+        {&#34;camera_id&#34;: &#34;detector_id&#34;, &#34;latitude&#34;: &#34;lat&#34;, &#34;longitude&#34;: &#34;lon&#34;},
+        axis=1,
+        inplace=True,
+    )
+
+    return ss_df</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.jamcam.get_raw_jamcam_data"><code class="name flex">
+<span>def <span class="ident">get_raw_jamcam_data</span></span>(<span>jamcam_locations_df: pandas.core.frame.DataFrame, start_year: int = 2020, start_month: int = 6, start_day: int = 1, end_year: int = 2020, end_month: int = 6, end_day: int = 2, detection_class='all') ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Scrape API for raw data for camera given in jamcam_locations_df between
+the dats passed.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>jamcam_locations_df</code></strong></dt>
+<dd>df with camera_ids, borough_names, and their locations</dd>
+</dl>
+<p>start_date:
+end_date:</p>
+<h2 id="return">Return</h2>
+<p>Raw counts spanning start_date to end_date for cameras in input df.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_raw_jamcam_data(
+    jamcam_locations_df: pd.DataFrame,
+    start_year: int = 2020,
+    start_month: int = 6,
+    start_day: int = 1,
+    end_year: int = 2020,
+    end_month: int = 6,
+    end_day: int = 2,
+    detection_class=&#34;all&#34;,
+) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Scrape API for raw data for camera given in jamcam_locations_df between
+    the dats passed.
+    Args:
+        jamcam_locations_df: df with camera_ids, borough_names, and their locations
+        start_date:
+        end_date:
+    Return:
+        Raw counts spanning start_date to end_date for cameras in input df.
+    &#34;&#34;&#34;
+
+    start = datetime.datetime(start_year, start_month, start_day)
+    end = datetime.datetime(end_year, end_month, end_day)
+
+    days = pd.date_range(start=start, end=end, freq=&#34;d&#34;)
+
+    ids = jamcam_locations_df[&#34;camera_id&#34;].apply(lambda x: x[8:])
+
+    res_dict = {}
+    num_entries = 0
+
+    print(
+        &#34;Fetching {} data for {} cameras between {} and {}&#34;.format(
+            detection_class, len(ids), start, end
+        )
+    )
+
+    for i in range(len(days) - 1):
+
+        start_y, start_m, start_d = days[i].year, days[i].month, days[i].day
+        end_y, end_m, end_d = days[i + 1].year, days[i + 1].month, days[i + 1].day
+
+        start_time_string = &#34;{0:04d}-{1:02d}-{2:02d}T00%3A00%3A00.000Z&#34;.format(
+            start_y, start_m, start_d
+        )
+        end_time_string = &#34;{0:04d}-{1:02d}-{2:02d}T00%3A00%3A00.000Z&#34;.format(
+            end_y, end_m, end_d
+        )
+
+        for cam_id in ids:
+            try:
+                jreq = requests.get(
+                    &#34;https://urbanair.turing.ac.uk/api/v1/jamcams/raw?camera_id={}&#34;.format(
+                        cam_id
+                    ),
+                    &#34;&amp;detection_class={}&amp;starttime={}&amp;endtime={}&#34;.format(
+                        detection_class, start_time_string, end_time_string
+                    ),
+                    auth=(&#34;admin&#34;, &#34;x7WBcuRtrgK8255rPZcB&#34;),
+                ).json()
+            except JSONDecodeError:
+                print(&#34;Could not get data.&#34;)
+                continue
+
+            lon, lat, borough_name = jamcam_locations_df[
+                jamcam_locations_df[&#34;camera_id&#34;] == &#34;JamCams_{}&#34;.format(cam_id)
+            ].iloc[0][[&#34;longitude&#34;, &#34;latitude&#34;, &#34;borough_name&#34;]]
+            size = len(jreq)
+            if not isinstance(jreq, list):
+                continue
+            else:
+                for j in range(0, size):
+                    res_dict[num_entries] = {
+                        &#34;camera_id&#34;: jreq[j][&#34;camera_id&#34;],
+                        &#34;lon&#34;: lon,
+                        &#34;lat&#34;: lat,
+                        &#34;counts&#34;: jreq[j][&#34;counts&#34;],
+                        &#34;detection_class&#34;: jreq[j][&#34;detection_class&#34;],
+                        &#34;measurement_start_utc&#34;: jreq[j][&#34;measurement_start_utc&#34;],
+                        &#34;borough_name&#34;: borough_name,
+                    }
+                    num_entries += 1
+
+    # Make huge dataframe
+    res_df = pd.DataFrame.from_dict(res_dict, &#34;index&#34;)
+
+    print(&#34;Complete.&#34;)
+
+    return res_df</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.jamcam.jamcam_hourly_aggregate"><code class="name flex">
+<span>def <span class="ident">jamcam_hourly_aggregate</span></span>(<span>raw_jamcam_df: pandas.core.frame.DataFrame)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Aggregate Raw dataframe from <code><a title="SpatialScan.jamcam.get_raw_jamcam_data" href="#SpatialScan.jamcam.get_raw_jamcam_data">get_raw_jamcam_data()</a></code> into hourly aggregates
+for each detection class. Output format is same as SCOOT. Note that counts are given
+as <code>n_vehicle_in_interval</code> even when referring to a person.</p>
+<h2 id="args">Args</h2>
+<p>Raw Jamcam Dataframe</p>
+<h2 id="returns">Returns</h2>
+<p>Aggregated Jamcam Dataframe</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def jamcam_hourly_aggregate(raw_jamcam_df: pd.DataFrame):
+
+    &#34;&#34;&#34;Aggregate Raw dataframe from `get_raw_jamcam_data()` into hourly aggregates
+    for each detection class. Output format is same as SCOOT. Note that counts are given
+    as `n_vehicle_in_interval` even when referring to a person.
+
+    Args:
+        Raw Jamcam Dataframe
+    Returns:
+        Aggregated Jamcam Dataframe
+    &#34;&#34;&#34;
+
+    # Drop duplicates
+    orig_length = len(raw_jamcam_df[&#34;camera_id&#34;])
+    raw_jamcam_df.drop_duplicates(inplace=True)
+    curr_length = len(raw_jamcam_df[&#34;camera_id&#34;])
+
+    print(&#34;Dropped {} duplicate rows from raw data.&#34;.format(orig_length - curr_length))
+
+    # First, convert dates
+    raw_jamcam_df[&#34;measurement_start_utc&#34;] = pd.to_datetime(
+        raw_jamcam_df[&#34;measurement_start_utc&#34;]
+    )
+
+    # Set some new columns for the groupby step
+    raw_jamcam_df[&#34;year&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.year
+    raw_jamcam_df[&#34;month&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.month
+    raw_jamcam_df[&#34;day&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.day
+    raw_jamcam_df[&#34;hour&#34;] = raw_jamcam_df[&#34;measurement_start_utc&#34;].dt.hour
+
+    # Aggregate the counts
+    agg_df = (
+        raw_jamcam_df.groupby(
+            [
+                &#34;camera_id&#34;,
+                &#34;year&#34;,
+                &#34;month&#34;,
+                &#34;day&#34;,
+                &#34;hour&#34;,
+                &#34;detection_class&#34;,
+                &#34;lon&#34;,
+                &#34;lat&#34;,
+                &#34;borough_name&#34;,
+            ]
+        )
+        .counts.sum()
+        .reset_index()
+    )
+
+    # Reconstruct the dates and drop the helper columns
+    agg_df[&#34;measurement_start_utc&#34;] = pd.to_datetime(
+        dict(year=agg_df.year, month=agg_df.month, day=agg_df.day, hour=agg_df.hour)
+    )
+    agg_df[&#34;measurement_end_utc&#34;] = agg_df[&#34;measurement_start_utc&#34;].apply(
+        lambda x: x + np.timedelta64(1, &#34;h&#34;)
+    )
+    agg_df.drop([&#34;year&#34;, &#34;month&#34;, &#34;day&#34;, &#34;hour&#34;], axis=1, inplace=True)
+
+    agg_df.rename(
+        {&#34;camera_id&#34;: &#34;detector_id&#34;, &#34;counts&#34;: &#34;n_vehicles_in_interval&#34;},
+        inplace=True,
+        axis=1,
+    )
+
+    return agg_df</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="SpatialScan" href="index.html">SpatialScan</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="SpatialScan.jamcam.format_jamcam_hourly_average" href="#SpatialScan.jamcam.format_jamcam_hourly_average">format_jamcam_hourly_average</a></code></li>
+<li><code><a title="SpatialScan.jamcam.get_raw_jamcam_data" href="#SpatialScan.jamcam.get_raw_jamcam_data">get_raw_jamcam_data</a></code></li>
+<li><code><a title="SpatialScan.jamcam.jamcam_hourly_aggregate" href="#SpatialScan.jamcam.jamcam_hourly_aggregate">jamcam_hourly_aggregate</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
+</footer>
+</body>
+</html>

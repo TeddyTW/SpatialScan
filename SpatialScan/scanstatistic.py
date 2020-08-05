@@ -17,16 +17,18 @@ class ScanStatistic:
         self.days_in_past = days_in_past
         self.days_in_future = days_in_future
         self.ts_method = ts_method
+        self.processed = None
+        self.forecast = None
         self.all_results = None
         self.grid_results = None
 
     def run(self):
         """Build scan results"""
-        proc_df = data_preprocessor(self.data)
-        forecast = count_baseline(
-            proc_df, self.days_in_past, self.days_in_future, self.ts_method
+        self.processed = data_preprocessor(self.data)
+        self.forecast = count_baseline(
+            self.processed, self.days_in_past, self.days_in_future, self.ts_method
         )
-        self.all_results = scan(forecast, self.grid_resolution)
+        self.all_results = scan(self.forecast, self.grid_resolution)
         self.grid_results = database_results(self.all_results)
 
     def plot(self, metric="av_lhd_score_EBP"):

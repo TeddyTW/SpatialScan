@@ -109,6 +109,8 @@ def aggregate_event_data(
                 ]
 
                 b_count = sub_df["baseline"].sum()
+                b_upper_count = sub_df["baseline_upper"].sum()
+                b_lower_count = sub_df["baseline_lower"].sum()
                 c_count = sub_df["count"].sum()
 
                 agg_dict[num_cells] = {
@@ -119,6 +121,8 @@ def aggregate_event_data(
                     "t_min": t_min,
                     "t_max": t_max,
                     "baseline_agg": b_count,
+                    "baseline_upper_agg": b_upper_count,
+                    "baseline_lower_agg": b_lower_count,
                     "count_agg": c_count,
                 }
                 num_cells += 1
@@ -126,7 +130,7 @@ def aggregate_event_data(
     return pd.DataFrame.from_dict(agg_dict, "index")
 
 
-def event_count(S: Type[Region], agg_data: pd.DataFrame) -> tuple:
+def event_count(S: Type[Region], agg_data: pd.DataFrame) -> dict:
 
     """Function to calculate both the expected (B) and actual (C) count
     (vehicles) within a given space-time region S from the grid-cell-level-aggregated.
@@ -162,8 +166,12 @@ def event_count(S: Type[Region], agg_data: pd.DataFrame) -> tuple:
 
     S_df = agg_data.loc[region_mask]
     if S_df.empty:
-        return 0, 0
-    return S_df["baseline_agg"].sum() / 1e6, S_df["count_agg"].sum() / 1e6
+        return {'baseline_agg': 0, 'count_agg': 0, 'baseline_upper_agg': 0, 'baseline_lower_agg': 0}
+    return {'baseline': S_df['baseline_agg'].sum() / 1e6,
+            'count': S_df['count_agg'].sum() / 1e6,
+            'baseline_upper': S_df['baseline_upper_agg'].sum() / 1e6,
+            'baseline_lower': S_df['baseline_lower_agg'].sum() / 1e6
+    }
 
 
 def simulate_event_count(S: Type[Region], forecast_data: pd.DataFrame) -> tuple:

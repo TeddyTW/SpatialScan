@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.4" />
+<title>SpatialScan.scan API documentation</title>
+<meta name="description" content="Module to contain the main Spatio-Temporal Scan Loop" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>SpatialScan.scan</code></h1>
+</header>
+<section id="section-intro">
+<p>Module to contain the main Spatio-Temporal Scan Loop</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Module to contain the main Spatio-Temporal Scan Loop&#34;&#34;&#34;
+
+import time
+import pandas as pd
+import numpy as np
+from SpatialScan.region import (
+    Region,
+    event_count,
+    infer_global_region,
+    make_grid,
+    simulate_event_count,
+    aggregate_event_data,
+)
+from SpatialScan.likelihood import (
+    likelihood_ratio,
+    likelihood_ratio_kulgen,
+    bbayes_lhood_H0,
+    bbayes_lhood_H1,
+)
+
+
+def scan(
+    forecast_data: pd.DataFrame,
+    grid_partition: int,
+    scan_type: str = &#34;normal&#34;,
+    bayes_no_outbreak_prior=0.99,
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Main function for looping through the sub-space-time regions (S) of
+    global_region represented by data in forecast_data. We search for regions
+    with the highest score according to various different metrics. The EBP one is
+    given by:
+                F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
+    where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
+    paper by D. Neill. The second is given in the &#34;Detecting Significant Multidimensional
+    Spatial Clusters&#34; paper by the same author. It is a generalisation of Kulldorf&#39;s
+    statistic that checks C and B counts inside AND outside the region of interest.
+
+    Args:
+        forecast_data: dataframe consisting of the detectors which lie in
+                       global_region, their locations and both their
+                       baseline and actual counts for the past W days.
+        grid_partition: Split each spatial axis into this many partitions.
+        scan_type: &#34;normal&#34; or &#39;exhaustive&#39;. The former searches over all space-time
+                   regions with t_max fixed at the current day. A search which asks
+                   &#39;which clustered events are likely to be effecting me now?&#39;.
+                   The latter searches over ALL possible t_min and t_max spanning
+                   the past day. &#39;Which events were clustered in the past?&#39;
+        bayes_no_outbreak_prior: Prior probability of the no-outbreak hypothesis
+                                 being true. Here, set uniform.
+    Returns:
+        Dataframe summarising each space-time region&#39;s scores for 5 metrics.
+        The first is the basic summary stat described above. The next 3
+        are Kulldorf&#39;s generalised statistic with epsilon = 0.0, 0.25, 0.5
+        The remaining is a Blind Bayes (BBayes) posterior probability estimate.
+    &#34;&#34;&#34;
+
+    # Set Initial Timer
+    t1 = time.perf_counter()
+
+    # Find the global region on which the observations live
+    global_region = infer_global_region(forecast_data)
+
+    # Create the Grid
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+
+    # Aggregate the Data to cell level
+    print(&#34;Aggregating data from detector level to grid level.&#34;)
+    agg_df = aggregate_event_data(forecast_data, x_ticks, y_ticks, t_ticks)
+
+    B_tot = agg_df[&#34;baseline_agg&#34;].sum() / 1e6
+    B_upper_tot = agg_df[&#39;baseline_upper_agg&#39;].sum() / 1e6
+    B_lower_tot = agg_df[&#39;baseline_lower_agg&#39;].sum() / 1e6
+    C_tot = agg_df[&#34;count_agg&#34;].sum() / 1e6
+
+    # Compute Blind Bayes null likelihood
+    bbayes_null_lhood = bbayes_lhood_H0(B_tot, C_tot)
+
+    # Set Intermediate Timer
+    t2 = time.perf_counter()
+
+    # Time direction convention - reverse
+    t_ticks = t_ticks[::-1]
+
+    # Set-up scan with initial variables
+    print(&#34;Beginning {} scan. Setup Time: {:.2f} seconds&#34;.format(scan_type, t2 - t1))
+    num_regions = 0
+    scores_dict = {}
+
+    # Loop over all possible prisms of max size N/2 in the space
+    for t in range(len(t_ticks) if scan_type == &#34;exhaustive&#34; else 1):  # t_max
+        for s in range(t + 1, len(t_ticks)):  # t_min
+            for i, _ in enumerate(x_ticks):  # x_min
+                for j in range(
+                    i + 1, np.min([i + (int(grid_partition / 2)), grid_partition]) + 1
+                ):  # x_max
+                    for k, _ in enumerate(y_ticks):  # y_min
+                        for l in range(
+                            k + 1,
+                            np.min([k + (int(grid_partition / 2)), grid_partition]) + 1,
+                        ):  # y_max
+
+                            # At each iteration, create the space_time region
+                            test_region = Region(
+                                x_ticks[i],
+                                x_ticks[j],
+                                y_ticks[k],
+                                y_ticks[l],
+                                t_ticks[s],  # t_min - always changing
+                                t_ticks[t],  # t_max - sometimes fixed (t_ticks[0])
+                            )
+
+                            # Count the events within the region
+                            counts = event_count(test_region, agg_df)
+                            B = counts[&#39;baseline&#39;]
+                            C = counts[&#39;count&#39;]
+                            B_upper = counts[&#39;baseline_upper&#39;]
+                            B_lower = counts[&#39;baseline_lower&#39;]
+
+                            # Compute Metrics
+                            ebp_l_score = likelihood_ratio(B, C)  # Normal EBP metric
+                            ebp_l_score_upper = likelihood_ratio(B_upper, C)  # Normal EBP metric
+                            ebp_l_score_lower = likelihood_ratio(B_lower, C)  # Normal EBP metric
+
+                            general_l_scores = [
+                                likelihood_ratio_kulgen(
+                                    B, C, B_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            general_l_scores_upper = [
+                                likelihood_ratio_kulgen(
+                                    B_upper, C, B_upper_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            general_l_scores_lower = [
+                                likelihood_ratio_kulgen(
+                                    B_lower, C, B_lower_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            bbayes_alt_score = bbayes_lhood_H1(
+                                B, C, B_tot, C_tot
+                            )  # Blind Bayes Metric
+
+                            # Append results
+                            scores_dict[num_regions] = {
+                                &#34;x_min&#34;: x_ticks[i],
+                                &#34;x_max&#34;: x_ticks[j],
+                                &#34;y_min&#34;: y_ticks[k],
+                                &#34;y_max&#34;: y_ticks[l],
+                                &#34;t_min&#34;: t_ticks[s],
+                                &#34;t_max&#34;: t_ticks[t],
+                                &#34;B_in&#34;: B,
+                                &#34;C_in&#34;: C,
+                                &#34;B_out&#34;: B_tot - B,
+                                &#34;C_out&#34;: C_tot - C,
+                                &#34;C_in/B_in&#34;: (C / B) if B != 0 else np.inf,
+                                &#34;C_out/B_out&#34;: (C_tot - C) / (B_tot - B)
+                                if B_tot != B
+                                else np.inf,
+                                &#34;l_score_EBP_lower&#34;: ebp_l_score_lower,
+                                &#34;l_score_EBP&#34;: ebp_l_score,
+                                &#34;l_score_EBP_upper&#34;: ebp_l_score_upper,
+                                #&#34;p_value_EBP&#34;: np.nan,
+                                &#34;l_score_000_lower&#34;: general_l_scores_lower[0],
+                                &#34;l_score_000&#34;: general_l_scores[0],
+                                &#34;l_score_000_upper&#34;: general_l_scores_upper[0],
+                                &#34;l_score_025_lower&#34;: general_l_scores_lower[1],
+                                &#34;l_score_025&#34;: general_l_scores[1],
+                                &#34;l_score_025_upper&#34;: general_l_scores_upper[1],
+                                &#34;l_score_050_lower&#34;: general_l_scores_lower[2],
+                                &#34;l_score_050&#34;: general_l_scores[2],
+                                &#34;l_score_050_upper&#34;: general_l_scores_upper[2],
+                                &#34;l_score_bbayes&#34;: bbayes_alt_score,
+                            }
+
+                            # Count Regions
+                            num_regions += 1
+
+            # Print Progress
+            print(
+                &#34;Search spatial regions with t_min = {} and t_max = {}&#34;.format(
+                    t_ticks[s], t_ticks[t]
+                ),
+                end=&#34;\r&#34;,
+            )
+
+    region_score_df = pd.DataFrame.from_dict(scores_dict, &#34;index&#34;)
+
+    # Now we need to extra work to find the Bayesian scores
+    region_score_df[&#34;l_score_bbayes&#34;] *= (1 - bayes_no_outbreak_prior) / num_regions
+
+    prob_D = (
+        region_score_df[&#34;l_score_bbayes&#34;].sum()
+        + bbayes_null_lhood * bayes_no_outbreak_prior
+    )
+
+    region_score_df[&#34;posterior_bbayes&#34;] = region_score_df[&#34;l_score_bbayes&#34;] / prob_D
+
+    region_score_df = region_score_df.drop(&#34;l_score_bbayes&#34;, axis=1)
+
+    print(
+        &#34;\nNo Outbreak Posterior: {}&#34;.format(
+            bbayes_null_lhood * bayes_no_outbreak_prior / prob_D
+        )
+    )
+    print(
+        &#34;Total Outbreak Posterior: {}&#34;.format(region_score_df[&#34;posterior_bbayes&#34;].sum())
+    )
+
+    # At this point, we have a dataframe populated with likelihood statistic
+    # scores for each search region. Sort it so that highest `l_score_EBP`
+    # score is at the top.
+    region_score_df = region_score_df.sort_values(&#34;l_score_EBP&#34;, ascending=False)
+
+    t3 = time.perf_counter()
+
+    print(&#34;\n%d space-time regions searched in %.2f seconds&#34; % (num_regions, t3 - t2))
+    print(&#34;Total run time: {0:.2f} seconds&#34;.format(t3 - t1))
+
+    return region_score_df
+
+
+# TODO - Change this to fast scan overlap-kd tree structure
+def randomisation_test(
+    forecast_df: pd.DataFrame, res_df: pd.DataFrame, n_sims: int = 100
+) -&gt; tuple:
+
+    &#34;&#34;&#34;Functionality to perform Kulldorf-inspired randomisation testing on the
+    results achieved from the main scan function `EBP()`. For each simulation,
+    this method models the actual count as a Poisson Random Variable with mean
+    equal to the expected counts.
+    i.e. Forecasting in `timeseries.py` has found baseline counts b_i^t for each
+    spatial location at each tim step of interest. The above `EBP()` method compares
+    these with the actual counts c_i^t of a given space-time region S. Here,
+    we compare b_i^t and Po(b_i^t) instead. Simulating `n_sims` times,
+    allows us to build a a distribution of F(S) scores, and hence estimate
+    a p-value for the obtained score in the main scan.
+
+    Args:
+        forecast_df: Dataframe outputted from `count_baseline()` method.
+        res_df: Data frame containing results from `EBP()` method.
+        n_sims: Number of simulations to perform
+
+    Returns:
+        Dataframe with a populated `p_value_basic` column.
+        np.ndarray of l_score_EPB values from the resulting simulations.
+    &#34;&#34;&#34;
+
+    # Infer grid partition from the resulting dataframe
+    grid_partition = len(res_df[&#34;x_min&#34;].unique())
+
+    # Determine whether exhaustive or normal scan from the resulting dataframe
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unique t_maxs in res_df
+    num_t_maxs = len(res_df[&#34;t_max&#34;].unique())
+
+    # If more than one t_max, scan was exhaustive
+    if num_t_maxs &gt; 1:
+        scan_type = &#34;exhaustive&#34;
+    else:
+        scan_type = &#34;normal&#34;
+
+    print(
+        &#34;Found a grid partition = {} and a scan type = {}.&#34;.format(
+            grid_partition, scan_type
+        )
+    )
+
+    # Set Initial Timer
+    t1 = time.perf_counter()
+
+    # Find the global region on which the observations live
+    global_region = infer_global_region(forecast_df)
+
+    print(
+        &#34;Searching over the region spanning {} hours&#34;.format(global_region.num_hours())
+    )
+
+    # Re-create the grid
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+
+    # Time direction convention - reverse
+    t_ticks = t_ticks[::-1]
+
+    # Array for F(S) scores
+    best_EBP_scores = []
+
+    print(&#34;\n====================&#34;)
+    print(&#34;Beginning Simulation&#34;)
+    print(&#34;====================&#34;)
+
+    # Main Loop
+    for sim in range(n_sims):
+        max_EBP_score = 0
+        print(&#34;Performing simulation {} of {}.&#34;.format(sim + 1, n_sims), end=&#34;\r&#34;)
+        for t in range(len(t_ticks) if scan_type == &#34;exhaustive&#34; else 1):  # t_max
+            for s in range(t + 1, len(t_ticks)):  # t_min
+                for i, _ in enumerate(x_ticks):  # x_min
+                    for j in range(
+                        i + 1,
+                        np.min([i + (int(grid_partition / 2)), grid_partition]) + 1,
+                    ):  # x_max
+                        for k, _ in enumerate(y_ticks):  # y_min
+                            for l in range(
+                                k + 1,
+                                np.min([k + (int(grid_partition / 2)), grid_partition])
+                                + 1,
+                            ):  # y_max
+
+                                # At each iteration, create the space_time region
+                                test_region = Region(
+                                    x_ticks[i],
+                                    x_ticks[j],
+                                    y_ticks[k],
+                                    y_ticks[l],
+                                    t_ticks[s],  # t_min - always changing
+                                    t_ticks[t],  # t_max - sometimes fixed (t_ticks[0])
+                                )
+
+                                baseline, simulated = simulate_event_count(
+                                    test_region, forecast_df
+                                )
+
+                                l_score = likelihood_ratio(baseline, simulated)
+
+                                max_EBP_score = (
+                                    l_score
+                                    if l_score &gt; max_EBP_score
+                                    else max_EBP_score
+                                )
+
+        best_EBP_scores.append(max_EBP_score)
+    arr = np.array(best_EBP_scores)
+    t2 = time.perf_counter()
+
+    print(&#34;\nTime Elapsed: {} seconds&#34;.format(t2 - t1))
+
+    # Estimate p-value
+    res_df[&#34;p_value_EBP&#34;] = 1 - res_df[&#34;l_score_EBP&#34;].apply(
+        lambda x: np.count_nonzero(x &gt; arr) + 1
+    ) / (n_sims + 1)
+    copy = res_df
+
+    return copy, arr
+
+
+# TODO
+def historical_data_test():
+    return None</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="SpatialScan.scan.historical_data_test"><code class="name flex">
+<span>def <span class="ident">historical_data_test</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def historical_data_test():
+    return None</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.scan.randomisation_test"><code class="name flex">
+<span>def <span class="ident">randomisation_test</span></span>(<span>forecast_df: pandas.core.frame.DataFrame, res_df: pandas.core.frame.DataFrame, n_sims: int = 100) ‑> tuple</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Functionality to perform Kulldorf-inspired randomisation testing on the
+results achieved from the main scan function <code>EBP()</code>. For each simulation,
+this method models the actual count as a Poisson Random Variable with mean
+equal to the expected counts.
+i.e. Forecasting in <code>timeseries.py</code> has found baseline counts b_i^t for each
+spatial location at each tim step of interest. The above <code>EBP()</code> method compares
+these with the actual counts c_i^t of a given space-time region S. Here,
+we compare b_i^t and Po(b_i^t) instead. Simulating <code>n_sims</code> times,
+allows us to build a a distribution of F(S) scores, and hence estimate
+a p-value for the obtained score in the main scan.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>forecast_df</code></strong></dt>
+<dd>Dataframe outputted from <code>count_baseline()</code> method.</dd>
+<dt><strong><code>res_df</code></strong></dt>
+<dd>Data frame containing results from <code>EBP()</code> method.</dd>
+<dt><strong><code>n_sims</code></strong></dt>
+<dd>Number of simulations to perform</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Dataframe with a populated <code>p_value_basic</code> column.
+np.ndarray of l_score_EPB values from the resulting simulations.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def randomisation_test(
+    forecast_df: pd.DataFrame, res_df: pd.DataFrame, n_sims: int = 100
+) -&gt; tuple:
+
+    &#34;&#34;&#34;Functionality to perform Kulldorf-inspired randomisation testing on the
+    results achieved from the main scan function `EBP()`. For each simulation,
+    this method models the actual count as a Poisson Random Variable with mean
+    equal to the expected counts.
+    i.e. Forecasting in `timeseries.py` has found baseline counts b_i^t for each
+    spatial location at each tim step of interest. The above `EBP()` method compares
+    these with the actual counts c_i^t of a given space-time region S. Here,
+    we compare b_i^t and Po(b_i^t) instead. Simulating `n_sims` times,
+    allows us to build a a distribution of F(S) scores, and hence estimate
+    a p-value for the obtained score in the main scan.
+
+    Args:
+        forecast_df: Dataframe outputted from `count_baseline()` method.
+        res_df: Data frame containing results from `EBP()` method.
+        n_sims: Number of simulations to perform
+
+    Returns:
+        Dataframe with a populated `p_value_basic` column.
+        np.ndarray of l_score_EPB values from the resulting simulations.
+    &#34;&#34;&#34;
+
+    # Infer grid partition from the resulting dataframe
+    grid_partition = len(res_df[&#34;x_min&#34;].unique())
+
+    # Determine whether exhaustive or normal scan from the resulting dataframe
+    # What type of scan was it? Normal or Exhaustive?
+    # Only way to tell is by the number of unique t_maxs in res_df
+    num_t_maxs = len(res_df[&#34;t_max&#34;].unique())
+
+    # If more than one t_max, scan was exhaustive
+    if num_t_maxs &gt; 1:
+        scan_type = &#34;exhaustive&#34;
+    else:
+        scan_type = &#34;normal&#34;
+
+    print(
+        &#34;Found a grid partition = {} and a scan type = {}.&#34;.format(
+            grid_partition, scan_type
+        )
+    )
+
+    # Set Initial Timer
+    t1 = time.perf_counter()
+
+    # Find the global region on which the observations live
+    global_region = infer_global_region(forecast_df)
+
+    print(
+        &#34;Searching over the region spanning {} hours&#34;.format(global_region.num_hours())
+    )
+
+    # Re-create the grid
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+
+    # Time direction convention - reverse
+    t_ticks = t_ticks[::-1]
+
+    # Array for F(S) scores
+    best_EBP_scores = []
+
+    print(&#34;\n====================&#34;)
+    print(&#34;Beginning Simulation&#34;)
+    print(&#34;====================&#34;)
+
+    # Main Loop
+    for sim in range(n_sims):
+        max_EBP_score = 0
+        print(&#34;Performing simulation {} of {}.&#34;.format(sim + 1, n_sims), end=&#34;\r&#34;)
+        for t in range(len(t_ticks) if scan_type == &#34;exhaustive&#34; else 1):  # t_max
+            for s in range(t + 1, len(t_ticks)):  # t_min
+                for i, _ in enumerate(x_ticks):  # x_min
+                    for j in range(
+                        i + 1,
+                        np.min([i + (int(grid_partition / 2)), grid_partition]) + 1,
+                    ):  # x_max
+                        for k, _ in enumerate(y_ticks):  # y_min
+                            for l in range(
+                                k + 1,
+                                np.min([k + (int(grid_partition / 2)), grid_partition])
+                                + 1,
+                            ):  # y_max
+
+                                # At each iteration, create the space_time region
+                                test_region = Region(
+                                    x_ticks[i],
+                                    x_ticks[j],
+                                    y_ticks[k],
+                                    y_ticks[l],
+                                    t_ticks[s],  # t_min - always changing
+                                    t_ticks[t],  # t_max - sometimes fixed (t_ticks[0])
+                                )
+
+                                baseline, simulated = simulate_event_count(
+                                    test_region, forecast_df
+                                )
+
+                                l_score = likelihood_ratio(baseline, simulated)
+
+                                max_EBP_score = (
+                                    l_score
+                                    if l_score &gt; max_EBP_score
+                                    else max_EBP_score
+                                )
+
+        best_EBP_scores.append(max_EBP_score)
+    arr = np.array(best_EBP_scores)
+    t2 = time.perf_counter()
+
+    print(&#34;\nTime Elapsed: {} seconds&#34;.format(t2 - t1))
+
+    # Estimate p-value
+    res_df[&#34;p_value_EBP&#34;] = 1 - res_df[&#34;l_score_EBP&#34;].apply(
+        lambda x: np.count_nonzero(x &gt; arr) + 1
+    ) / (n_sims + 1)
+    copy = res_df
+
+    return copy, arr</code></pre>
+</details>
+</dd>
+<dt id="SpatialScan.scan.scan"><code class="name flex">
+<span>def <span class="ident">scan</span></span>(<span>forecast_data: pandas.core.frame.DataFrame, grid_partition: int, scan_type: str = 'normal', bayes_no_outbreak_prior=0.99) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Main function for looping through the sub-space-time regions (S) of
+global_region represented by data in forecast_data. We search for regions
+with the highest score according to various different metrics. The EBP one is
+given by:
+F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
+where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
+paper by D. Neill. The second is given in the "Detecting Significant Multidimensional
+Spatial Clusters" paper by the same author. It is a generalisation of Kulldorf's
+statistic that checks C and B counts inside AND outside the region of interest.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>forecast_data</code></strong></dt>
+<dd>dataframe consisting of the detectors which lie in
+global_region, their locations and both their
+baseline and actual counts for the past W days.</dd>
+<dt><strong><code>grid_partition</code></strong></dt>
+<dd>Split each spatial axis into this many partitions.</dd>
+<dt><strong><code>scan_type</code></strong></dt>
+<dd>"normal" or 'exhaustive'. The former searches over all space-time
+regions with t_max fixed at the current day. A search which asks
+'which clustered events are likely to be effecting me now?'.
+The latter searches over ALL possible t_min and t_max spanning
+the past day. 'Which events were clustered in the past?'</dd>
+<dt><strong><code>bayes_no_outbreak_prior</code></strong></dt>
+<dd>Prior probability of the no-outbreak hypothesis
+being true. Here, set uniform.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Dataframe summarising each space-time region's scores for 5 metrics.
+The first is the basic summary stat described above. The next 3
+are Kulldorf's generalised statistic with epsilon = 0.0, 0.25, 0.5
+The remaining is a Blind Bayes (BBayes) posterior probability estimate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def scan(
+    forecast_data: pd.DataFrame,
+    grid_partition: int,
+    scan_type: str = &#34;normal&#34;,
+    bayes_no_outbreak_prior=0.99,
+) -&gt; pd.DataFrame:
+
+    &#34;&#34;&#34;Main function for looping through the sub-space-time regions (S) of
+    global_region represented by data in forecast_data. We search for regions
+    with the highest score according to various different metrics. The EBP one is
+    given by:
+                F(S) := Pr (data | H_1 (S)) / Pr (data | H_0)
+    where H_0 and H_1 (S) are defined in the Expectation-Based Scan Statistic
+    paper by D. Neill. The second is given in the &#34;Detecting Significant Multidimensional
+    Spatial Clusters&#34; paper by the same author. It is a generalisation of Kulldorf&#39;s
+    statistic that checks C and B counts inside AND outside the region of interest.
+
+    Args:
+        forecast_data: dataframe consisting of the detectors which lie in
+                       global_region, their locations and both their
+                       baseline and actual counts for the past W days.
+        grid_partition: Split each spatial axis into this many partitions.
+        scan_type: &#34;normal&#34; or &#39;exhaustive&#39;. The former searches over all space-time
+                   regions with t_max fixed at the current day. A search which asks
+                   &#39;which clustered events are likely to be effecting me now?&#39;.
+                   The latter searches over ALL possible t_min and t_max spanning
+                   the past day. &#39;Which events were clustered in the past?&#39;
+        bayes_no_outbreak_prior: Prior probability of the no-outbreak hypothesis
+                                 being true. Here, set uniform.
+    Returns:
+        Dataframe summarising each space-time region&#39;s scores for 5 metrics.
+        The first is the basic summary stat described above. The next 3
+        are Kulldorf&#39;s generalised statistic with epsilon = 0.0, 0.25, 0.5
+        The remaining is a Blind Bayes (BBayes) posterior probability estimate.
+    &#34;&#34;&#34;
+
+    # Set Initial Timer
+    t1 = time.perf_counter()
+
+    # Find the global region on which the observations live
+    global_region = infer_global_region(forecast_data)
+
+    # Create the Grid
+    x_ticks, y_ticks, t_ticks = make_grid(global_region, grid_partition)
+
+    # Aggregate the Data to cell level
+    print(&#34;Aggregating data from detector level to grid level.&#34;)
+    agg_df = aggregate_event_data(forecast_data, x_ticks, y_ticks, t_ticks)
+
+    B_tot = agg_df[&#34;baseline_agg&#34;].sum() / 1e6
+    B_upper_tot = agg_df[&#39;baseline_upper_agg&#39;].sum() / 1e6
+    B_lower_tot = agg_df[&#39;baseline_lower_agg&#39;].sum() / 1e6
+    C_tot = agg_df[&#34;count_agg&#34;].sum() / 1e6
+
+    # Compute Blind Bayes null likelihood
+    bbayes_null_lhood = bbayes_lhood_H0(B_tot, C_tot)
+
+    # Set Intermediate Timer
+    t2 = time.perf_counter()
+
+    # Time direction convention - reverse
+    t_ticks = t_ticks[::-1]
+
+    # Set-up scan with initial variables
+    print(&#34;Beginning {} scan. Setup Time: {:.2f} seconds&#34;.format(scan_type, t2 - t1))
+    num_regions = 0
+    scores_dict = {}
+
+    # Loop over all possible prisms of max size N/2 in the space
+    for t in range(len(t_ticks) if scan_type == &#34;exhaustive&#34; else 1):  # t_max
+        for s in range(t + 1, len(t_ticks)):  # t_min
+            for i, _ in enumerate(x_ticks):  # x_min
+                for j in range(
+                    i + 1, np.min([i + (int(grid_partition / 2)), grid_partition]) + 1
+                ):  # x_max
+                    for k, _ in enumerate(y_ticks):  # y_min
+                        for l in range(
+                            k + 1,
+                            np.min([k + (int(grid_partition / 2)), grid_partition]) + 1,
+                        ):  # y_max
+
+                            # At each iteration, create the space_time region
+                            test_region = Region(
+                                x_ticks[i],
+                                x_ticks[j],
+                                y_ticks[k],
+                                y_ticks[l],
+                                t_ticks[s],  # t_min - always changing
+                                t_ticks[t],  # t_max - sometimes fixed (t_ticks[0])
+                            )
+
+                            # Count the events within the region
+                            counts = event_count(test_region, agg_df)
+                            B = counts[&#39;baseline&#39;]
+                            C = counts[&#39;count&#39;]
+                            B_upper = counts[&#39;baseline_upper&#39;]
+                            B_lower = counts[&#39;baseline_lower&#39;]
+
+                            # Compute Metrics
+                            ebp_l_score = likelihood_ratio(B, C)  # Normal EBP metric
+                            ebp_l_score_upper = likelihood_ratio(B_upper, C)  # Normal EBP metric
+                            ebp_l_score_lower = likelihood_ratio(B_lower, C)  # Normal EBP metric
+
+                            general_l_scores = [
+                                likelihood_ratio_kulgen(
+                                    B, C, B_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            general_l_scores_upper = [
+                                likelihood_ratio_kulgen(
+                                    B_upper, C, B_upper_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            general_l_scores_lower = [
+                                likelihood_ratio_kulgen(
+                                    B_lower, C, B_lower_tot, C_tot, eps
+                                )  # General Kulldorf
+                                for eps in [0.0, 0.25, 0.50]
+                            ]
+                            bbayes_alt_score = bbayes_lhood_H1(
+                                B, C, B_tot, C_tot
+                            )  # Blind Bayes Metric
+
+                            # Append results
+                            scores_dict[num_regions] = {
+                                &#34;x_min&#34;: x_ticks[i],
+                                &#34;x_max&#34;: x_ticks[j],
+                                &#34;y_min&#34;: y_ticks[k],
+                                &#34;y_max&#34;: y_ticks[l],
+                                &#34;t_min&#34;: t_ticks[s],
+                                &#34;t_max&#34;: t_ticks[t],
+                                &#34;B_in&#34;: B,
+                                &#34;C_in&#34;: C,
+                                &#34;B_out&#34;: B_tot - B,
+                                &#34;C_out&#34;: C_tot - C,
+                                &#34;C_in/B_in&#34;: (C / B) if B != 0 else np.inf,
+                                &#34;C_out/B_out&#34;: (C_tot - C) / (B_tot - B)
+                                if B_tot != B
+                                else np.inf,
+                                &#34;l_score_EBP_lower&#34;: ebp_l_score_lower,
+                                &#34;l_score_EBP&#34;: ebp_l_score,
+                                &#34;l_score_EBP_upper&#34;: ebp_l_score_upper,
+                                #&#34;p_value_EBP&#34;: np.nan,
+                                &#34;l_score_000_lower&#34;: general_l_scores_lower[0],
+                                &#34;l_score_000&#34;: general_l_scores[0],
+                                &#34;l_score_000_upper&#34;: general_l_scores_upper[0],
+                                &#34;l_score_025_lower&#34;: general_l_scores_lower[1],
+                                &#34;l_score_025&#34;: general_l_scores[1],
+                                &#34;l_score_025_upper&#34;: general_l_scores_upper[1],
+                                &#34;l_score_050_lower&#34;: general_l_scores_lower[2],
+                                &#34;l_score_050&#34;: general_l_scores[2],
+                                &#34;l_score_050_upper&#34;: general_l_scores_upper[2],
+                                &#34;l_score_bbayes&#34;: bbayes_alt_score,
+                            }
+
+                            # Count Regions
+                            num_regions += 1
+
+            # Print Progress
+            print(
+                &#34;Search spatial regions with t_min = {} and t_max = {}&#34;.format(
+                    t_ticks[s], t_ticks[t]
+                ),
+                end=&#34;\r&#34;,
+            )
+
+    region_score_df = pd.DataFrame.from_dict(scores_dict, &#34;index&#34;)
+
+    # Now we need to extra work to find the Bayesian scores
+    region_score_df[&#34;l_score_bbayes&#34;] *= (1 - bayes_no_outbreak_prior) / num_regions
+
+    prob_D = (
+        region_score_df[&#34;l_score_bbayes&#34;].sum()
+        + bbayes_null_lhood * bayes_no_outbreak_prior
+    )
+
+    region_score_df[&#34;posterior_bbayes&#34;] = region_score_df[&#34;l_score_bbayes&#34;] / prob_D
+
+    region_score_df = region_score_df.drop(&#34;l_score_bbayes&#34;, axis=1)
+
+    print(
+        &#34;\nNo Outbreak Posterior: {}&#34;.format(
+            bbayes_null_lhood * bayes_no_outbreak_prior / prob_D
+        )
+    )
+    print(
+        &#34;Total Outbreak Posterior: {}&#34;.format(region_score_df[&#34;posterior_bbayes&#34;].sum())
+    )
+
+    # At this point, we have a dataframe populated with likelihood statistic
+    # scores for each search region. Sort it so that highest `l_score_EBP`
+    # score is at the top.
+    region_score_df = region_score_df.sort_values(&#34;l_score_EBP&#34;, ascending=False)
+
+    t3 = time.perf_counter()
+
+    print(&#34;\n%d space-time regions searched in %.2f seconds&#34; % (num_regions, t3 - t2))
+    print(&#34;Total run time: {0:.2f} seconds&#34;.format(t3 - t1))
+
+    return region_score_df</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="SpatialScan" href="index.html">SpatialScan</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="SpatialScan.scan.historical_data_test" href="#SpatialScan.scan.historical_data_test">historical_data_test</a></code></li>
+<li><code><a title="SpatialScan.scan.randomisation_test" href="#SpatialScan.scan.randomisation_test">randomisation_test</a></code></li>
+<li><code><a title="SpatialScan.scan.scan" href="#SpatialScan.scan.scan">scan</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.4</a>.</p>
+</footer>
+</body>
+</html>
