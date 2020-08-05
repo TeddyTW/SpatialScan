@@ -111,13 +111,13 @@ class ScanStatistic:
         logging.info("Results not populated. Call `run()` first.")
 
     def plot_region_time_series(self, rank=0, legend=False):
-        if not isinstance(self.all_results, pd.Dataframe):
+        if not isinstance(self.all_results, pd.DataFrame):
             raise TypeError('Run the scan first')
         region = make_region_from_res(self.all_results, rank=rank)
         plot_region_time_series(region, self.forecast, add_legend=legend)
     
     def plot_region_by_rank(self, rank=0, legend=False):
-        if not isinstance(self.all_results, pd.Dataframe):
+        if not isinstance(self.all_results, pd.DataFrame):
             raise TypeError('Run the scan first')
         plot_region_by_rank(rank, self.all_results, self.forecast, add_legend=legend)
 
