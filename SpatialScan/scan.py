@@ -119,8 +119,8 @@ def scan(
 
                             # Compute Metrics
                             ebp_l_score = likelihood_ratio(B, C)  # Normal EBP metric
-                            ebp_l_score_upper = likelihood_ratio(B_upper, C)  # Normal EBP metric
-                            ebp_l_score_lower = likelihood_ratio(B_lower, C)  # Normal EBP metric
+                            ebp_l_score_lower = likelihood_ratio(B_upper, C)  # Normal EBP metric
+                            ebp_l_score_upper = likelihood_ratio(B_lower, C)  # Normal EBP metric
 
                             general_l_scores = [
                                 likelihood_ratio_kulgen(
