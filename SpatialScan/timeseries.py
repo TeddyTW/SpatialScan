@@ -1,35 +1,20 @@
 """Module containing Time Series Forecast functionality"""
 import numpy as np
 import pandas as pd
+import gpflow
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib
+import tensorflow as tf
+
 from tensorflow.keras.backend import clear_session
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.utils import plot_model
-from sklearn.preprocessing import MinMaxScaler
-import astropy as ap
-
-import tensorflow as tf
-from scipy.optimize import minimize
+from tensorflow.keras.layers import Dense, LSTM
 from tensorflow.python.framework.errors import InvalidArgumentError
 
-import gpflow
-from gpflow.utilities import print_summary
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
-import matplotlib.dates as mdates
-from datetime import datetime
 
-from gpflow.monitor import (
-    ImageToTensorBoard,
-    ModelToTensorBoard,
-    Monitor,
-    MonitorTaskGroup,
-    ScalarToTensorBoard,
-)
+from scipy.optimize import minimize
 
 
 def holt_winters(
@@ -172,7 +157,6 @@ def lstm_forecast(
         detectors = proc_df["detector_id"].drop_duplicates().to_numpy()
     framelist = []
 
-
     for det_num, detector in enumerate(detectors, 1):
 
         dataset = proc_df[proc_df["detector_id"] == detector]
@@ -287,7 +271,6 @@ def gp_forecast(
         detectors = proc_df["detector_id"].drop_duplicates().to_numpy()
     framelist = []
 
-
     for det_num, detector in enumerate(detectors, 1):
 
         dataset = proc_df[proc_df["detector_id"] == detector].tail(n=24 * days_in_past)
@@ -336,7 +319,9 @@ def gp_forecast(
                 options=dict(maxiter=500),
             )
         except InvalidArgumentError:
-            print(detector, " Covariance matrix not invertible, skipping to next detector")
+            print(
+                detector, " Covariance matrix not invertible, skipping to next detector"
+            )
             del model
             continue
 
@@ -375,8 +360,10 @@ def gp_forecast(
                 "measurement_end_utc": forecast_period + np.timedelta64(1, "h"),
                 "n_vehicles_in_interval": test_predict.flatten(),
                 "prediction_variance": test_var.flatten(),
-                "baseline_upper": test_predict.flatten() + 3 * np.sqrt(test_var.flatten()),
-                "baseline_lower": test_predict.flatten() - 3 * np.sqrt(test_var.flatten()),
+                "baseline_upper": test_predict.flatten()
+                + 3 * np.sqrt(test_var.flatten()),
+                "baseline_lower": test_predict.flatten()
+                - 3 * np.sqrt(test_var.flatten()),
             }
         )
 
@@ -387,10 +374,12 @@ def gp_forecast(
     return pd.concat(framelist)
 
 
-
-
 def HW_RSME(
-    params: list, df: pd.DataFrame, days_in_past: int, days_in_future:int, detectors: list = None,
+    params: list,
+    df: pd.DataFrame,
+    days_in_past: int,
+    days_in_future: int,
+    detectors: list = None,
 ) -> float:
 
     """Calcualte Root-Mean Squared error on historical training data for holt winters.
@@ -416,8 +405,8 @@ def HW_RSME(
         detectors = df["detector_id"].drop_duplicates().to_numpy()
 
     framelist = []
-    count=[]
-    baseline=[]
+    count = []
+    baseline = []
     for d, detector in enumerate(detectors, 1):
         S = 1
         T = 1
@@ -429,14 +418,13 @@ def HW_RSME(
         for i in range(0, len(past) - 1):
             h = i % 24
 
-            r = i % (24*days_in_future)
-            
+            r = i % (24 * days_in_future)
 
-            if(r==0):
-                Sf=S
-                Tf=T
-                If=I
-            if ((i > 24*days_in_past) and i < len(past)-24*days_in_future):
+            if r == 0:
+                Sf = S
+                Tf = T
+                If = I
+            if (i > 24 * days_in_past) and i < len(past) - 24 * days_in_future:
                 b = (Sf + Tf) * If[h]
                 baseline.append(b)
                 count.append(past["n_vehicles_in_interval"].iloc[i])
@@ -450,7 +438,7 @@ def HW_RSME(
             T = beta * (Snew - S) + (1 - beta) * T
             I[h] = gamma * (c / Snew) + (1 - gamma) * I[h]
             S = Snew
-        
+
         print(d, "/", len(detectors), end="\r")
 
     RSME = np.sqrt(mean_squared_error(count, baseline))
@@ -463,10 +451,9 @@ def HW_SFE(
     df: pd.DataFrame,
     days_in_past: int,
     days_in_future: int,
-
     detectors: list = None,
 ) -> pd.DataFrame:
-    
+
     alpha = params[0]
     beta = params[1]
     gamma = params[2]
@@ -487,36 +474,50 @@ def HW_SFE(
         """
     t_min = df["measurement_start_utc"].min()
     t_max = df["measurement_end_utc"].max()
-    validation_start = t_min + np.timedelta64(days_in_past +1, "D")
-    
-    RSME=[]
-    
-    while(validation_start < t_max-np.timedelta64(days_in_future, "D")):
-        
-        #print(validation_start, t_max, end ="\r")
+    validation_start = t_min + np.timedelta64(days_in_past + 1, "D")
+
+    RSME = []
+
+    while validation_start < t_max - np.timedelta64(days_in_future, "D"):
+
+        # print(validation_start, t_max, end ="\r")
 
         if detectors is None:
             detectors = df["detector_id"].drop_duplicates().to_numpy()
 
-        train_data = df[df["measurement_end_utc"] <= validation_start + np.timedelta64(days_in_future, "D")]
-        validation_data = train_data[train_data["measurement_end_utc"] > validation_start]
+        train_data = df[
+            df["measurement_end_utc"]
+            <= validation_start + np.timedelta64(days_in_future, "D")
+        ]
+        validation_data = train_data[
+            train_data["measurement_end_utc"] > validation_start
+        ]
 
         train_data = train_data[train_data["measurement_end_utc"] <= validation_start]
 
         y = holt_winters(
-                train_data,
-                days_in_past,
-                days_in_future,
-                alpha=alpha,
-                beta=beta,
-                gamma=gamma,
-                detectors=detectors)
-        
-        validation_data= validation_data[validation_data["detector_id"].isin(detectors)]
-        RSME.append(np.sqrt(mean_squared_error(validation_data["n_vehicles_in_interval"], y["n_vehicles_in_interval"])))
+            train_data,
+            days_in_past,
+            days_in_future,
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+            detectors=detectors,
+        )
+
+        validation_data = validation_data[
+            validation_data["detector_id"].isin(detectors)
+        ]
+        RSME.append(
+            np.sqrt(
+                mean_squared_error(
+                    validation_data["n_vehicles_in_interval"],
+                    y["n_vehicles_in_interval"],
+                )
+            )
+        )
         validation_start = validation_start + np.timedelta64(1, "D")
     return np.array(RSME).mean()
-
 
 
 def HW_opt(
@@ -555,7 +556,7 @@ def HW_opt(
             [a, b, c],
             args=(one_D, days_in_past, days_in_future, [detector]),
             method="L-BFGS-B",
-            bounds=[(0,0.15), (0, 0.15), (0.1, 0.5)],
+            bounds=[(0, 0.15), (0, 0.15), (0.1, 0.5)],
             options={"ftol": 10},
         )["x"]
 
@@ -584,7 +585,7 @@ def count_baseline(
     alpha: float = 0.03869791,
     beta: float = 0.0128993,
     gamma: float = 0.29348953,
-    kern=None
+    kern=None,
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -608,10 +609,8 @@ def count_baseline(
     """
 
     # Drop useless columns
-    assert set(['rolling_threshold', 'global_threshold']) <= set(df.columns)
-    df = df.drop(
-        ["rolling_threshold", "global_threshold"], axis=1
-    )
+    assert set(["rolling_threshold", "global_threshold"]) <= set(df.columns)
+    df = df.drop(["rolling_threshold", "global_threshold"], axis=1)
     assert days_in_future > 0
     assert days_in_past > 0
 
@@ -643,11 +642,13 @@ def count_baseline(
     else:
         forecast_data_start = prediction_start - np.timedelta64(days_in_past, "D")
 
-    print("Using data from {} to {}, to build {} forecasting model.\n".format(
+    print(
+        "Using data from {} to {}, to build {} forecasting model.\n".format(
             forecast_data_start, prediction_start, method
         )
     )
-    print("Forecasting counts between {} and {} for {} detectors.".format(
+    print(
+        "Forecasting counts between {} and {} for {} detectors.".format(
             prediction_start, t_max, len(detectors)
         )
     )
@@ -681,7 +682,7 @@ def count_baseline(
             days_in_past=days_in_past,
             days_in_future=days_in_future,
             detectors=detectors,
-            kern = kern
+            kern=kern,
         )
     print("Forecasting complete.")
 
@@ -713,7 +714,7 @@ def count_baseline(
     assert baseline_nans == 0
 
     # Make Baseline Values Non-Negative
-    negative= len(forecast_df[forecast_df["baseline"] < 0]["baseline"])
+    negative = len(forecast_df[forecast_df["baseline"] < 0]["baseline"])
     if negative > 0:
         print("Setting {} negative baseline values to zero.\n".format(negative))
         forecast_df["baseline"] = forecast_df["baseline"].apply(
@@ -743,19 +744,21 @@ def forecast_plot(df: pd.DataFrame, detector: str = None):
     df_d = df[df["detector_id"] == detector]
     print(detector)
     df_d = df_d.sort_values("measurement_end_utc")
-    fig= plt.figure(figsize=(15,8))
+    fig = plt.figure(figsize=(15, 8))
     ax = fig.add_subplot()
-    #df_d["measurement_end_utc"]=df_d["measurement_end_utc"].astype('O')
+    # df_d["measurement_end_utc"]=df_d["measurement_end_utc"].astype('O')
     ax.plot(df_d["measurement_end_utc"], df_d["baseline"], label="baseline")
     ax.plot(df_d["measurement_end_utc"], df_d["count"], "^", label="count")
 
     if "prediction_variance" in df_d.columns:
         ax.fill_between(
             df_d["measurement_end_utc"],
-            df_d["baseline"] + 3*np.sqrt(df_d["prediction_variance"]),
-            df_d["baseline"] - 3*np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] + 3 * np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] - 3 * np.sqrt(df_d["prediction_variance"]),
             color="C0",
-            alpha=0.3, label= "3$\sigma$")
+            alpha=0.3,
+            label="3$\sigma$",
+        )
     fig.autofmt_xdate()
     plt.legend()
 
@@ -817,7 +820,6 @@ def simple_training_loop(
             obj = -model.elbo((x_train, y_train))
             grads = tape.gradient(obj, model.trainable_variables)
         optimizer.apply_gradients(zip(grads, model.trainable_variables))
-
 
     tf_optimization_step = tf.function(optimization_step)
     for epoch in range(maxiter):
