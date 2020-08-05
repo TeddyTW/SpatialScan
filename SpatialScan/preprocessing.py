@@ -3,20 +3,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from astropy.timeseries import LombScargle
 
+
 def frequency_alarm(df_d: pd.DataFrame) -> float:
     """Function that returns the false alarm probability for a given detector, for use in groupbys
     Args: 
         df_d: dataframe for single detector
     Returns:
         false alarm probability as float"""
-    X=df_d.reset_index()
-    X=X.drop(columns=["detector_id", "measurement_end_utc"])
-    x=X.index.to_numpy()
-    y=X.to_numpy().flatten()
-    ls=LombScargle(x, y)
-    period=np.linspace(15, 30, 300)
-    pmax=ls.power(1/period).max()
+    X = df_d.reset_index()
+    X = X.drop(columns=["detector_id", "measurement_end_utc"])
+    x = X.index.to_numpy()
+    y = X.to_numpy().flatten()
+    ls = LombScargle(x, y)
+    period = np.linspace(15, 30, 300)
+    pmax = ls.power(1 / period).max()
     return ls.false_alarm_probability(pmax)
+
 
 def data_preprocessor(
     df: pd.DataFrame,
@@ -25,7 +27,8 @@ def data_preprocessor(
     N_sigma: float = 3,
     repeats: int = 1,
     rolling_hours: int = 24,
-    fap_max : float = 1e-40,
+    fap_threshold: float = 1e-40,
+    consecutive_missing_threshold: int = 3,
     global_threshold: bool = False,
 ) -> pd.DataFrame:
 
@@ -35,18 +38,27 @@ def data_preprocessor(
     Args:
         df: Dataframe of SCOOT data
         percentage_missing: float percentage of missing values, above which drop detector
+        max_anom_per_day: Allowable rate of anomalies, otherwise dropped
         N_sigma: Number of standard deviations to set threshold
         repeats: integer number of repeats for which to recalculate thresholds once previous anomallys
                 have been removed, default 1
         rolling_hours: interger number of hours over which to calculate rolling median for threshold
+        fap_threshold: ~24 hour periodicity false alarm probability
+        consecutive_missing_threshold: Number of allowable consecutive missing readings, otherwise dropped
         global_threshold: if True, global median used for threshold instead of rolling median
 
     Returns:
         Dataframe of interpolated values with detectors dropped for too many missing values.
 
         """
-    columns = ['detector_id', 'lon', 'lat', 'measurement_start_utc',
-               'measurement_end_utc', 'n_vehicles_in_interval']
+    columns = [
+        "detector_id",
+        "lon",
+        "lat",
+        "measurement_start_utc",
+        "measurement_end_utc",
+        "n_vehicles_in_interval",
+    ]
     assert set(columns) <= set(df.columns)
     assert percentage_missing >= 0
     assert max_anom_per_day >= 0
@@ -55,8 +67,8 @@ def data_preprocessor(
     assert rolling_hours > 0 if not global_threshold else True
 
     # Convert dates to useful format
-    df['measurement_start_utc'] = pd.to_datetime(df['measurement_start_utc'])
-    df['measurement_end_utc'] = pd.to_datetime(df['measurement_end_utc'])
+    df["measurement_start_utc"] = pd.to_datetime(df["measurement_start_utc"])
+    df["measurement_end_utc"] = pd.to_datetime(df["measurement_end_utc"])
 
     start_date = df["measurement_start_utc"].min()
     end_date = df["measurement_end_utc"].max()
@@ -66,7 +78,9 @@ def data_preprocessor(
     max_anom = max_anom_per_day * num_days
 
     # Create array of times for which we want data
-    end_times = pd.date_range(start=start_date + np.timedelta64(1, 'h'), end=end_date, freq="H",)
+    end_times = pd.date_range(
+        start=start_date + np.timedelta64(1, "h"), end=end_date, freq="H",
+    )
 
     # Create Multi-index dataframe
     df = df.set_index(["detector_id", "measurement_end_utc"])
@@ -136,7 +150,7 @@ def data_preprocessor(
         on=["detector_id"],
         rsuffix="NaN",
     )
-    df.rename({'n_vehicles_in_intervalNaN': 'num_anom'}, axis=1, inplace=True)
+    df.rename({"n_vehicles_in_intervalNaN": "num_anom"}, axis=1, inplace=True)
 
     # Calculate original num of detectors inputted by user
     orig_set = set(df.index.get_level_values("detector_id"))
@@ -153,10 +167,25 @@ def data_preprocessor(
     )
     df = df.reindex(mux)
 
-    # Find detectors with too much missing data
+    # Find detectors with too much missing data - either in local chunks or globally unreliable
     detectors_to_drop = []
     for det in remaining_detectors:
-        if df.loc[det]["n_vehicles_in_interval"].isna().sum() > len(end_times) * 0.01 * percentage_missing:
+
+        # Get array of missing vehicle count readings' status
+        missing = df.loc[det]["n_vehicles_in_interval"].isna().astype(int)
+
+        # Check for Sparsity
+        is_sparse = missing.sum() > len(end_times) * 0.01 * percentage_missing
+
+        # Check for consecutive missing values
+        max_missing_consecutive = (
+            missing.groupby((missing != missing.shift()).cumsum()).transform("size")
+            * missing
+        ).max()
+
+        is_missing_consecutive = max_missing_consecutive > consecutive_missing_threshold
+
+        if is_sparse or is_missing_consecutive:
             detectors_to_drop.append(det)
 
     print(
@@ -164,7 +193,7 @@ def data_preprocessor(
             percentage_missing
         )
     )
-    df.drop(detectors_to_drop, level='detector_id', inplace=True)
+    df.drop(detectors_to_drop, level="detector_id", inplace=True)
 
     # Linearly interpolate missing vehicle counts whilst still using multi_index
     # Fills backwards and forwards
@@ -176,14 +205,18 @@ def data_preprocessor(
         method="linear", limit_direction="both", axis=0
     )
 
-    df = df.join(df.groupby(level="detector_id")["n_vehicles_in_interval"].apply(lambda x: frequency_alarm(x)),
-            on=["detector_id"],
-            rsuffix="X")
+    df = df.join(
+        df.groupby(level="detector_id")["n_vehicles_in_interval"].apply(
+            lambda x: frequency_alarm(x)
+        ),
+        on=["detector_id"],
+        rsuffix="X",
+    )
 
-    df.rename({'n_vehicles_in_intervalX': 'fap'}, axis=1, inplace=True)
+    df.rename({"n_vehicles_in_intervalX": "fap"}, axis=1, inplace=True)
 
     print("\nDropping detectors with low periodicity...")
-    df = df.drop(df[df["fap"] > fap_max].index)
+    df = df[df["fap"] < fap_threshold]
 
     # Return drop information to user
     curr_set = set(df.index.get_level_values("detector_id"))
@@ -194,22 +227,29 @@ def data_preprocessor(
         )
     )
 
-    # print(ls)
-
     # Create the remaining columns/fill missing row values
-    df["measurement_start_utc"] = df.index.get_level_values("measurement_end_utc") - np.timedelta64(1, "h")
+    df["measurement_start_utc"] = df.index.get_level_values(
+        "measurement_end_utc"
+    ) - np.timedelta64(1, "h")
     df = df.reset_index()
     df.sort_values(["detector_id", "measurement_end_utc"], inplace=True)
 
     # Fill missing lon, lat, rolling, global columns with existing values
-    df = df.groupby('detector_id').apply(lambda x: x.ffill().bfill())
-
-
+    df = df.groupby("detector_id").apply(lambda x: x.ffill().bfill())
 
     # Re-Order Columns
-    df = df[['detector_id', 'lon', 'lat', 'measurement_start_utc',
-              'measurement_end_utc', 'n_vehicles_in_interval',
-              'rolling_threshold', 'global_threshold']]
+    df = df[
+        [
+            "detector_id",
+            "lon",
+            "lat",
+            "measurement_start_utc",
+            "measurement_end_utc",
+            "n_vehicles_in_interval",
+            "rolling_threshold",
+            "global_threshold",
+        ]
+    ]
 
     print("Data processing complete.\n")
     return df
@@ -264,6 +304,7 @@ def plot_processing(
     plt.legend()
     return
 
+
 def jam_preprocessor(
     df: pd.DataFrame,
     percentage_missing: float = 20,
@@ -271,7 +312,8 @@ def jam_preprocessor(
     N_sigma: float = 3,
     repeats: int = 1,
     rolling_hours: int = 16,
-    global_threshold: bool = False) -> pd.DataFrame: 
+    global_threshold: bool = False,
+) -> pd.DataFrame:
 
     """Function takes a JamCam dataframe, performs anomaly removal, fill_and_drop, and then
     interpolates missing values. 
@@ -286,33 +328,37 @@ def jam_preprocessor(
 
         """
 
-    #reindex
+    # reindex
 
     start_date = pd.to_datetime(df["measurement_end_utc"].min())
     end_date = pd.to_datetime(df["measurement_end_utc"].max())
 
     num_days = (end_date - start_date).days
 
-    N_days=(end_date-start_date).days
-    T = pd.date_range(start=start_date, periods=20-start_date.hour, freq="H")
+    N_days = (end_date - start_date).days
+    T = pd.date_range(start=start_date, periods=20 - start_date.hour, freq="H")
     start_of_day = T[-1] + np.timedelta64(9, "h")
-    t=pd.date_range(start=start_of_day, end=start_of_day+np.timedelta64(15, "h"), freq="H")
-    df["measurement_end_utc"]=df["measurement_end_utc"].astype('datetime64[ns]')
+    t = pd.date_range(
+        start=start_of_day, end=start_of_day + np.timedelta64(15, "h"), freq="H"
+    )
+    df["measurement_end_utc"] = df["measurement_end_utc"].astype("datetime64[ns]")
     for d in range(0, N_days):
-        t = pd.date_range(start=start_of_day, end=start_of_day+np.timedelta64(15, "h"), freq="H").to_numpy()
+        t = pd.date_range(
+            start=start_of_day, end=start_of_day + np.timedelta64(15, "h"), freq="H"
+        ).to_numpy()
 
-        T=np.append(T, t)
-        start_of_day= start_of_day + np.timedelta64(1, "D")
+        T = np.append(T, t)
+        start_of_day = start_of_day + np.timedelta64(1, "D")
 
     T = np.array(T)
-    T=pd.DatetimeIndex(T)
-    dets=df["detector_id"].unique()
+    T = pd.DatetimeIndex(T)
+    dets = df["detector_id"].unique()
     mux = pd.MultiIndex.from_product(
-            [dets, T], names=("detector_id", "measurement_end_utc")
-        )
-    
+        [dets, T], names=("detector_id", "measurement_end_utc")
+    )
+
     df = df.set_index(["detector_id", "measurement_end_utc"])
-    
+
     if global_threshold:
         print(
             "Using the global median over {} days to remove outliers ...".format(
@@ -325,7 +371,11 @@ def jam_preprocessor(
             )
         )
     else:
-        print("Using the {}-day rolling median to remove outliers ...".format(rolling_hours))
+        print(
+            "Using the {}-day rolling median to remove outliers ...".format(
+                rolling_hours
+            )
+        )
         print(
             "Using {} iterations to remove points outside of {} sigma from the rolling median ...".format(
                 repeats, N_sigma
@@ -393,9 +443,8 @@ def jam_preprocessor(
     print("Dropping detectors with more than {} anomalies...".format(max_anom))
     df = df.drop(df[df["Num_Anom"] > max_anom].index)
 
+    df = df.reindex(mux)
 
-    df=df.reindex(mux)
-    
     x = []
     for d in df.index.get_level_values("detector_id").unique():
         x.append([df.loc[d]["n_vehicles_in_interval"].isna().sum()] * len(df.loc[d]))
@@ -410,7 +459,7 @@ def jam_preprocessor(
     # mux = pd.MultiIndex.from_product(
     #     [dets, T], names=("detector_id", "measurement_end_utc")
     # )
-    
+
     print(
         "Dropping detectors with sufficiently high amounts of missing data (>{}%)...".format(
             percentage_missing
@@ -432,16 +481,17 @@ def jam_preprocessor(
     #     [dets, T], names=("detector_id", "measurement_end_utc")
     # )
 
-    #df=df.reindex(mux)
+    # df=df.reindex(mux)
 
-
-    #interpolate
+    # interpolate
 
     df["measurement_start_utc"] = df.index.get_level_values(
-    "measurement_end_utc"
+        "measurement_end_utc"
     ) - np.timedelta64(1, "h")
-    df["n_vehicles_in_interval"] = df["n_vehicles_in_interval"].astype("float").interpolate(
-        method="linear", limit_direction="both", axis=0
+    df["n_vehicles_in_interval"] = (
+        df["n_vehicles_in_interval"]
+        .astype("float")
+        .interpolate(method="linear", limit_direction="both", axis=0)
     )
 
     # T = pd.date_range(start=start_date, end=end_date, freq="H",)
@@ -450,7 +500,7 @@ def jam_preprocessor(
     #     [dets, T], names=("detector_id", "measurement_end_utc")
     # )
 
-    #df=df.reindex(mux)
+    # df=df.reindex(mux)
     df = df.reset_index()
 
     df.sort_values(["detector_id", "measurement_end_utc"], inplace=True)
