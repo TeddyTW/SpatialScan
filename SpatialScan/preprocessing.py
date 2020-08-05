@@ -4,67 +4,9 @@ import matplotlib.pyplot as plt
 from astropy.timeseries import LombScargle
 
 
-class Preprocessor:
-    """Base Class for preprocessing"""
-
-    def __init__(
-        self,
-        percentage_missing=20,
-        max_anom_per_day=1,
-        N_sigma=3,
-        repeats=1,
-        rolling_hours=24,
-        fap_threshold=1e-40,
-        consecutive_missing_threshold=3,
-        global_threshold=False,
-        drop_sparse=True,
-        drop_anomalous=True,
-        drop_aperiodic=True,
-        drop_consecutives=True,
-        data_type="scoot",
-    ):
-        self.percentage_missing = percentage_missing
-        self.max_anom_per_day = max_anom_per_day
-        self.N_sigma = N_sigma
-        self.repeats = repeats
-        self.rolling_hours = rolling_hours
-        self.fap_threshold = fap_threshold
-        self.consecutive_missing_threshold = consecutive_missing_threshold
-        self.global_threshold = global_threshold
-        self.drop_sparse = drop_sparse
-        self.drop_anomalous = drop_anomalous
-        self.drop_aperiodic = drop_aperiodic
-        self.drop_consecutives = drop_consecutives
-        self.data_type = data_type
-
-    def process(self, readings):
-        return data_preprocessor(
-            readings,
-            self.percentage_missing,
-            self.max_anom_per_day,
-            self.N_sigma,
-            self.repeats,
-            self.rolling_hours,
-            self.fap_threshold,
-            self.consecutive_missing_threshold,
-            self.global_threshold,
-            self.drop_sparse,
-            self.drop_anomalous,
-            self.drop_aperiodic,
-            self.drop_consecutives,
-        )
-
-
-#    def plot(self, readings, processed):
-#        if isinstance(processed, pd.DataFrame):
-#            plot_processing(self.readings, self.processed)
-#        else:
-#            raise ValueError("Run process() first.")
-
-
 def frequency_alarm(df_d: pd.DataFrame) -> float:
     """Function that returns the false alarm probability for a given detector, for use in groupbys
-    Args: 
+    Args:
         df_d: dataframe for single detector
     Returns:
         false alarm probability as float"""
@@ -86,11 +28,11 @@ def data_preprocessor(
     repeats: int = 1,
     rolling_hours: int = 24,
     fap_threshold: float = 1e-40,
-    consecutive_missing_threshold: int = 100,
+    consecutive_missing_threshold: int = 3,
     global_threshold: bool = False,
     drop_sparse: bool = True,
     drop_anomalous: bool = True,
-    drop_aperiodic: bool = False,
+    drop_aperiodic: bool = True,
     drop_consecutives: bool = True,
 ) -> pd.DataFrame:
 
