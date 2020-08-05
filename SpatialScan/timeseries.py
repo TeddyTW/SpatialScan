@@ -15,6 +15,7 @@ import astropy as ap
 
 import tensorflow as tf
 from scipy.optimize import minimize
+from tensorflow.python.framework.errors import InvalidArgumentError
 
 import gpflow
 from gpflow.utilities import print_summary
@@ -334,7 +335,7 @@ def gp_forecast(
                 model.trainable_variables,
                 options=dict(maxiter=500),
             )
-        except:
+        except InvalidArgumentError:
             print(detector, " Covariance matrix not invertible, skipping to next detector")
             del model
             continue
@@ -580,9 +581,9 @@ def count_baseline(
     days_in_future: int,
     method: str = "HW",
     detectors: list = None,
-    alpha: float = 0.1,
-    beta: float = 0.1,
-    gamma: float = 0.1,
+    alpha: float = 0.03869791,
+    beta: float = 0.0128993,
+    gamma: float = 0.29348953,
     kern=None
 ) -> pd.DataFrame:
 
