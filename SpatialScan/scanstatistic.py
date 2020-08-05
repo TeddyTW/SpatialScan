@@ -122,7 +122,7 @@ class ScanStatistic:
         plot_region_by_rank(rank, self.all_results, self.forecast, add_legend=legend)
 
     def model_settings(self):
-        settings = self.__dict__
+        settings = self.__dict__.copy()
         del settings['readings']
         del settings['processed']
         del settings['forecast']
