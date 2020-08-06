@@ -10,7 +10,10 @@ from SpatialScan.results import database_results
 
 
 def synthetic_detector(
-    Y: pd.Series, days: int = None, noise_percentage: float = 10, dow_percentage: float = 5
+    Y: pd.Series,
+    days: int = None,
+    noise_percentage: float = 10,
+    dow_percentage: float = 5,
 ) -> np.array:
     """
     Creates a synthetic count based on real counts for the means of simualting outbreak. Takes
@@ -29,7 +32,7 @@ def synthetic_detector(
     if days is None:
         X = np.arange(0, len(Y))
     else:
-        X= np.arange(0, 24*days)
+        X = np.arange(0, 24 * days)
     noise = normal(0, noise_percentage / 100, len(X))
     S = (
         np.percentile(Y, 90)
@@ -41,7 +44,10 @@ def synthetic_detector(
 
 
 def synthetic_SCOOT(
-    df: pd.DataFrame, days: int = None, noise_percentage: float = 10, dow_percentage: float = 10
+    df: pd.DataFrame,
+    days: int = None,
+    noise_percentage: float = 10,
+    dow_percentage: float = 10,
 ) -> pd.DataFrame:
     """
     Creates a synthetic SCOOT dataframe based on a real input dataframe.
@@ -54,27 +60,37 @@ def synthetic_SCOOT(
 
     start_date = df["measurement_end_utc"].min()
 
-    T = pd.date_range(start=start_date, end=start_date + np.timedelta64(days, "D") - np.timedelta64(1, "h"), freq="H",)
+    T = pd.date_range(
+        start=start_date,
+        end=start_date + np.timedelta64(days, "D") - np.timedelta64(1, "h"),
+        freq="H",
+    )
     mux = pd.MultiIndex.from_product(
-            [df["detector_id"].unique(), T], names=("detector_id", "measurement_end_utc")
-        )
-    if(days):
+        [df["detector_id"].unique(), T], names=("detector_id", "measurement_end_utc")
+    )
+    if days:
         print("Please wait, creating synthetic data for {} days...".format(days))
     else:
-        print("Please wait, creating synthetic data with same format as input dataframe...")
-
+        print(
+            "Please wait, creating synthetic data with same format as input dataframe..."
+        )
 
     DF = df.set_index(["detector_id", "measurement_end_utc"])
     X = DF.groupby(level="detector_id")["n_vehicles_in_interval"].apply(
         lambda x: synthetic_detector(
-            x, days=days, noise_percentage=noise_percentage, dow_percentage=dow_percentage
+            x,
+            days=days,
+            noise_percentage=noise_percentage,
+            dow_percentage=dow_percentage,
         )
     )
 
     if days:
-        DF=DF.reindex(mux)
-        DF["measurement_start_utc"] = DF.index.get_level_values("measurement_end_utc") - np.timedelta64(1, "h")
-  
+        DF = DF.reindex(mux)
+        DF["measurement_start_utc"] = DF.index.get_level_values(
+            "measurement_end_utc"
+        ) - np.timedelta64(1, "h")
+
     DF["n_vehicles_in_interval"] = np.hstack(X.to_numpy())
     DF = DF.reset_index()
 
@@ -462,4 +478,3 @@ def results_builder(
         pd.concat(dataframe_list, ignore_index=True),
         pd.DataFrame.from_dict(daily_highest_scoring_regions, "index"),
     )
-

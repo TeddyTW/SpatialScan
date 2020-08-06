@@ -166,11 +166,17 @@ def event_count(S: Type[Region], agg_data: pd.DataFrame) -> dict:
 
     S_df = agg_data.loc[region_mask]
     if S_df.empty:
-        return {'baseline_agg': 0, 'count_agg': 0, 'baseline_upper_agg': 0, 'baseline_lower_agg': 0}
-    return {'baseline': S_df['baseline_agg'].sum() / 1e6,
-            'count': S_df['count_agg'].sum() / 1e6,
-            'baseline_upper': S_df['baseline_upper_agg'].sum() / 1e6,
-            'baseline_lower': S_df['baseline_lower_agg'].sum() / 1e6
+        return {
+            "baseline_agg": 0,
+            "count_agg": 0,
+            "baseline_upper_agg": 0,
+            "baseline_lower_agg": 0,
+        }
+    return {
+        "baseline": S_df["baseline_agg"].sum() / 1e6,
+        "count": S_df["count_agg"].sum() / 1e6,
+        "baseline_upper": S_df["baseline_upper_agg"].sum() / 1e6,
+        "baseline_lower": S_df["baseline_lower_agg"].sum() / 1e6,
     }
 
 

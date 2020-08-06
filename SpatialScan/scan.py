@@ -69,8 +69,8 @@ def scan(
     agg_df = aggregate_event_data(forecast_data, x_ticks, y_ticks, t_ticks)
 
     B_tot = agg_df["baseline_agg"].sum() / 1e6
-    B_upper_tot = agg_df['baseline_upper_agg'].sum() / 1e6
-    B_lower_tot = agg_df['baseline_lower_agg'].sum() / 1e6
+    B_upper_tot = agg_df["baseline_upper_agg"].sum() / 1e6
+    B_lower_tot = agg_df["baseline_lower_agg"].sum() / 1e6
     C_tot = agg_df["count_agg"].sum() / 1e6
 
     # Compute Blind Bayes null likelihood
@@ -112,15 +112,19 @@ def scan(
 
                             # Count the events within the region
                             counts = event_count(test_region, agg_df)
-                            B = counts['baseline']
-                            C = counts['count']
-                            B_upper = counts['baseline_upper']
-                            B_lower = counts['baseline_lower']
+                            B = counts["baseline"]
+                            C = counts["count"]
+                            B_upper = counts["baseline_upper"]
+                            B_lower = counts["baseline_lower"]
 
                             # Compute Metrics
                             ebp_l_score = likelihood_ratio(B, C)  # Normal EBP metric
-                            ebp_l_score_lower = likelihood_ratio(B_upper, C)  # Normal EBP metric
-                            ebp_l_score_upper = likelihood_ratio(B_lower, C)  # Normal EBP metric
+                            ebp_l_score_lower = likelihood_ratio(
+                                B_upper, C
+                            )  # Normal EBP metric
+                            ebp_l_score_upper = likelihood_ratio(
+                                B_lower, C
+                            )  # Normal EBP metric
 
                             general_l_scores = [
                                 likelihood_ratio_kulgen(
@@ -163,7 +167,7 @@ def scan(
                                 "l_score_EBP_lower": ebp_l_score_lower,
                                 "l_score_EBP": ebp_l_score,
                                 "l_score_EBP_upper": ebp_l_score_upper,
-                                #"p_value_EBP": np.nan,
+                                # "p_value_EBP": np.nan,
                                 "l_score_000_lower": general_l_scores_lower[0],
                                 "l_score_000": general_l_scores[0],
                                 "l_score_000_upper": general_l_scores_upper[0],

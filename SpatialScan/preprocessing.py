@@ -6,7 +6,7 @@ from astropy.timeseries import LombScargle
 
 def frequency_alarm(df_d: pd.DataFrame) -> float:
     """Function that returns the false alarm probability for a given detector, for use in groupbys
-    Args: 
+    Args:
         df_d: dataframe for single detector
     Returns:
         false alarm probability as float"""
@@ -30,6 +30,10 @@ def data_preprocessor(
     fap_threshold: float = 1e-40,
     consecutive_missing_threshold: int = 3,
     global_threshold: bool = False,
+    drop_sparse: bool = True,
+    drop_anomalous: bool = True,
+    drop_aperiodic: bool = True,
+    drop_consecutives: bool = True,
 ) -> pd.DataFrame:
 
     """Function takes a SCOOT dataframe, performs anomaly removal, fill_and_drop, and then
@@ -157,8 +161,9 @@ def data_preprocessor(
     orig_length = len(orig_set)
 
     # Drop detectors with too many anomalies
-    print("\nDropping detectors with more than {} anomalies...".format(max_anom))
-    df = df.drop(df[df["num_anom"] > max_anom].index)
+    if drop_anomalous:
+        print("\nDropping detectors with more than {} anomalies...".format(max_anom))
+        df = df.drop(df[df["num_anom"] > max_anom].index)
 
     print("Filling in missing dates and times ...")
     remaining_detectors = df.index.get_level_values("detector_id").unique()
@@ -185,7 +190,9 @@ def data_preprocessor(
 
         is_missing_consecutive = max_missing_consecutive > consecutive_missing_threshold
 
-        if is_sparse or is_missing_consecutive:
+        if (is_sparse and drop_sparse) or (
+            is_missing_consecutive and drop_consecutives
+        ):
             detectors_to_drop.append(det)
 
     print(
@@ -215,8 +222,12 @@ def data_preprocessor(
 
     df.rename({"n_vehicles_in_intervalX": "fap"}, axis=1, inplace=True)
 
-    print("\nDropping detectors with low periodicity...")
-    df = df[df["fap"] < fap_threshold]
+    if drop_aperiodic:
+        print("\nDropping detectors with low periodicity...")
+        df = df[df["fap"] < fap_threshold]
+
+    if df.empty:
+        raise ValueError("Dataframe has no detector readings remaining.")
 
     # Return drop information to user
     curr_set = set(df.index.get_level_values("detector_id"))

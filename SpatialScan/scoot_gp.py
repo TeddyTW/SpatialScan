@@ -46,8 +46,12 @@ class GPLandscape:
             .to_numpy()
             .reshape(-1, 1)
         )
-        last_update_start = scoot_df["measurement_end_utc"].tail(n=24 * days_in_past).min()
-        last_update_end = scoot_df["measurement_end_utc"].tail(n=24 * days_in_past).max()
+        last_update_start = (
+            scoot_df["measurement_end_utc"].tail(n=24 * days_in_past).min()
+        )
+        last_update_end = (
+            scoot_df["measurement_end_utc"].tail(n=24 * days_in_past).max()
+        )
         Y = Y.astype(float)
         X = np.arange(1, len(Y) + 1, dtype=float).reshape(-1, 1)
 
@@ -128,7 +132,11 @@ class GPLandscape:
             print("please wait: ", i, "/", len(detectors), end="\r")
 
         pd.DataFrame(
-            {"detectors": saved_detectors, "last_update_start": last_update_starts, "last_update_end": last_update_ends}
+            {
+                "detectors": saved_detectors,
+                "last_update_start": last_update_starts,
+                "last_update_end": last_update_ends,
+            }
         ).to_csv("gp_models/det_date.csv", index=False)
 
     def load_landscape(self):
