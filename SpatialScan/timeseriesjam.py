@@ -188,7 +188,7 @@ def count_baselineJ(
 
     sample_test_data = pd.concat(sd)
 
-    Y = y.merge(
+    forecast_df = y.merge(
         sample_test_data,
         on=[
             "lon",
@@ -199,11 +199,25 @@ def count_baselineJ(
         ],
         how="left",
     )
-    Y = Y.rename(
+    forecast_df = forecast_df.rename(
         columns={
             "n_vehicles_in_interval_x": "baseline",
             "n_vehicles_in_interval_y": "count",
         }
+    )
+
+      # Make Baseline Values Non-Negative
+    negative= len(forecast_df[forecast_df["baseline"] < 0]["baseline"])
+    if negative > 0:
+        print("Setting {} negative baseline values to zero.\n".format(negative))
+        forecast_df["baseline"] = forecast_df["baseline"].apply(
+            lambda x: np.max([0, x])
+        )
+        forecast_df["baseline_upper"] = forecast_df["baseline_upper"].apply(
+            lambda x: np.max([0, x])
+        )
+    forecast_df["baseline_lower"] = forecast_df["baseline_lower"].apply(
+        lambda x: np.max([0, x])
     )
 
     # T = pd.date_range(
@@ -220,7 +234,7 @@ def count_baselineJ(
 
     # Y = Y.reset_index()
 
-    return Y
+    return forecast_df
 
 
 def CB_plotJ(df: pd.DataFrame):
@@ -469,9 +483,11 @@ def GP_forecast(
 
         print("please wait: ", i, "/", len(detectors), end="\r")
 
+        time_shift=24 - dataset["measurement_end_utc"].max().hour
+
         ## generate test points for prediction
         xx = np.linspace(
-            X.max() + 1, X.max() + (days_in_future * 24) + 1, (days_in_future * 24)
+            X.max() + time_shift, X.max() + time_shift + (days_in_future * 24) + 1, (days_in_future * 24)
         ).reshape(
             (days_in_future * 24), 1
         )  # test points must be of shape (N, D)
@@ -484,7 +500,7 @@ def GP_forecast(
         testVar = scaler.inverse_transform(var)
 
         # find the time period for our testPredictions
-        start_date = dataset["measurement_end_utc"].max()
+        start_date = dataset["measurement_end_utc"].max() + np.timedelta64(time_shift, "h")
         end_date = start_date + np.timedelta64(24 * (days_in_future) -1, "h")
 
         T = pd.date_range(start_date, end_date, freq="H")
@@ -499,6 +515,8 @@ def GP_forecast(
                 "measurement_end_utc": T + np.timedelta64(1, "h"),
                 "n_vehicles_in_interval": testPredict.flatten(),
                 "prediction_variance": testVar.flatten(),
+                "baseline_upper": testPredict.flatten() + 3 * np.sqrt(testVar.flatten()),
+                "baseline_lower": testPredict.flatten() - 3 * np.sqrt(testVar.flatten()),
             }
         )
 
