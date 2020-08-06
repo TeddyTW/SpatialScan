@@ -449,15 +449,23 @@ def GP_forecast(
             kern_pW.period.assign(168.0)
             # kern_pW.base_kernel.variance.assign(10)
 
-            k = kern_pD + kern_M
+            k = kern_pD + kern_pW + kern_M
         else:
             k=kern
 
         m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
         opt = gpflow.optimizers.Scipy()
-        opt_logs = opt.minimize(
-            m.training_loss, m.trainable_variables, options=dict(maxiter=100)
-        )
+
+        try:
+            opt.minimize(
+                m.training_loss,
+                m.trainable_variables,
+                options=dict(maxiter=500),
+            )
+        except:
+            print(detector, " Covariance matrix not invertible, skipping to next detector")
+            del m
+            continue
 
         print("please wait: ", i, "/", len(detectors), end="\r")
 
@@ -493,6 +501,8 @@ def GP_forecast(
                 "prediction_variance": testVar.flatten(),
             }
         )
+
+        del m
 
         framelist.append(df2)
 
