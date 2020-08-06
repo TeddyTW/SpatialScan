@@ -508,13 +508,8 @@ def GP_forecast(
         testVar = scaler.inverse_transform(var)
 
         # find the time period for our testPredictions
-<<<<<<< HEAD
         start_date = dataset["measurement_end_utc"].max() + np.timedelta64(time_shift, "h")
         end_date = start_date + np.timedelta64(24 * (days_in_future) -1, "h")
-=======
-        start_date = dataset["measurement_end_utc"].max()
-        end_date = start_date + np.timedelta64(24 * (days_in_future) - 1, "h")
->>>>>>> fe9e1de615f3e45a5797d14b51949cb7d7217bad
 
         T = pd.date_range(start_date, end_date, freq="H")
 
