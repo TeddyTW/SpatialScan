@@ -110,7 +110,7 @@ def count_baselineJ(
     alpha: float = 0.1,
     beta: float = 0.1,
     gamma: float = 0.2,
-    kern = None
+    kern=None,
 ) -> pd.DataFrame:
 
     """Produces a DataFrame where the count and baseline can be compared for use
@@ -175,7 +175,7 @@ def count_baselineJ(
             days_in_past=days_in_past,
             days_in_future=days_in_future,
             detectors=detectors,
-            kern = kern,
+            kern=kern,
         )
 
     sd = []
@@ -386,6 +386,7 @@ def GP_forecast_gaps(
 
     return pd.concat(framelist)
 
+
 def forecast_plotJ(df: pd.DataFrame, detector: str = None):
     """Function that plots the Count against the forecasted Baseline
         
@@ -400,14 +401,16 @@ def forecast_plotJ(df: pd.DataFrame, detector: str = None):
     df_d = df[df["detector_id"] == detector]
     print(detector)
     df_d = df_d.sort_values("measurement_end_utc")
-    ax=df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
+    ax = df_d.plot(x="measurement_end_utc", y=["baseline", "count"])
     if "prediction_variance" in df_d.columns:
         plt.fill_between(
             df_d["measurement_end_utc"],
-            df_d["baseline"] + 2*np.sqrt(df_d["prediction_variance"]),
-            df_d["baseline"] - 2*np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] + 2 * np.sqrt(df_d["prediction_variance"]),
+            df_d["baseline"] - 2 * np.sqrt(df_d["prediction_variance"]),
             color="C0",
-            alpha=0.5, label= "2$\sigma$")
+            alpha=0.5,
+            label="2$\sigma$",
+        )
     plt.legend()
 
 
@@ -416,7 +419,7 @@ def GP_forecast(
     days_in_past: int = 2,
     days_in_future: int = 1,
     detectors: list = None,
-    kern = None
+    kern=None,
 ) -> pd.DataFrame:
 
     """Forecast using Gaussian Processes 
@@ -441,16 +444,21 @@ def GP_forecast(
     for detector in detectors:
         i += 1
 
-        dataset = df[df["detector_id"] == detector].tail(n=26* days_in_past)
+        dataset = df[df["detector_id"] == detector].tail(n=26 * days_in_past)
 
         Y = dataset["n_vehicles_in_interval"].to_numpy().reshape(-1, 1)
         Y = Y.astype(float)
-        X = (dataset["measurement_end_utc"]-dataset["measurement_end_utc"].min()).astype("timedelta64[h]").to_numpy().reshape(-1, 1)
+        X = (
+            (dataset["measurement_end_utc"] - dataset["measurement_end_utc"].min())
+            .astype("timedelta64[h]")
+            .to_numpy()
+            .reshape(-1, 1)
+        )
 
         scaler = MinMaxScaler(feature_range=(-1, 1))
         y = scaler.fit_transform(Y)
 
-        if(kern is None):
+        if kern is None:
 
             kern_pD = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
             kern_pW = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
@@ -465,7 +473,7 @@ def GP_forecast(
 
             k = kern_pD + kern_pW + kern_M
         else:
-            k=kern
+            k = kern
 
         m = gpflow.models.GPR(data=(X, y), kernel=k, mean_function=None)
         opt = gpflow.optimizers.Scipy()
@@ -500,8 +508,13 @@ def GP_forecast(
         testVar = scaler.inverse_transform(var)
 
         # find the time period for our testPredictions
+<<<<<<< HEAD
         start_date = dataset["measurement_end_utc"].max() + np.timedelta64(time_shift, "h")
         end_date = start_date + np.timedelta64(24 * (days_in_future) -1, "h")
+=======
+        start_date = dataset["measurement_end_utc"].max()
+        end_date = start_date + np.timedelta64(24 * (days_in_future) - 1, "h")
+>>>>>>> fe9e1de615f3e45a5797d14b51949cb7d7217bad
 
         T = pd.date_range(start_date, end_date, freq="H")
 

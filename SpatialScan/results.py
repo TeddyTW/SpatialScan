@@ -419,7 +419,7 @@ def visualise_results_from_database(
 
 
 class MapboxPlot:
-    def __init__(self, database_df, london_gpd, borough='all'):
+    def __init__(self, database_df, london_gpd, borough="all"):
         self.database_df = database_df
         self.london_gpd = london_gpd
         self.borough = borough
@@ -444,10 +444,10 @@ class MapboxPlot:
         # Project the london boroughs to standard
         self.london_gpd = self.london_gpd.to_crs(epsg=4326)
 
-        if self.borough in ['All', 'all', 'London', 'london']:
+        if self.borough in ["All", "all", "London", "london"]:
             boundary = gpd.GeoSeries(unary_union(self.london_gpd.geometry))
         else:
-            boundary = self.london_gpd[self.london_gpd['NAME'] == self.borough]
+            boundary = self.london_gpd[self.london_gpd["NAME"] == self.borough]
 
         # Does all time steps at the mo - inefficient
         self.database_df["in_borough"] = self.database_df.apply(
