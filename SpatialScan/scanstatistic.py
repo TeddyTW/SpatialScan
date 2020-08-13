@@ -104,22 +104,25 @@ class ScanStatistic:
         else:
             logging.info(" Results not populated. Call `run()` first.")
 
-    def highest_region(self):
+    def highest_region(self, metric='l_score_EBP'):
         """Return highest region"""
         if isinstance(self.all_results, pd.DataFrame):
-            return self.all_results.iloc[0]
+            data = self.all_results.sort_values(metric, ascending=False)
+            return data.iloc[0]
         logging.info("Results not populated. Call `run()` first.")
 
-    def plot_region_time_series(self, rank=0, legend=False):
+    def plot_region_time_series(self, rank=0, legend=False, metric='l_score_EBP'):
         if not isinstance(self.all_results, pd.DataFrame):
             raise TypeError('Run the scan first')
-        region = make_region_from_res(self.all_results, rank=rank)
+        data = self.all_results.sort_values(metric, ascending=False)
+        region = make_region_from_res(data, rank=rank)
         plot_region_time_series(region, self.forecast, add_legend=legend)
     
-    def plot_region_by_rank(self, rank=0, legend=False):
+    def plot_region_by_rank(self, rank=0, legend=False, metric='l_score_EBP'):
         if not isinstance(self.all_results, pd.DataFrame):
             raise TypeError('Run the scan first')
-        plot_region_by_rank(rank, self.all_results, self.forecast, add_legend=legend)
+        data = self.all_results.sort_values(metric, ascending=False)
+        plot_region_by_rank(rank, data, self.forecast, add_legend=legend)
 
     def model_settings(self):
         settings = self.__dict__.copy()
@@ -129,3 +132,21 @@ class ScanStatistic:
         del settings['all_results']
         del settings['grid_results']
         print(settings)
+
+    def rerun_forecast(self):
+        self.forecast = count_baseline(
+            self.processed,
+            self.days_in_past,
+            self.days_in_future,
+            self.ts_method,
+            alpha=self.alpha,
+            beta=self.beta,
+            gamma=self.gamma,
+            kern=self.kernel,
+        )
+
+    def rerun_scan(self):
+        # Assumes everything remains the same up to scanning
+        print('Using cached processed and forecast data to rebuild scan')
+        self.all_results = scan(self.forecast, self.grid_resolution)
+        self.grid_results = database_results(self.all_results)
