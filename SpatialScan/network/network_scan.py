@@ -16,6 +16,7 @@ from SpatialScan.likelihood import likelihood_ratio
 class NetworkScan(PathGenerator):
 
     """Functionality to carry out Scan on Road Networks"""
+
     def __init__(
         self,
         forecast,
@@ -39,7 +40,11 @@ class NetworkScan(PathGenerator):
         super().__init__(
             self.network, min_path_length, max_path_length, detector_edges, **kwargs
         )
-        logging.info("Calculating paths of lengths between %f and %f", self.min_path_length, self.max_path_length)
+        logging.info(
+            "Calculating paths of lengths between %f and %f",
+            self.min_path_length,
+            self.max_path_length,
+        )
         self.generate_paths()
 
         self.t_min = forecast["measurement_start_utc"].min()
@@ -113,7 +118,6 @@ class NetworkScan(PathGenerator):
         """Path with highest EBP score"""
         return self.results.iloc[0]["path"]
 
-
     def aggregate_results_to_edges(self):
         """Calculate mean EBP score per edge"""
 
@@ -130,8 +134,15 @@ class NetworkScan(PathGenerator):
         agg_dict = {}
         for i, (source, target) in enumerate(self.detector_edges):
 
-            spatial_cond = (self.results["path"].astype(str).str.contains("{}, {}".format(source, target)))\
-                         | (self.results["path"].astype(str).str.contains("{}, {}".format(target, source)))
+            spatial_cond = (
+                self.results["path"]
+                .astype(str)
+                .str.contains("{}, {}".format(source, target))
+            ) | (
+                self.results["path"]
+                .astype(str)
+                .str.contains("{}, {}".format(target, source))
+            )
 
             for tick in t_ticks[:-1]:
 
@@ -153,11 +164,15 @@ class NetworkScan(PathGenerator):
                 num_aggs += 1
 
                 nx.set_edge_attributes(
-                    agg_network, {(source, target, 0): score}, name="score_t={}".format(tick)
+                    agg_network,
+                    {(source, target, 0): score},
+                    name="score_t={}".format(tick),
                 )
 
             if i % 50 == 0:
-                logging.info("Aggregation progress: %.2f%%", i * 100 / len(self.detector_edges))
+                logging.info(
+                    "Aggregation progress: %.2f%%", i * 100 / len(self.detector_edges)
+                )
 
         self.agg_results = pd.DataFrame.from_dict(agg_dict, "index")
         self.network = agg_network
@@ -170,7 +185,7 @@ def get_borough_polygon(
     """Fetch borough polygon information"""
 
     if not os.path.isfile(boroughs_file):
-        raise ValueError('File does not exist')
+        raise ValueError("File does not exist")
 
     london_df = gpd.read_file(boroughs_file)
     london_df = london_df.to_crs(epsg=4326)
@@ -186,7 +201,7 @@ def get_network_from_polygon(polygon):
     network = ox.graph_from_polygon(
         polygon, network_type="drive", simplify=True, custom_filter=roi
     )
-    return nx.MultiGraph(network) # Note - not directional
+    return nx.MultiGraph(network)  # Note - not directional
 
 
 def restrict_readings_to_polygon(forecast, polygon):
@@ -210,7 +225,9 @@ def restrict_readings_to_network(network, readings, max_dist=5e-4):
     detectors = readings.drop_duplicates(subset=["lon", "lat"], keep="first").copy()
 
     arr = detectors.apply(
-        lambda x: ox.distance.get_nearest_edge(network, (x.lat, x.lon), return_dist=True),
+        lambda x: ox.distance.get_nearest_edge(
+            network, (x.lat, x.lon), return_dist=True
+        ),
         axis=1,
     )
 
@@ -278,8 +295,12 @@ def aggregate_edge_event_count(network, network_df, non_zero_edges):
 
             num_edges += 1
 
-        nx.set_edge_attributes(agg_network, {(source, target, 0): baselines}, name="baselines")
-        nx.set_edge_attributes(agg_network, {(source, target, 0): counts}, name="counts")
+        nx.set_edge_attributes(
+            agg_network, {(source, target, 0): baselines}, name="baselines"
+        )
+        nx.set_edge_attributes(
+            agg_network, {(source, target, 0): counts}, name="counts"
+        )
 
         if i % 50 == 0:
             logging.info("Aggregation progress: %.2f%%", i * 100 / len(non_zero_edges))
