@@ -2,6 +2,7 @@
 .vscode*
 *__pycache__/*
 */__pycache__/*
+network/__pycache__/*
 .ipynb*
 region_event_try.py
 *.csv
