@@ -451,6 +451,7 @@ def jam_preprocessor(
     orig_set = set(df.index.get_level_values("detector_id"))
     orig_length = len(orig_set)
 
+
     print("Dropping detectors with more than {} anomalies...".format(max_anom))
     df = df.drop(df[df["Num_Anom"] > max_anom].index)
 
@@ -470,6 +471,8 @@ def jam_preprocessor(
     # mux = pd.MultiIndex.from_product(
     #     [dets, T], names=("detector_id", "measurement_end_utc")
     # )
+
+    print(df)
 
     print(
         "Dropping detectors with sufficiently high amounts of missing data (>{}%)...".format(
@@ -518,6 +521,6 @@ def jam_preprocessor(
 
     df["lon"] = df["lon"].interpolate(method="pad", limit_direction="both", axis=0)
     df["lat"] = df["lat"].interpolate(method="pad", limit_direction="both", axis=0)
-    df["measurement_start_utc"] = df["measurement_end_utc"] - np.timedelta64(1, "h")
+    #df["measurement_start_utc"] = df["measurement_end_utc"] - np.timedelta64(1, "h")
 
     return df
