@@ -47,6 +47,8 @@ def holt_wintersJ(
         one_D = df[df["detector_id"] == detector]
         one_D = one_D.sort_values(by=["measurement_end_utc"])
         past = one_D.tail(n=16 * days_in_past)
+        shift = 19 - past["measurement_end_utc"].min().hour
+        past = past[past["measurement_end_utc"]>past["measurement_end_utc"].min() + np.timedelta64(shift, "h")]
         for i in range(0, len(past)):
             h = i % 16
             c = past["n_vehicles_in_interval"].iloc[i]
@@ -213,12 +215,6 @@ def count_baselineJ(
         forecast_df["baseline"] = forecast_df["baseline"].apply(
             lambda x: np.max([0, x])
         )
-        forecast_df["baseline_upper"] = forecast_df["baseline_upper"].apply(
-            lambda x: np.max([0, x])
-        )
-    forecast_df["baseline_lower"] = forecast_df["baseline_lower"].apply(
-        lambda x: np.max([0, x])
-    )
 
     # T = pd.date_range(
     #     start=Y["measurement_end_utc"].min() - np.timedelta64(3, "h"),

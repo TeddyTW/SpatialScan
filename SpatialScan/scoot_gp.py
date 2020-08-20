@@ -149,7 +149,7 @@ class GPLandscape:
         det_date = pd.read_csv("gp_models/det_date.csv", index_col=False)
         detectors = det_date["detectors"].to_numpy()
         dates = det_date["last_update_start"].astype("datetime64[h]").to_numpy()
-        end_dates = det_date["last_update_start"].astype("datetime64[h]").to_numpy()
+        end_dates = det_date["last_update_end"].astype("datetime64[h]").to_numpy()
 
         for i, detector in enumerate(detectors, 1):
 
@@ -166,7 +166,7 @@ class GPLandscape:
         self.scalers = scalers
 
     def count_baseline(
-        self, scoot_df: pd.DataFrame, detectors: list = None
+        self, scoot_df: pd.DataFrame, detectors: list = None, type = "forecast"
     ) -> pd.DataFrame:
         """Produces a DataFrame where the count and baseline can be compared for use
         in scan statistics
@@ -201,13 +201,31 @@ class GPLandscape:
             start_of_trained_data = self.model_last_update_start[
                 np.where(self.model_detector_id == detector)
             ]
+            end_of_trained_data = self.model_last_update_end[
+            np.where(self.model_detector_id == detector)
+            ]
 
-            baseline_range = (
-                (one_detector_df["measurement_end_utc"] - start_of_trained_data[0])
-                .to_numpy()
-                .astype("timedelta64[h]")
-            )
-            baseline_range = baseline_range + np.timedelta64(1, "h")
+            if type == "forecast" :
+                baseline_range = (
+                    (one_detector_df["measurement_end_utc"] - start_of_trained_data[0])
+                    .to_numpy()
+                    .astype("timedelta64[h]")
+                )
+                baseline_range = baseline_range + np.timedelta64(1, "h")
+
+                print(baseline_range)
+
+            if type == "nextweek":
+                start_range = (one_detector_df["measurement_end_utc"].min() - end_of_trained_data[0])/np.timedelta64(1, 'h')
+                start_range = start_range%168 + (end_of_trained_data[0] - start_of_trained_data[0])/np.timedelta64(1, 'h') + 1
+                print(start_range)
+                baseline_range = np.arange(start_range, start_range + len(one_detector_df["measurement_end_utc"]))
+                
+                #baseline_range = baseline_range + 1
+
+                print(baseline_range)
+                
+            
 
             loc = np.where(self.model_detector_id == detector)
 

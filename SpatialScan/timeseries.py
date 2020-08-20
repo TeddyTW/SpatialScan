@@ -710,8 +710,7 @@ def count_baseline(
     # Add check for Nans cleanse
     count_nans = forecast_df["count"].isnull().sum(axis=0)
     baseline_nans = forecast_df["baseline"].isnull().sum(axis=0)
-    assert count_nans == 0
-    assert baseline_nans == 0
+
 
     # Make Baseline Values Non-Negative
     negative = len(forecast_df[forecast_df["baseline"] < 0]["baseline"])
