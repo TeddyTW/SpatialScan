@@ -6,6 +6,9 @@ from gpflow.utilities import print_summary, set_trainable, to_default_float
 from sklearn.preprocessing import MinMaxScaler
 
 class JamCamMVGP:
+    """A class for producing AutoRegressive Multivaraite GP forecasts for JamCam's, where 
+    Multiple GP models are used to make forecast of the counts in the future (Y) based on
+    the number of counts in the past (X)"""
     
     def __init__(self):
         self.model = None
@@ -13,9 +16,23 @@ class JamCamMVGP:
         self.scaler = None
 
     def create_dataset(self, single_det_df, target, days):
+        """organises data into autoregressive form. x and y are both count data,  out of sync 
+        by the number of days specified in the argument days
+
+        Args:
+            single_det_df: jamcam dataframe of count data for one detector
+            target: the class we wish to predict, either "car", "person" or "bus" 
+            days: the number of days by which to shift x & y out of sync, this will also
+                be allowable length of your forecasting period
+        Returns: 
+            x, y : Count data out of sync by number of days for training autoregression
+            """
+
+        # y is composed of all classes and is "days" number of days behind y
         x = [single_det_df["n_vehicles_in_interval_car"].to_numpy()[:-16*days],
             single_det_df["n_vehicles_in_interval_person"].to_numpy()[:-16*days], 
             single_det_df["n_vehicles_in_interval_bus"].to_numpy()[:-16*days]]
+
         if target == "car":
             y = single_det_df["n_vehicles_in_interval_car"].to_numpy()[16*days:]
         if target == "person":
@@ -24,11 +41,26 @@ class JamCamMVGP:
             y = single_det_df["n_vehicles_in_interval_bus"].to_numpy()[16*days:]
         return(x, y)    
 
-    def train(self, scoot_df, detector, target, days = 3):
-        single_det_df = scoot_df[scoot_df["detector_id"]==detector]
+    def train(self, jam_df, detector, target, days = 3):
+        """trains a model for a single scoot detector, and returns along with x and y scalers
+        Args:
+            jam_df: jamcam dataframe of count data for multiple detectors
+            detector: detector id to build model for
+            target: the class we wish to predict, either "car", "person" or "bus" 
+            days: the number of days by which to shift x & y out of sync, this will also
+                be allowable length of your forecasting period
+        Returns:       
+            model : GP flow model
+            scaler_x, scaler_y: min_max scalers for x & y respectively"""
+
+        single_det_df = jam_df[jam_df["detector_id"]==detector]
         x, y = self.create_dataset(single_det_df, target, days=days)
+
+        #double scaler seems to resolve matrix inversion best (WHY?!)
         scaler_x = MinMaxScaler(feature_range=(-1, 1))
         scaler_y = MinMaxScaler(feature_range=(-1, 1))
+
+        #organise data into gpflow friendly form
         X = np.array(x).T
         X = scaler_x.fit_transform(X)
 
@@ -39,9 +71,12 @@ class JamCamMVGP:
         #print(Y)
         kern_w = gpflow.kernels.White(1e-5)
         set_trainable(kern_w.variance, False)
+
+        #linear plus RBF works well for autoregression
         kern = gpflow.kernels.Linear() + gpflow.kernels.SquaredExponential(lengthscales=[1, 1, 1])
 
         model = gpflow.models.GPR(data=(X, Y), kernel=kern, mean_function=None)
+
         opt = gpflow.optimizers.Scipy()       
         opt.minimize(
                     model.training_loss,
@@ -54,6 +89,17 @@ class JamCamMVGP:
 
 
     def count_baseline(self, train_df, count_df, detectors, target, days=2):
+        """produces a count_baseline dataframe, given a training set, and a test set
+        Args:
+            train_df: dataframe of jamcam data to train models on
+            count_df: dataframe of jamcam data to validate model against
+            detectors: list of detectors to produce count_baseline from
+            target: the class we wish to predict, either "car", "person" or "bus" 
+            days: the number of days by which to shift x & y out of sync, this will also
+                be allowable length of your forecasting period
+        Returns:       
+            count_baseline style dataframe"""
+
         frame_list=[]
         for i, detector in enumerate(detectors, 1):
             print("please wait: ", i, "/", len(detectors), end="\r")
@@ -97,15 +143,25 @@ class JamCamMVGP:
         return pd.concat(frame_list)
 
 class JamCamMOGP:
-
+    """ A class for producing Multioutput JamCam models"""
     def __init__(self):
         self.model = None
         self.model_training_info = None
         self.scaler = None
 
     def train(self, dataset, kern=None, method="GPR", num_induce=50):
-        """method"""
-        # set up kernels
+        """trains a model for a single scoot detector, and returns along with y scaler
+
+        Args:
+            dataset: jamcam dataframe of count data for single
+            kern: optional kernel choice
+            method: method of multioutput GP
+            num_induce: number of inducing points for SVGPs
+        Returns:       
+            model : GP flow model
+            scaler: min_max scalers for count data"""
+
+        # set up kernels, two periodics plus matern works well
         if kern is None:
             
             kern_pD = gpflow.kernels.Periodic(gpflow.kernels.SquaredExponential())
@@ -120,7 +176,8 @@ class JamCamMOGP:
             # kern_pW.base_kernel.variance.assign(10)
 
             kern = kern_pD + kern_pW + kern_M
-            
+
+        #produce X data   
         X = (
             (dataset["measurement_end_utc"] - dataset["measurement_end_utc"].min())
             .astype("timedelta64[h]")
@@ -131,34 +188,37 @@ class JamCamMOGP:
         starts = dataset["measurement_end_utc"].min()
         ends = dataset["measurement_end_utc"].max()
 
+        #produce multidimensional Y data
         Y = [dataset["n_vehicles_in_interval_car"].to_numpy(), dataset["n_vehicles_in_interval_person"].to_numpy(), dataset["n_vehicles_in_interval_bus"].to_numpy()]
 
-        #self.model_training_info = pd.DataFrame({"detector_id" : detectors, "training_start" : starts, "training_end" : ends})
-
+        # put Y data in gpflow friendly form
         Y = np.array(Y)
         Y = Y.T 
 
         scaler = MinMaxScaler(feature_range=(-1, 1))
         y = scaler.fit_transform(Y)
 
-        # fit our GP to X & y
+        # basic GPR method, all Y are treated independently (is this definately true?)
         if method == "GPR":
             model = gpflow.models.GPR(data=(X, y), kernel=kern, mean_function=None)
             opt = gpflow.optimizers.Scipy()
-            #print("BEFORE OPTIMISATION")
-            #print_summary(model)
+
 
             opt.minimize(
             model.training_loss, model.trainable_variables, options=dict(maxiter=10000))
         
+        # shared kernel SVGP, which the outputs of outputs directly. Mixing matrix W = I
+        # the priors on outputs have the same kernel hyperparameters and inducing points
+        # The different GPs have independent priors and posteriors.
         if method == "sharedkern":
+            #shared independent kernel
             kern = gpflow.kernels.SharedIndependent(kern, output_dim=3)
             Zinit = np.linspace(X.min(), X.max(), num_induce)[:, None]
-            # initialization of inducing input locations (M random points from the training inputs)
+            # initialization of inducing input locations (random points from the training inputs)
             Z = Zinit.copy()
             iv = gpflow.inducing_variables.SharedIndependentInducingVariables(
             gpflow.inducing_variables.InducingPoints(Z))
-            # create SVGP model as usual and optimize
+            # create SVGP model  and optimize
             model = gpflow.models.SVGP(kern, gpflow.likelihoods.Gaussian(), inducing_variable=iv, num_latent_gps=3)
             opt = gpflow.optimizers.Scipy()
             opt.minimize(
@@ -167,15 +227,20 @@ class JamCamMOGP:
                 method="l-bfgs-b",
                 options={"disp": True, "maxiter": 10000},)
 
+        # shared kernel SVGP, which the outputs of outputs directly. Mixing matrix W = I
+        # the priors on outputs have the different kernel hyperparameters but the same 
+        # inducing points. The different GPs have independent priors and posteriors.
         if method == "seperatekern":
+            # create list of seperate independent kernels
             kern_list = [kern for _ in range(3)]
+            # create a seprate independent kernel type
             kern = gpflow.kernels.SeparateIndependent(kern_list)
             Zinit = np.linspace(X.min(), X.max(), num_induce)[:, None]
-            # initialization of inducing input locations (M random points from the training inputs)
+            # initialization of inducing input locations
             Z = Zinit.copy()
             iv = gpflow.inducing_variables.SharedIndependentInducingVariables(
             gpflow.inducing_variables.InducingPoints(Z))
-            # create SVGP model as usual and optimize
+            # create SVGP,  optimize
             model = gpflow.models.SVGP(kern, gpflow.likelihoods.Gaussian(), inducing_variable=iv, num_latent_gps=3)
             opt = gpflow.optimizers.Scipy()
             opt.minimize(
@@ -183,19 +248,28 @@ class JamCamMOGP:
                 variables=model.trainable_variables,
                 method="l-bfgs-b",
                 options={"disp": True, "maxiter": 10000},)
-            
+
+        # full mixing via linear coregionalisation. by mising the outputs in W they become correlated.
+        # we use number number of laten GPs equal to the number of outputs, but in practise it could
+        # be smaller (we only have 3 outputs)     
         if method == "coregional":
+            #create list of kernels
             kern_list = [kern for _ in range(3)]
+            #produce coregionalisation kernel
             kern = gpflow.kernels.LinearCoregionalization(kern_list, W=np.random.randn(3, 3))
+            
+            #initialise shared inducing points
             Zinit = np.linspace(X.min(), X.max(), num_induce)[:, None]
-            # initialization of inducing input locations (M random points from the training inputs)
             Z = Zinit.copy()
             iv = gpflow.inducing_variables.SharedIndependentInducingVariables(
             gpflow.inducing_variables.InducingPoints(Z))
-            # initialize mean of variational posterior to be of shape MxL
+            
+            # initialize mean of variational posterior to be of shape num_inducex3
             q_mu = np.zeros((num_induce, 3))
-            # initialize \sqrt(Σ) of variational posterior to be of shape LxMxM
+
+            # initialize \sqrt(Σ) of variational posterior to be of shape 3xnum_induce**2
             q_sqrt = np.repeat(np.eye(num_induce)[None, ...], 3, axis=0) * 1.0
+            #produce SVGP and optimse
             model = gpflow.models.SVGP(kern, gpflow.likelihoods.Gaussian(), inducing_variable=iv, q_mu=q_mu, q_sqrt=q_sqrt)
             opt = gpflow.optimizers.Scipy()
             opt.minimize(
@@ -211,7 +285,19 @@ class JamCamMOGP:
         self.scaler = scaler
         return model, scaler
     
-    def count_baseline(self, train_df, count_df, detectors: list = None, method = "GPR"):
+    def count_baseline(self, train_df, count_df, detectors: list = None, method = "GPR", num_induce=50):
+        """produces a count_baseline dataframe, given a training set, and a test set. In our case we only
+        look at cars but that choice is arbitary
+        Args:
+            train_df: dataframe of jamcam data to train models on
+            count_df: dataframe of jamcam data to validate model against
+            detectors: list of detectors to produce count_baseline from
+            method: method of multioutput GP
+            num_induce: number of inducing points for SVGPs
+ 
+        Returns:       
+            count_baseline style dataframe"""
+
         
         pd.options.mode.chained_assignment = None
 
@@ -224,7 +310,7 @@ class JamCamMOGP:
             single_detector_train = train_df[train_df["detector_id"]==detector]
             print("please wait: ", i, "/", len(detectors), end="\r")
             
-            model, scaler = self.train(single_detector_train, method=method)
+            model, scaler = self.train(single_detector_train, method=method, num_induce=num_induce)
             if model is None:
                 print("uninvertable: ", detector)
                 continue
@@ -266,6 +352,7 @@ class JamCamMOGP:
 
         return pd.concat(frame_list)
 
+## What follows is a list of similar functions, but for scoot- these require extra work (I think)
 
 class MultiVariateGP:
     
