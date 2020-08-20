@@ -452,10 +452,15 @@ def jam_preprocessor(
     orig_length = len(orig_set)
 
 
+
     print("Dropping detectors with more than {} anomalies...".format(max_anom))
     df = df.drop(df[df["Num_Anom"] > max_anom].index)
-
+    
+    print(df.index, mux)
     df = df.reindex(mux)
+
+    print(df)
+
 
     x = []
     for d in df.index.get_level_values("detector_id").unique():
@@ -472,7 +477,7 @@ def jam_preprocessor(
     #     [dets, T], names=("detector_id", "measurement_end_utc")
     # )
 
-    print(df)
+
 
     print(
         "Dropping detectors with sufficiently high amounts of missing data (>{}%)...".format(
