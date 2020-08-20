@@ -25,8 +25,7 @@ class JamCamMVGP:
             days: the number of days by which to shift x & y out of sync, this will also
                 be allowable length of your forecasting period
         Returns: 
-            x, y : Count data out of sync by number of days for training autoregression
-            """
+            x, y : Count data out of sync by number of days for training autoregression"""
 
         # y is composed of all classes and is "days" number of days behind y
         x = [single_det_df["n_vehicles_in_interval_car"].to_numpy()[:-16*days],
