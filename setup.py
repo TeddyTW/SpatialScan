@@ -23,7 +23,7 @@ setuptools.setup(
     install_requires=[
         "matplotlib==3.2.2",
         "numpy==1.18.5",
-        "tensorflow==1.15.2",
+        "tensorflow==2.5.0",
         "seaborn==0.10.1",
         "plotly==4.8.1",
         "pandas==1.0.5",
